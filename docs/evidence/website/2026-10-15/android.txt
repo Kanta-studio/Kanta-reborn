@@ -1,0 +1,98 @@
+KANTA for Android · Download Debug Preview
+Skip to content
+✦
+KANTA
+iPhone / iPad
+Android
+How to Use
+Features
+My Songbook
+Help
+Privacy
+Music Rights
+Choose your device
+iPhone / iPad
+Android phone / tablet
+KANTA · ᜃᜈ᜔ᜆ · ANDROID PHONE + TABLET
+KANTA for
+your Android.
+KANTA for Android is a separately built, native Android karaoke player. Play the original starter songs, import your own music, manage a singer queue, and keep synchronized lyrics in view. Designed for offline-first karaoke on supported Android phones and tablets.
+Download Android test app
+Explore Android features
+Android privacy details
+Latest published Android test APK — 0.1.0, build 5c555260a6f9 (October 13).
+This APK is a test build, not the Google Play version. Automated checks, emulator launch and two-companion encrypted pairing/revocation tests passed. Real-device mic, camera, USB audio, and external display acceptance remain pending.
+Check download authenticity ↗
+. Installing a test app may require allowing downloads from outside Google Play.
+LATEST PUBLISHED TEST FILES · CHECKED OCTOBER 13, 2026
+Choose the download for your device.
+Android phone or tablet
+Latest available APK:
+October 13, 2026 · build
+5c555260a6f9
+(39.5 MB). Passed Android build checks, emulator launch and encrypted two-companion pairing and Host-revocation tests. Debug-signed for testing; not on Google Play.
+Download Android APK
+Verify Android APK checksum ↗
+·
+See release details ↗
+iPhone or iPad
+Latest available IPA:
+October 13, 2026 · experimental source
+0b287c76ccf2
+(26.3 MB). Includes the optional iPhone-to-Android companion. This file is
+unsigned
+; use your own AltStore Classic signing before installation. Physical cross-device pairing, accessibility and security review are
+still pending
+. Not an App Store or TestFlight release.
+Download iPhone / iPad IPA
+Verify iPhone / iPad IPA checksum ↗
+·
+See release details ↗
+New October 13 iPhone/iPad test build:
+This is the latest published unsigned IPA and includes the experimental Android companion controls from
+PR #51
+. The source tests and device compilation passed, but real iPhone-to-Android pairing, Wi-Fi behavior, accessibility and independent security testing are
+deferred, not passed
+. The feature branch remains unmerged. Android has its own debug testing APK.
+Installation and safety help →
+ANDROID · EARLY TEST VERSION
+Built for your karaoke night.
+♪
+Use your own songs
+Import supported MIDI/KAR or MP3/WAV from Android Files. Local copies and song metadata are kept in app-private storage; your original source files are left alone.
+▣
+Lyrics and stage
+Stage-first song playback, synced KAR lyrics, Scenic user photos/videos and optional live front-camera preview. An extended-display stage can follow selected images or muted user video behind lyrics in source; HDMI hardware acceptance remains pending.
+⌕
+Remote-style controls
+Search by code, title or artist, use the number pad and RES, or opt in to Android voice recognition. The new Android test version adds private Wi-Fi companion control between Android phones. Share the Host's pairing QR code or invitation privately. Two-phone real-world testing is still in progress; iPhone and Android cannot pair with each other yet.
+♡
+Queue and saved sets
+Singer-labeled FIFO reservations, Favorites and reusable saved sessions. Export a simple song list, or save a private, access-code-protected Songbook file. Keep the code separate from the file; sharing both allows someone else to open the list.
+♫
+Live mic and SoundFont
+Original SoundFont or user-selected SF2, optional local microphone monitoring, experimental pitch correction, dry pitch scoring and party effects. Audio quality and latency still need real-device acceptance.
+⚖
+Legal and privacy in-app
+Bring your own licensed files, understand public performance rules and optional sensor permissions. Android app disclosures are readable offline from CONTROL; full KANTA policies are linked below.
+APK TEST PREVIEW
+Try KANTA on your Android.
+This test app is hosted by the official KANTA GitHub project. It includes the ten hash-verified original KANTA scenic backgrounds. Automated build and emulator launch passed, but this is not a general-public production app; hardware testing, platform feature parity and production signing remain separate release decisions.
+Follow KANTA support and availability notes →
+DEBUG
+Testing-only APK available
+Not a signed production release
+TRANSPARENT BY DESIGN
+Your library stays your responsibility.
+KANTA does not bundle commercial music, record live camera video or upload microphone recordings to the KANTA website. Android voice recognition uses your chosen device speech provider, which may send voice to its own services. The private Songbook feature is included in this new testing version, but has not yet been checked between real iOS and Android devices. The Android companion remote has passed its first encrypted-pairing test on an emulator; two real phones and iPhone/Android pairing still need testing. Offline Filipino/Taglish voice search is not ready.
+Read Android-specific privacy →
+·
+Android content-use notices →
+·
+Support →
+KANTA · Your music. Your stage.
+iPhone / iPad
+·
+Privacy
+·
+Legal

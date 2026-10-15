@@ -1,0 +1,32 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'ph.kanta.reborn'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'ph.kanta.reborn'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0-reconstruction'
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    buildTypes { release { minifyEnabled false } }
+}
+
+// Framework-free domain checks can run before spending emulator/macOS minutes.
+def coreClasses = layout.buildDirectory.dir('core-regression-classes')
+tasks.register('compileCoreRegression', JavaCompile) {
+    source = fileTree('src/main/java') { include 'ph/kanta/reborn/core/**/*.java' }
+    source += files('src/test/java/ph/kanta/reborn/core/CoreRegressionTests.java')
+    classpath = files()
+    destinationDirectory = coreClasses
+    options.release = 17
+    options.encoding = 'UTF-8'
+}
+tasks.register('coreRegression', JavaExec) {
+    dependsOn 'compileCoreRegression'
+    classpath = files(coreClasses)
+    mainClass = 'ph.kanta.reborn.core.CoreRegressionTests'
+    args file('src/main/assets/starter').absolutePath,
+         layout.buildDirectory.file('synthetic-songbook.json').get().asFile.absolutePath
+}

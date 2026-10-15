@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>KANTA</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <key>NSBonjourServices</key>
+    <array>
+        <string>_gelokaraoke._tcp</string>
+    </array>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>KANTA uses your local network to discover and control nearby KANTA hosts without the Internet.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>KANTA uses the microphone for optional voice song search, scoring and live vocal effects. The downloaded Filipino/Taglish model processes brief voice clips locally; KANTA deletes those clips. English Apple Speech may process audio online.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Allow Apple Speech to recognize English (Philippines) song titles, artists and codes. Apple may process speech online. Downloaded Filipino/Taglish voice search uses a separate local model and does not require Apple Speech access.</string>
+    <key>NSUbiquitousContainers</key>
+    <dict>
+        <key>iCloud.com.gelo.karaoke</key>
+        <dict>
+            <key>NSUbiquitousContainerIsDocumentScopePublic</key>
+            <false/>
+            <key>NSUbiquitousContainerName</key>
+            <string>KANTA</string>
+            <key>NSUbiquitousContainerSupportedFolderLevels</key>
+            <string>Any</string>
+        </dict>
+    </dict>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <true/>
+        <key>UISceneConfigurations</key>
+        <dict>
+            <key>UIWindowSceneSessionRoleExternalDisplayNonInteractive</key>
+            <array>
+                <dict>
+                    <key>UISceneConfigurationName</key>
+                    <string>KANTA External Stage</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>$(PRODUCT_MODULE_NAME).KantaExternalStageSceneDelegate</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>NSCameraUsageDescription</key>
+    <string>Use the front camera as a live karaoke background. KANTA does not save or upload camera video.</string>
+</dict>
+</plist>
+
