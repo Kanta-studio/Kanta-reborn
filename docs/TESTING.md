@@ -22,7 +22,7 @@ Tests and production source must describe the same behavior. Keep recovered test
 1. Run `python3 tools/verify-test-layout.py` to reject orphaned Swift test files, absent target directories and unknown local `@testable` imports. This checks wiring, not Swift types or behavior.
 2. Run Python release/starter guards. Preserve synthetic fixtures and isolate temporary directories.
 3. On Xcode 26.2 / Swift 6.2, run `swift build --build-tests` in `apps/ios` to compile production modules and every package test target before execution.
-4. Run `swift test --skip-build --parallel`. A successful compilation alone does not establish passing behavior.
+4. Run `swift test --skip-build --no-parallel`. A successful compilation alone does not establish passing behavior.
 5. Attempt the unsigned simulator app build even when package validation fails. This reports app integration errors in the same run rather than hiding them behind earlier failures. Retain the three diagnostic logs as seven-day artifacts.
 6. Android runs APK assembly, lint, domain regression and browser interoperability. Do not treat an APK build as device playback proof.
 
@@ -35,3 +35,5 @@ All package suites remain enabled. Build failures stay failures, including when 
 - Unsupported indexed media remains searchable with stable IDs and `isPlayable == false`; title discovery never invents playback offsets.
 
 The immutable recovery snapshots retain provenance. Active source and tests are reconciled together on the current PR.
+
+Native AVFoundation cases currently run serially while investigating the initial parallel-run signal-5 crash. All tests remain enabled. Swift backtraces, early package-log upload, and recent package-process IPS reports support diagnosis; serialization is not proof that the crash cause is fixed.

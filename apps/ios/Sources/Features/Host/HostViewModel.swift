@@ -818,10 +818,8 @@ final class HostViewModel: ObservableObject {
 
         guard let score = RoomScoreReliability.reportable(scoringSession?.completedScore) else {
             completedScore = nil
-            scoringMessage = "No reliable room score for this song. Move closer to the singer and lower the backing volume."
             return
         }
-        scoringMessage = nil
         completedScore = CompletedKaraokeScore(
             song: completedSong,
             score: score,

@@ -40,6 +40,7 @@ jobs:
     runs-on: macos-15
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      SWIFT_BACKTRACE: enable=yes
     timeout-minutes: 25
     defaults:
       run:
@@ -61,7 +62,15 @@ jobs:
       - name: Swift package tests
         run: |
           set -o pipefail
-          swift test --skip-build --parallel 2>&1 | tee swift-test-results.log
+          date +%s > swift-tests-start.txt
+          swift test --skip-build --no-parallel 2>&1 | tee swift-test-results.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ios-package-diagnostics
+          path: apps/ios/swift-*.log
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Unsigned simulator build
         if: ${{ !cancelled() }}
         run: |
@@ -70,10 +79,15 @@ jobs:
           xcodegen generate
           xcodebuild -project GeloKaraoke.xcodeproj -scheme GeloKaraoke -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee simulator-build.log
 
+      - name: Collect package crash reports
+        if: always()
+        run: python3 ../../tools/collect-swift-test-crashes.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: ios-reconstruction-diagnostics
-          path: apps/ios/*.log
+          path: |
+            apps/ios/*.log
+            apps/ios/swift-test-crashes/*
           if-no-files-found: ignore
           retention-days: 7
