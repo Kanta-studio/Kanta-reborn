@@ -189,7 +189,9 @@ public struct LiveKaraokeScoringSession: Sendable {
             return nil
         }
 
-        let position = completed ? Int64.max : latestPlaybackPositionMilliseconds
+        // Include the latest sample in a live score without extending source note endings.
+        let position = completed || latestPlaybackPositionMilliseconds == Int64.max
+            ? Int64.max : latestPlaybackPositionMilliseconds + 1
         let elapsedTargets = target.windows.compactMap {
             window -> TargetPitchWindow? in
             guard window.startMilliseconds

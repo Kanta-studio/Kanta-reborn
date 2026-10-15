@@ -60,3 +60,8 @@ Run 38744977603 compiled all Swift package/test targets successfully, then test 
 Run 38746167309 compiled all package/test targets. Early package artifact showed native audio cases passing, duplicate burst/boundary score assertions failing, then signal 5 at scorerRejectsInvalidPitchAndLatencyOverflow. The active scorer subtracted Int64.min without overflow handling. Reconciled the full scorer hardening from scoring-023d470e1608 while preserving the newer finite MIDI-note conversion. Also made expected-slot calculation integer-safe for Int64.max durations and rejected invalid mutable target windows; added focused extreme-value coverage. Existing assertions are retained. Removed SWIFT_BACKTRACE injection after the runner reported privileged-executable backtraces unsupported. Apple revalidation is pending.
 
 Run 38746167309 also completed the full unsigned Release iOS Simulator app build successfully; no package-process IPS report was produced. The next run validates the scorer repair on a changed head. Native audio tests, including non-silent original starter SF2 rendering, passed in the serial run before the scoring crash.
+
+
+## Complete package execution — October 15, 2026
+
+Run 38747387142 executed all 157 Swift package tests without the prior crash: 156 passed, one live-score assertion failed. Half-open note windows correctly reject note-ending samples, but the live window clipped its end to the latest sample timestamp and excluded that sample. The live cutoff now includes that tick with saturation at Int64.max while still clipping to the source note end. Added live/source-boundary regression coverage; completed scoring remains unchanged. No assertions were removed. Android passed again; simulator validation on this run is still in progress.

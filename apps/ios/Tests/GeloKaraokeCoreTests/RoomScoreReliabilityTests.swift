@@ -64,3 +64,17 @@ private let roomTarget = TargetPitchWindow(startMilliseconds: 0, endMilliseconds
     let rejected = KaraokePitchScorer.score(observations: [roomObservation(0)], targets: [invalid])
     #expect(rejected.matchedObservationCount == 0)
 }
+
+
+@Test func liveScoringKeepsSourceNoteEndExclusive() {
+    let target = MIDIMelodyTarget(trackIndex: 1, channel: 0, evidence: .lyricBearingTrack,
+        windows: [roomTarget])
+    var session = LiveKaraokeScoringSession(target: target)
+    session.updatePlaybackAnchor(snapshot: KaraokeSnapshot(transport: .playing, positionMilliseconds: 0),
+        captureTimestampMilliseconds: 1_000)
+    _ = session.ingest(roomObservation(1_000))
+    #expect(session.score?.matchedObservationCount == 1)
+    _ = session.ingest(roomObservation(2_000))
+    #expect(session.score?.matchedObservationCount == 1)
+    #expect(session.completedScore?.matchedObservationCount == 1)
+}
