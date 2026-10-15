@@ -122,6 +122,127 @@ public final class RuntimeChecks extends Instrumentation {
               .filter(SessionController::isAudio)
               .findFirst()
               .orElseThrow(() -> new AssertionError("Missing fixture song"));
+      StageMediaStore visualStore =
+          new StageMediaStore(getTargetContext().createDeviceProtectedStorageContext());
+      visualStore.load();
+      boolean cancelledPhoto = false;
+      try {
+        visualStore.importMedia(FixtureProvider.file("photo"), false, () -> true);
+      } catch (java.io.InterruptedIOException expected) {
+        cancelledPhoto = true;
+      }
+      check(
+          cancelledPhoto && visualStore.selection().kind.equals("scenic"),
+          "Cancelled photo import changed selection");
+      StageMediaStore.Selection photo =
+          visualStore.importMedia(FixtureProvider.file("photo"), false, () -> false);
+      StageMediaStore reloadedVisuals =
+          new StageMediaStore(getTargetContext().createDeviceProtectedStorageContext());
+      check(reloadedVisuals.load().kind.equals("photo"), "Visual selection did not persist");
+      try (InputStream original =
+          getTargetContext().getContentResolver().openInputStream(FixtureProvider.file("photo"))) {
+        check(
+            java.util.Arrays.equals(
+                readFixture(original), java.nio.file.Files.readAllBytes(photo.photo.toPath())),
+            "Photo source bytes changed");
+      }
+      android.graphics.Bitmap decoded = StageMediaStore.displayPhoto(photo.photo);
+      check(decoded.getWidth() == 80 && decoded.getHeight() == 60, "Photo display decode failed");
+      decoded.recycle();
+      boolean rejectedPhoto = false;
+      try {
+        visualStore.importMedia(FixtureProvider.file("bad"), false, () -> false);
+      } catch (IOException expected) {
+        rejectedPhoto = true;
+      }
+      check(
+          rejectedPhoto && visualStore.selection().photo.equals(photo.photo),
+          "Invalid photo replaced the saved image");
+      StageMediaStore.Selection savedVideo =
+          visualStore.importMedia(FixtureProvider.file("video"), true, () -> false);
+      try (InputStream original =
+          getTargetContext().getContentResolver().openInputStream(FixtureProvider.file("video"))) {
+        check(
+            java.util.Arrays.equals(
+                readFixture(original), java.nio.file.Files.readAllBytes(savedVideo.video.toPath())),
+            "Video source bytes changed");
+      }
+      check(
+          new StageMediaStore(getTargetContext().createDeviceProtectedStorageContext())
+              .load()
+              .kind
+              .equals("video"),
+          "Video selection did not persist");
+      boolean rejectedVideo = false;
+      try {
+        visualStore.importMedia(FixtureProvider.file("bad"), true, () -> false);
+      } catch (IOException expected) {
+        rejectedVideo = true;
+      }
+      check(
+          rejectedVideo && visualStore.selection().video.equals(savedVideo.video),
+          "Invalid video replaced the saved clip");
+      check(
+          visualStore.select("scenic").kind.equals("scenic")
+              && visualStore.select("photo").photo.equals(photo.photo),
+          "Switching visual kinds discarded saved media");
+      await(() -> session.stageReady, "Visual storage did not become ready");
+      runOnMainSync(() -> session.importStage(FixtureProvider.file("photo"), false));
+      await(
+          () ->
+              !session.importing
+                  && session.stageKind.equals("photo")
+                  && session.scenic != null
+                  && session.scenic.getWidth() == 80,
+          "Controller photo import failed");
+      AtomicReference<View> stableStage = new AtomicReference<>();
+      runOnMainSync(
+          () ->
+              stableStage.set(
+                  activity.getWindow().getDecorView().findViewWithTag("kanta.stage.primary")));
+      runOnMainSync(session::publish);
+      check(
+          state(
+              () ->
+                  stableStage.get()
+                      == activity
+                          .getWindow()
+                          .getDecorView()
+                          .findViewWithTag("kanta.stage.primary")),
+          "Controller update detached the stage subtree");
+      await(() -> stableStage.get().getWidth() > 0, "Stage layout never became visible");
+      check(
+          state(
+              () -> {
+                for (String name : new String[] {"My Set", "Loop", "Scenic", "Realm", "Control"}) {
+                  View tab =
+                      activity.getWindow().getDecorView().findViewWithTag("kanta.nav." + name);
+                  android.graphics.Rect visible = new android.graphics.Rect();
+                  if (tab == null
+                      || !tab.getGlobalVisibleRect(visible)
+                      || visible.width() != tab.getWidth()
+                      || visible.height() != tab.getHeight()) return false;
+                }
+                return true;
+              }),
+          "Navigation tab is clipped on the phone display");
+      runOnMainSync(() -> session.importStage(FixtureProvider.file("video"), true));
+      await(
+          () -> !session.importing && session.stageKind.equals("video"),
+          "Controller video import failed");
+      await(
+          () -> ((StageSurface) stableStage.get()).isVideoVisible(),
+          "Muted video did not render under lyrics");
+      runOnMainSync(() -> ((StageSurface) stableStage.get()).setVisualActive(false));
+      check(
+          state(() -> !((StageSurface) stableStage.get()).isVideoVisible()),
+          "Inactive stage retained video rendering");
+      runOnMainSync(() -> ((StageSurface) stableStage.get()).setVisualActive(true));
+      await(
+          () -> ((StageSurface) stableStage.get()).isVideoVisible(),
+          "Video did not resume after reactivation");
+      runOnMainSync(() -> session.scene("bayanDawn"));
+      check(state(() -> session.stageVideo == null), "Scenic selection retained video playback");
       runOnMainSync(
           () -> {
             session.reserve(song, "First");

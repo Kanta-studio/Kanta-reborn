@@ -28,6 +28,14 @@ final class SessionController {
   String scenicName = "bayanDawn";
   private boolean savingSet = false;
   private LibraryRepository repository;
+  private StageMediaStore stageStore;
+  StageMediaStore.Selection stageSelection;
+  boolean stageReady;
+  String stageKind = "scenic";
+  File stageVideo;
+  long visualGeneration;
+  private long stageRequest;
+  long visualEpoch = android.os.SystemClock.elapsedRealtime();
   List<Song> songs = Collections.emptyList();
   List<LibraryRepository.SavedSet> savedSets = Collections.emptyList();
   List<MidiLyrics.Cue> lyrics = Collections.emptyList();
@@ -119,6 +127,7 @@ final class SessionController {
                   soundFontName = bankLabel;
                   ready = true;
                   preparePads();
+                  restoreStage();
                   message = "Your music. Your stage.";
                   publish();
                 });
@@ -141,6 +150,123 @@ final class SessionController {
   void publish() {
     updateIntermission();
     if (listener != null) listener.changed();
+  }
+
+  private void restoreStage() {
+    io.execute(
+        () -> {
+          try {
+            stageStore = new StageMediaStore(context);
+            StageMediaStore.Selection selection = stageStore.load();
+            main.post(
+                () -> {
+                  stageReady = true;
+                  applyStage(selection);
+                });
+          } catch (Exception failure) {
+            main.post(
+                () -> {
+                  stageReady = true;
+                  message =
+                      "Saved stage media is unavailable. Scenic backgrounds remain available.";
+                  publish();
+                });
+          }
+        });
+  }
+
+  void importStage(android.net.Uri uri, boolean video) {
+    if (!ready || !stageReady || importing) return;
+    importing = true;
+    importCancelled.set(false);
+    long token = ++stageRequest;
+    message = video ? "Copying your background video…" : "Copying your background photo…";
+    publish();
+    io.execute(
+        () -> {
+          try {
+            if (stageStore == null) stageStore = new StageMediaStore(context);
+            StageMediaStore.Selection selection =
+                stageStore.importMedia(uri, video, importCancelled::get);
+            main.post(
+                () -> {
+                  importing = false;
+                  if (token == stageRequest) {
+                    applyStage(selection);
+                    message = "Your background is ready. The original file is unchanged.";
+                  }
+                  publish();
+                });
+          } catch (Exception failure) {
+            main.post(
+                () -> {
+                  importing = false;
+                  message =
+                      "Stage import stopped or the media is unsupported. Your previous background"
+                          + " is retained.";
+                  publish();
+                });
+          }
+        });
+  }
+
+  void chooseStage(String kind) {
+    if (!stageReady || stageStore == null || importing) return;
+    long token = ++stageRequest;
+    io.execute(
+        () -> {
+          try {
+            StageMediaStore.Selection selection = stageStore.select(kind);
+            main.post(
+                () -> {
+                  if (token == stageRequest) {
+                    applyStage(selection);
+                    publish();
+                  }
+                });
+          } catch (Exception failure) {
+            main.post(
+                () -> {
+                  if (token == stageRequest) {
+                    message = "Choose a photo or video first.";
+                    publish();
+                  }
+                });
+          }
+        });
+  }
+
+  private void applyStage(StageMediaStore.Selection selection) {
+    stageSelection = selection;
+    stageKind = selection.kind;
+    stageVideo = stageKind.equals("video") ? selection.video : null;
+    visualEpoch = android.os.SystemClock.elapsedRealtime();
+    long token = ++visualGeneration;
+    if (stageKind.equals("photo") && selection.photo != null) {
+      io.execute(
+          () -> {
+            try {
+              android.graphics.Bitmap photo = StageMediaStore.displayPhoto(selection.photo);
+              main.post(
+                  () -> {
+                    if (token == visualGeneration && stageKind.equals("photo")) {
+                      scenic = photo;
+                      publish();
+                    } else photo.recycle();
+                  });
+            } catch (Exception | OutOfMemoryError failure) {
+              main.post(
+                  () -> {
+                    if (token == visualGeneration) {
+                      message =
+                          "This photo cannot be displayed. Choose another or a Scenic background.";
+                      publish();
+                    }
+                  });
+            }
+          });
+    }
+    publish();
   }
 
   private void preparePads() {
@@ -761,6 +887,18 @@ final class SessionController {
 
   void scene(String name) {
     scenicName = name;
+    stageKind = "scenic";
+    stageVideo = null;
+    stageRequest++;
+    visualGeneration++;
+    if (ready && stageStore != null)
+      io.execute(
+          () -> {
+            try {
+              stageStore.select("scenic");
+            } catch (Exception ignored) {
+            }
+          });
     io.execute(
         () -> {
           try {
@@ -780,7 +918,7 @@ final class SessionController {
             }
             main.post(
                 () -> {
-                  if (scenicName.equals(name)) {
+                  if (scenicName.equals(name) && stageKind.equals("scenic")) {
                     scenic = bitmap;
                     publish();
                   }

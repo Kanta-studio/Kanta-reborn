@@ -21,6 +21,7 @@ final class StageView extends View {
   private String cachedCurrent = "", cachedNext = "";
   private int cachedHighlight = -1, cachedWidth = -1;
   private float cachedSize;
+  private boolean externalMedia;
   private final float[] stars = new float[192];
 
   StageView(Context context, SessionController session) {
@@ -36,6 +37,11 @@ final class StageView extends View {
 
   private int dp(int v) {
     return (int) (v * getResources().getDisplayMetrics().density);
+  }
+
+  void mediaVisible(boolean visible) {
+    externalMedia = visible;
+    invalidate();
   }
 
   void refresh() {
@@ -55,9 +61,9 @@ final class StageView extends View {
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
     float w = getWidth(), h = getHeight();
-    canvas.drawColor(Color.rgb(13, 18, 42));
+    if (!externalMedia) canvas.drawColor(Color.rgb(13, 18, 42));
     Bitmap scene = session.scenic;
-    if (scene != null && !scene.isRecycled()) {
+    if (!externalMedia && scene != null && !scene.isRecycled()) {
       float scale = Math.max(w / scene.getWidth(), h / scene.getHeight());
       float sw = w / scale, sh = h / scale;
       source.set(
@@ -68,6 +74,10 @@ final class StageView extends View {
       target.set(0, 0, w, h);
       paint.setAlpha(255);
       canvas.drawBitmap(scene, source, target, paint);
+      paint.setColor(0x88000000);
+      canvas.drawRect(0, 0, w, h, paint);
+    }
+    if (externalMedia) {
       paint.setColor(0x88000000);
       canvas.drawRect(0, 0, w, h, paint);
     }

@@ -17,14 +17,17 @@ import java.util.concurrent.*;
 import ph.kanta.reborn.core.*;
 
 public final class MainActivity extends Activity {
-  private static final int MUSIC = 10, VOICE = 11, EXPORT = 12, FOLDER = 13;
+  private static final int MUSIC = 10, VOICE = 11, EXPORT = 12, FOLDER = 13, PHOTO = 14, VIDEO = 15;
   private static final int NAVY = 0xFF0B1023,
       PANEL = 0xFF19213E,
       CYAN = 0xFF6FE5E8,
       GOLD = 0xFFF6CE77;
   private SessionController session;
   private LinearLayout root, body, results;
-  private StageView stage, fullscreenStage, externalStage;
+  private StageSurface stage, fullscreenStage, externalStage;
+  private TextView nowPlaying;
+  private Button playButton, nextButton;
+  private final Map<String, Button> navigationButtons = new HashMap<>();
   private Dialog fullscreen;
   private Presentation presentation;
   private DisplayManager displays;
@@ -80,6 +83,8 @@ public final class MainActivity extends Activity {
   protected void onStart() {
     super.onStart();
     session.hostVisible(true);
+    if (stage != null) stage.setVisualActive(fullscreen == null || !fullscreen.isShowing());
+    if (fullscreenStage != null) fullscreenStage.setVisualActive(true);
     session.listen(this::render);
     handler.post(tick);
     displays.registerDisplayListener(displayListener, handler);
@@ -92,6 +97,8 @@ public final class MainActivity extends Activity {
     displays.unregisterDisplayListener(displayListener);
     session.listen(null);
     session.hostVisible(false);
+    if (stage != null) stage.setVisualActive(false);
+    if (fullscreenStage != null) fullscreenStage.setVisualActive(false);
     if (!isChangingConfigurations()) session.pause();
     if (presentation != null) presentation.dismiss();
     presentation = null;
@@ -162,6 +169,24 @@ public final class MainActivity extends Activity {
     searchGeneration++;
     queryInput = null;
     results = null;
+    if (root == null) buildWindow();
+    nowPlaying.setText(
+        session.current == null
+            ? "Ready for your next song"
+            : session.current.title + (session.singer.isEmpty() ? "" : " · " + session.singer));
+    playButton.setText(session.playing ? "Pause" : "Play");
+    playButton.setEnabled(session.ready && !session.loading);
+    nextButton.setEnabled(session.ready && !session.loading);
+    for (Map.Entry<String, Button> entry : navigationButtons.entrySet()) {
+      entry.getValue().setSelected(entry.getKey().equals(tab));
+      entry.getValue().setTextColor(entry.getKey().equals(tab) ? GOLD : Color.WHITE);
+    }
+    body.removeAllViews();
+    renderPanel();
+    stage.refresh();
+  }
+
+  private void buildWindow() {
     root = column();
     root.setBackgroundColor(NAVY);
     root.setPadding(dp(12), 0, dp(12), 0);
@@ -177,6 +202,10 @@ public final class MainActivity extends Activity {
     setContentView(root);
     root.requestApplyInsets();
     LinearLayout header = row();
+    ImageView mark = new ImageView(this);
+    mark.setImageDrawable(getApplicationInfo().loadIcon(getPackageManager()));
+    mark.setContentDescription("KANTA");
+    header.addView(mark, new LinearLayout.LayoutParams(dp(40), dp(40)));
     TextView brand = text("KANTA · ᜃᜈ᜔ᜆ", 22, GOLD);
     brand.setTypeface(null, android.graphics.Typeface.BOLD);
     header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
@@ -187,25 +216,24 @@ public final class MainActivity extends Activity {
     main.setOrientation(wide ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL);
     root.addView(main, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout stagePane = column();
-    stage = new StageView(this, session);
+    stage = new StageSurface(this, session);
+    stage.setTag("kanta.stage.primary");
     stage.setOnClickListener(v -> fullscreen());
     stage.setContentDescription("Karaoke stage. Double tap to open fullscreen.");
     stagePane.addView(stage, new LinearLayout.LayoutParams(-1, 0, 1));
-    TextView now =
+    nowPlaying =
         text(
             session.current == null
                 ? "Ready for your next song"
                 : session.current.title + (session.singer.isEmpty() ? "" : " · " + session.singer),
             15,
             Color.WHITE);
-    stagePane.addView(now);
+    stagePane.addView(nowPlaying);
     LinearLayout transport = row();
-    Button play = button(session.playing ? "Pause" : "Play", session::toggle);
-    play.setEnabled(session.ready && !session.loading);
-    addWeighted(transport, play);
-    Button next = button("Next", session::next);
-    next.setEnabled(session.ready && !session.loading);
-    addWeighted(transport, next);
+    playButton = button("Play", session::toggle);
+    addWeighted(transport, playButton);
+    nextButton = button("Next", session::next);
+    addWeighted(transport, nextButton);
     addWeighted(transport, button("Fullscreen", this::fullscreen));
     stagePane.addView(transport);
     if (wide) main.addView(stagePane, new LinearLayout.LayoutParams(0, -1, 1.2f));
@@ -221,6 +249,31 @@ public final class MainActivity extends Activity {
     scroll.addView(body);
     if (wide) main.addView(scroll, new LinearLayout.LayoutParams(0, -1, 1));
     else main.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+    LinearLayout tabs = row();
+    for (String name : new String[] {"My Set", "Loop", "Scenic", "Realm", "Control"}) {
+      Button b =
+          button(
+              name,
+              () -> {
+                tab = name;
+                render();
+              });
+      b.setMinWidth(0);
+      b.setMinimumWidth(0);
+      b.setPadding(dp(3), dp(4), dp(3), dp(4));
+      b.setTextSize(12);
+      b.setMaxLines(2);
+      b.setSelected(name.equals(tab));
+      b.setTag("kanta.nav." + name);
+      if (name.equals(tab)) b.setTextColor(GOLD);
+      navigationButtons.put(name, b);
+      tabs.addView(b, new LinearLayout.LayoutParams(0, -2, 1));
+    }
+    root.addView(tabs);
+    stage.refresh();
+  }
+
+  private void renderPanel() {
     body.addView(text(session.message, 13, CYAN));
     switch (tab) {
       case "My Set":
@@ -238,23 +291,6 @@ public final class MainActivity extends Activity {
       default:
         control();
     }
-    HorizontalScrollView navigation = new HorizontalScrollView(this);
-    navigation.setHorizontalScrollBarEnabled(false);
-    LinearLayout tabs = row();
-    for (String name : new String[] {"My Set", "Loop", "Scenic", "Realm", "Control"}) {
-      Button b =
-          button(
-              name,
-              () -> {
-                tab = name;
-                render();
-              });
-      if (name.equals(tab)) b.setTextColor(GOLD);
-      tabs.addView(b);
-    }
-    navigation.addView(tabs);
-    root.addView(navigation);
-    stage.refresh();
   }
 
   private void control() {
@@ -547,6 +583,39 @@ public final class MainActivity extends Activity {
 
   private void scenic() {
     body.addView(text("Choose your stage", 22, Color.WHITE));
+    Button photo =
+        button(
+            "Choose your photo",
+            () ->
+                startActivityForResult(
+                    new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                        .setType("image/*")
+                        .addCategory(Intent.CATEGORY_OPENABLE),
+                    PHOTO));
+    Button video =
+        button(
+            "Choose your silent background video",
+            () ->
+                startActivityForResult(
+                    new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                        .setType("video/*")
+                        .addCategory(Intent.CATEGORY_OPENABLE),
+                    VIDEO));
+    photo.setEnabled(session.stageReady && !session.importing);
+    video.setEnabled(session.stageReady && !session.importing);
+    body.addView(photo);
+    body.addView(video);
+    body.addView(
+        text(
+            "Photos up to 32 MB; videos up to 512 MB and six hours. Originals stay unchanged. Video"
+                + " sound is muted.",
+            14,
+            Color.WHITE));
+    if (session.stageSelection != null && session.stageSelection.photo != null)
+      body.addView(button("Use your last photo", () -> session.chooseStage("photo")));
+    if (session.stageSelection != null && session.stageSelection.video != null)
+      body.addView(button("Use your last video", () -> session.chooseStage("video")));
+    if (session.importing) body.addView(button("Cancel import", session::cancelImports));
     String[] names = {
       "bayanDawn",
       "bambooMist",
@@ -562,7 +631,12 @@ public final class MainActivity extends Activity {
     for (String name : names) {
       String title = name.replaceAll("([a-z])([A-Z])", "$1 $2");
       body.addView(
-          button((session.scenicName.equals(name) ? "✓ " : "") + title, () -> session.scene(name)));
+          button(
+              (session.stageKind.equals("scenic") && session.scenicName.equals(name) ? "✓ " : "")
+                  + title,
+              () -> {
+                if (session.stageReady) session.scene(name);
+              }));
     }
   }
 
@@ -701,7 +775,7 @@ public final class MainActivity extends Activity {
     fullscreen = new Dialog(this, android.R.style.Theme_Material_NoActionBar_Fullscreen);
     LinearLayout content = column();
     content.setBackgroundColor(Color.BLACK);
-    fullscreenStage = new StageView(this, session);
+    fullscreenStage = new StageSurface(this, session);
     content.addView(fullscreenStage, new LinearLayout.LayoutParams(-1, 0, 1));
     LinearLayout controls = row();
     addWeighted(controls, button("Play / Pause", session::toggle));
@@ -709,7 +783,12 @@ public final class MainActivity extends Activity {
     addWeighted(controls, button("Close", () -> fullscreen.dismiss()));
     content.addView(controls);
     fullscreen.setContentView(content);
-    fullscreen.setOnDismissListener(d -> fullscreenStage = null);
+    fullscreen.setOnDismissListener(
+        d -> {
+          fullscreenStage = null;
+          stage.setVisualActive(true);
+        });
+    stage.setVisualActive(false);
     fullscreen.show();
   }
 
@@ -723,7 +802,7 @@ public final class MainActivity extends Activity {
       if (display.getDisplayId() == getWindowManager().getDefaultDisplay().getDisplayId()) continue;
       try {
         presentation = new Presentation(this, display);
-        externalStage = new StageView(presentation.getContext(), session);
+        externalStage = new StageSurface(presentation.getContext(), session);
         presentation.setContentView(externalStage);
         presentation.show();
         break;
@@ -807,6 +886,10 @@ public final class MainActivity extends Activity {
         exportBytes = null;
         exportCode = null;
       }
+      return;
+    }
+    if ((request == PHOTO || request == VIDEO) && data.getData() != null) {
+      session.importStage(data.getData(), request == VIDEO);
       return;
     }
     if (request == MUSIC) {
@@ -897,9 +980,10 @@ public final class MainActivity extends Activity {
                 + "3. Choose Play. Next starts the next reservation. Tap the stage for"
                 + " fullscreen.\n\n"
                 + "4. Save playlists or the songs you finished in My Set.\n\n"
-                + "This is a reconstruction preview. Custom SoundFonts, microphone effects, camera"
-                + " stages and companion pairing are still being restored. They are not enabled in"
-                + " this version. Use music you have permission to use.")
+                + "SoundFonts can be added in My Set. Loop has party sounds and between-song music."
+                + " This is a reconstruction preview; microphone effects, camera stages and"
+                + " companion pairing are still being restored. They are not enabled in this"
+                + " version. Use music you have permission to use.")
         .setPositiveButton("Done", null)
         .show();
   }

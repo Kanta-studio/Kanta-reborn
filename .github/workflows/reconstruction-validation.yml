@@ -35,7 +35,10 @@ jobs:
         run: python3 tools/run-android-runtime.py
       - name: Preserve Android runtime diagnostics
         if: always()
-        run: timeout 20s "$ANDROID_HOME/platform-tools/adb" logcat -d > android-logcat.log 2>&1 || true
+        run: |
+          if [ ! -s android-logcat.log ]; then
+            timeout 20s "$ANDROID_HOME/platform-tools/adb" logcat -d > android-logcat.log 2>&1 || true
+          fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

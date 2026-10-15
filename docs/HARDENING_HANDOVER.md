@@ -130,3 +130,11 @@ Website run 38813213292 passed static checks. Production deployment `dpl_2ar7Pid
 The local branch `feature/android-stage-media` contains uncommitted private photo/video stage, lifecycle, source-byte preservation, stable UI subtree/navigation and fixture/runtime-test work. It compiled against API 36 before the environment disconnected, but has not been published or runtime validated. Preserve that draft when workspace access returns; do not reset the checkout or claim the feature shipped.
 
 Next implementation work: resume and publish that bounded media draft, run build/lint/domain/native/browser/emulator checks, then address optional camera, microphone and companion features individually. Keep official YouTube integration under its documented playback plan. Physical-device and Apple-signing tasks remain outside completed online acceptance. Necessary CI/reruns are not capped by the user.
+
+## Resumed Android personal-media work — October 16, 2026
+
+The workspace is online again. The local draft was checkpointed before review. A truncated local deepLagoon PNG was preserved separately and restored from the tracked original bytes; that restoration does not change the published artwork.
+
+The Android 0.4.0 batch adds private photo/video stage imports, persisted selection, bounded validation and generation-fenced muted video lifecycle. MainActivity retains its stage/transport/navigation subtree and fits all five tabs on narrow phones. The original app mark is reused without modification. A 1,917-byte original solid-color MP4 replaces unvalidated runtime codec fixture generation. Existing emulator diagnostics are no longer overwritten by a post-shutdown ADB fallback.
+
+Local API 36 source/instrumentation compilation, 201 domain checks, browser interoperability and test-layout preflight passed. Cloud APK/lint/native/emulator results are pending; no release, physical audio/camera acceptance or signed distribution is claimed. Existing public downloads continue pointing to the earlier accepted builds until this source passes its checks.
