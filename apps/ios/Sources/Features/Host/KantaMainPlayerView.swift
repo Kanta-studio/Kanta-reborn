@@ -50,6 +50,7 @@ struct KantaMainPlayerView: View {
                     if let song = model.snapshot.nowPlaying {
                         Text(song.title + (song.artist.map { " · " + $0 } ?? ""))
                             .font(.caption).lineLimit(1).foregroundStyle(.white.opacity(0.8))
+                            .accessibilityIdentifier("stage.currentSong")
                     }
                     controls(wide: wide)
                     HStack {

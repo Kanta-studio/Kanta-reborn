@@ -110,6 +110,7 @@ struct LibraryView: View {
                             Button { Task { await model.playStarter(identifier, queueOnly: false) } } label: {
                                 Label("Play", systemImage: "play.fill")
                             }
+                            .accessibilityIdentifier("starter.play." + identifier)
                             Button { Task { await model.playStarter(identifier, queueOnly: true) } } label: {
                                 Label("Queue", systemImage: "text.badge.plus")
                             }

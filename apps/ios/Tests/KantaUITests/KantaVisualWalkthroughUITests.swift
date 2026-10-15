@@ -5,6 +5,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
     private let waitSeconds: TimeInterval = 25
     override func setUpWithError() throws { continueAfterFailure = false }
 
+    @MainActor
     func testStarterPlaybackAndControls() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
@@ -16,14 +17,18 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         XCTAssertTrue(title.waitForExistence(timeout: waitSeconds))
         for _ in 0..<8 where !title.isHittable { app.swipeUp() }
         capture("02-real-starter-library", app)
-        let play = app.buttons["Play"].firstMatch
+        let play = app.buttons["starter.play.morning-light"]
         for _ in 0..<5 where !play.isHittable { app.swipeUp() }
         XCTAssertTrue(play.isHittable)
         play.tap()
         app.buttons["Done"].firstMatch.tap()
         let transport = app.buttons["stage.playPause"]
         XCTAssertTrue(transport.waitForExistence(timeout: 10))
-        XCTAssertTrue(transport.isEnabled)
+        expectation(for: NSPredicate(format: "enabled == true AND label == 'Pause'"), evaluatedWith: transport)
+        waitForExpectations(timeout: waitSeconds)
+        let currentSong = app.staticTexts["stage.currentSong"]
+        expectation(for: NSPredicate(format: "label CONTAINS %@", "Morning Light"), evaluatedWith: currentSong)
+        waitForExpectations(timeout: waitSeconds)
         capture("03-real-starter-playing", app)
         transport.tap()
         expectation(for: NSPredicate(format: "label == 'Play'"), evaluatedWith: transport)
@@ -47,6 +52,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         }
     }
 
+    @MainActor
     func testMainMenuButtonsAndScreens() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
@@ -63,6 +69,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         }
     }
 
+    @MainActor
     func testDemoKeypadCancelAndRepeatedIntentionalReservations() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "1"
@@ -102,6 +109,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
     }
 
+    @MainActor
     private func capture(_ name: String, _ app: XCUIApplication) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name

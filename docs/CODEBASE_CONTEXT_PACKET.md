@@ -1,6 +1,6 @@
 # Codebase Context Packet — KANTA Reborn
 
-Snapshot: 2026-10-15, PR #1 merged at `1720a54f31123f2ef59d41383dc41ef06c5855d5`; current Android media work on `feature/native-media-parity` (uncommitted source). Source, tests and workflow are published; this is not a signed or device-accepted release.
+Snapshot: 2026-10-15, PR #1 merged at `1720a54f31123f2ef59d41383dc41ef06c5855d5`; current Android media work on `feature/native-media-parity` (published PR #2). Source, tests and workflow are published; this is not a signed or device-accepted release.
 
 ## Android stack
 
@@ -50,3 +50,5 @@ The current source compiles against official API 36 references. All 167 core reg
 SAF individual/folder imports accept MIDI/KAR, MP3/WAV and SF2. Folder scans are bounded to 10,000 entries, 1,024 directories and depth 16. Cancellation rolls back the batch's new copies and metadata; byte-identical orphan copies can be recovered after integrity verification. A folder is copied explicitly, not watched automatically. The selected bank is persisted independently of song names.
 
 SF2 acceptance is deliberately bounded: 32 MiB input, 128 MiB native allocation budget per worker, 128 voices, 1,024 presets, 8,192 expanded regions and bounded traversal. Structural chunk/table/reference checks precede the unchanged third-party parser; final sample/loop bounds are checked before rendering. Negative coarse sample offsets are rejected before the pinned loader can perform a signed shift. Out-of-range coarse/fine tuning and root keys are rejected. Unsupported banks fail visibly rather than being treated as a successful override. Physical sound quality, latency, bank compatibility and long-session acceptance remain open.
+
+The iOS runtime follow-up changes only accessibility identities, UI-test isolation/waits, and root validation/artifact orchestration. Core playback ownership and persisted formats are unchanged. Xcode UI-target compilation, both simulator walkthroughs and the unsigned device archive remain pending on that branch.

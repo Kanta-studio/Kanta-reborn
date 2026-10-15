@@ -82,3 +82,8 @@ Local validation: 167 domain assertions, browser interoperability, runtime/instr
 
 
 Cloud run 38801573776 passed native sanitizer checks, all 167 domain assertions, browser interoperability, NDK APK and instrumentation assembly, and lint. The emulator setup stopped before app launch because `adb` was absent from PATH. The workflow now installs platform-tools explicitly, exports its path and collects logcat independently after failure. No emulator pass is claimed from that attempt. Native review also added a pre-loader rejection for negative coarse offsets and invalid tuning/root-key ranges; vendor bytes remain unchanged. Fresh changed-head execution is required.
+
+
+## iOS online runtime/artifact follow-up — October 16, 2026
+
+Prepared a separate owner-labeled iPhone/iPad runtime workflow, actual simulator recordings/screenshots and an unsigned device IPA packaging gate. The Xcode UI suite now isolates interactions on MainActor, selects the Morning Light starter by stable identity and waits for actual current-song/playing state before pause/resume. This addresses asynchronous preparation rather than weakening the playback assertion. Device archive uses the existing personal-signing flag and omits iCloud entitlements, retaining all original Apple bundle identities. No signing material is requested or exposed. These changes require hosted UI compilation and execution; no runtime/IPA pass is claimed yet.
