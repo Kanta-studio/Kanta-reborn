@@ -52,3 +52,6 @@ Cloud run [38748040876](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/
 ## iOS online runtime workflow
 
 The root `ios-runtime-artifacts.yml` runs only by owner manual dispatch or `owner-approved-ios-runtime` label. It builds all Xcode UI tests, executes the complete walkthrough suite on an available iPhone and iPad separately, records each simulator and extracts XCTest attachments even on failures. Stable accessibility IDs identify the requested starter and current song, and predicates wait for actual playback. Logs, results and video remain available for seven days. Only after both walkthroughs pass does it build/package an unsigned iPhoneOS personal-signing input; signing and hardware acceptance remain separate.
+
+
+Android emulator startup uses an explicit shared AVD directory for avdmanager and emulator. The helper detects early process exits, bounds boot/ADB/instrumentation, always collects diagnostics and retires the emulator. Use `owner-approved-android-validation` for Android-only repairs; `owner-approved-validation` still runs both native platforms. No source tests are skipped by the focused label.

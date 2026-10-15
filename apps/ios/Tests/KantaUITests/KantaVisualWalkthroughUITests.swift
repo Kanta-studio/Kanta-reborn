@@ -3,7 +3,14 @@ import XCTest
 /// Actual starter playback and separate explicitly labeled demo interaction tests.
 final class KantaVisualWalkthroughUITests: XCTestCase {
     private let waitSeconds: TimeInterval = 25
-    override func setUpWithError() throws { continueAfterFailure = false }
+    override func setUp() async throws {
+        continueAfterFailure = false
+        await MainActor.run { XCUIDevice.shared.orientation = .portrait }
+    }
+
+    override func tearDown() async throws {
+        await MainActor.run { XCUIDevice.shared.orientation = .portrait }
+    }
 
     @MainActor
     func testStarterPlaybackAndControls() throws {
@@ -12,7 +19,9 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.launch()
         capture("01-real-main-stage", app)
         app.buttons["More"].tap()
-        app.buttons["Song Library"].tap()
+        let library = app.buttons["Song Library"]
+        waitForRendered(library, in: app)
+        library.tap()
         let title = app.staticTexts["Morning Light"].firstMatch
         XCTAssertTrue(title.waitForExistence(timeout: waitSeconds))
         for _ in 0..<8 where !title.isHittable { app.swipeUp() }
@@ -63,6 +72,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
             app.buttons["More"].tap()
             let button = app.buttons[destination].firstMatch
             XCTAssertTrue(button.waitForExistence(timeout: 5))
+            waitForRendered(button, in: app)
             button.tap()
             capture("menu-" + destination, app)
             app.terminate()
@@ -102,11 +112,39 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
             waitForExpectations(timeout: 5)
         }
         XCUIDevice.shared.orientation = .landscapeLeft
+        let window = app.windows.firstMatch
+        let deadline = Date().addingTimeInterval(waitSeconds)
+        while window.frame.width <= window.frame.height && Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        XCTAssertGreaterThan(window.frame.width, window.frame.height)
+        waitForRendered(app.buttons["stage.search"], in: app)
         app.buttons["stage.search"].tap()
+        waitForRendered(app.buttons["stage.keypad.0"], in: app)
+        capture("demo-landscape-keypad-before-hit-test", app)
         XCTAssertTrue(app.buttons["stage.keypad.0"].isHittable)
         XCTAssertTrue(app.buttons["stage.reserve"].isHittable)
         capture("demo-landscape-keypad", app)
         XCUIDevice.shared.orientation = .portrait
+    }
+
+    @MainActor
+    private func waitForRendered(_ element: XCUIElement, in app: XCUIApplication) {
+        XCTAssertTrue(element.waitForExistence(timeout: waitSeconds))
+        let deadline = Date().addingTimeInterval(waitSeconds)
+        var stable = 0
+        while Date() < deadline {
+            let frame = element.frame
+            let window = app.windows.firstMatch.frame
+            let valid = frame.origin.x.isFinite && frame.origin.y.isFinite
+                && frame.width.isFinite && frame.height.isFinite
+                && frame.width > 0 && frame.height > 0 && frame.intersects(window)
+            stable = valid ? stable + 1 : 0
+            if stable >= 3 { return }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        capture("unrendered-control", app)
+        XCTFail("Control has no stable visible frame: " + element.identifier)
     }
 
     @MainActor
