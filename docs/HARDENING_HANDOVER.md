@@ -65,3 +65,10 @@ Run 38746167309 also completed the full unsigned Release iOS Simulator app build
 ## Complete package execution — October 15, 2026
 
 Run 38747387142 executed all 157 Swift package tests without the prior crash: 156 passed, one live-score assertion failed. Half-open note windows correctly reject note-ending samples, but the live window clipped its end to the latest sample timestamp and excluded that sample. The live cutoff now includes that tick with saturation at Int64.max while still clipping to the source note end. Added live/source-boundary regression coverage; completed scoring remains unchanged. No assertions were removed. Android passed again; simulator validation on this run is still in progress.
+
+
+## Validated reconstruction test checkpoint — October 15, 2026
+
+Cloud run 38748040876 passed on source head 56c9fedbb70b79ebc350e4678d5620554d53c983: all 158 Swift package tests, 50 release-tooling tests, four starter-generator tests, starter/layout guards, unsigned Release iOS Simulator build, Android APK/lint/46 domain regressions and browser interoperability. No assertions or suites were disabled. The test-layout guard and TESTING.md contracts are now required by root engineering instructions.
+
+This checkpoint updates documentation only after the validated source commit; application source remains byte-identical to that passing head. UI automation, physical-device audio/camera/performance, secure companion transport, signing and release/deployment remain unverified. Advanced Android parity and official YouTube playback remain queued separately. PR #1 remains unmerged.
