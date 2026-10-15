@@ -2,6 +2,10 @@
 
 Date: 2026-10-15. Destination: kanta-gelo/Kanta-reborn.
 
+## Current checkpoint
+
+PR #1 merged at `1720a54f31123f2ef59d41383dc41ef06c5855d5`. Run 38748040876 passed all 158 Swift package tests, unsigned Release simulator compilation, Android APK/lint/domain/browser checks. Historical entries below record earlier states; they are not current failure claims. The current Android media branch adds custom SF2, folder imports and controls; changed-head cloud and emulator acceptance remain pending.
+
 ## Completed preparation
 
 - Read the original recovery report and architecture/engineering instructions.

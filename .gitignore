@@ -14,3 +14,6 @@ local.properties
 *.jks
 *.keystore
 __pycache__/
+
+.cxx/
+.externalNativeBuild/

@@ -17,7 +17,7 @@ import java.util.concurrent.*;
 import ph.kanta.reborn.core.*;
 
 public final class MainActivity extends Activity {
-  private static final int MUSIC = 10, VOICE = 11, EXPORT = 12;
+  private static final int MUSIC = 10, VOICE = 11, EXPORT = 12, FOLDER = 13;
   private static final int NAVY = 0xFF0B1023,
       PANEL = 0xFF19213E,
       CYAN = 0xFF6FE5E8,
@@ -256,6 +256,54 @@ public final class MainActivity extends Activity {
   }
 
   private void control() {
+    body.addView(text("Sound & pace", 18, GOLD));
+    LinearLayout tuning = row();
+    addWeighted(
+        tuning,
+        button("Key −", () -> session.controls(session.volume, session.tempo, session.pitch - 1)));
+    addWeighted(
+        tuning,
+        button(
+            "Key " + (session.pitch > 0 ? "+" : "") + session.pitch,
+            () -> session.controls(session.volume, session.tempo, 0)));
+    addWeighted(
+        tuning,
+        button("Key +", () -> session.controls(session.volume, session.tempo, session.pitch + 1)));
+    body.addView(tuning);
+    LinearLayout pace = row();
+    addWeighted(
+        pace,
+        button(
+            "Slower",
+            () -> session.controls(session.volume, session.tempo - 0.05f, session.pitch)));
+    addWeighted(
+        pace,
+        button(
+            String.format(java.util.Locale.ROOT, "%.0f%%", session.tempo * 100),
+            () -> session.controls(session.volume, 1, session.pitch)));
+    addWeighted(
+        pace,
+        button(
+            "Faster",
+            () -> session.controls(session.volume, session.tempo + 0.05f, session.pitch)));
+    body.addView(pace);
+    SeekBar volume = new SeekBar(this);
+    volume.setContentDescription("Music volume");
+    volume.setMax(100);
+    volume.setProgress(Math.round(session.volume * 100));
+    volume.setOnSeekBarChangeListener(
+        new SeekBar.OnSeekBarChangeListener() {
+          public void onStartTrackingTouch(SeekBar b) {}
+
+          public void onStopTrackingTouch(SeekBar b) {
+            session.publish();
+          }
+
+          public void onProgressChanged(SeekBar b, int value, boolean user) {
+            if (user) session.setVolume(value / 100f);
+          }
+        });
+    body.addView(volume);
     body.addView(text("Find your next song", 20, Color.WHITE));
     queryInput = new EditText(this);
     queryInput.setSingleLine();
@@ -418,7 +466,7 @@ public final class MainActivity extends Activity {
     body.addView(text("My Set", 22, Color.WHITE));
     Button importButton =
         button(
-            session.importing ? "Importing…" : "Add songs from Files",
+            session.importing ? "Importing…" : "Add music or SoundFont",
             () -> {
               Intent i =
                   new Intent(Intent.ACTION_OPEN_DOCUMENT)
@@ -429,6 +477,21 @@ public final class MainActivity extends Activity {
             });
     importButton.setEnabled(session.ready && !session.importing);
     body.addView(importButton);
+    Button folder =
+        button(
+            "Import a music folder",
+            () -> startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), FOLDER));
+    folder.setEnabled(session.ready && !session.importing);
+    body.addView(folder);
+    if (session.importing) body.addView(button("Cancel import", session::cancelImports));
+    body.addView(text("SoundFont: " + session.soundFontName, 14, CYAN));
+    body.addView(
+        text(
+            "SoundFonts up to 32 MB. MIDI/KAR up to 16 MB and six hours. Original files stay"
+                + " unchanged.",
+            13,
+            0xFFAFB8D0));
+
     body.addView(button("Save Up Next as a playlist", () -> nameSet(false)));
     body.addView(button("Save played songs as Favorites", () -> nameSet(true)));
     body.addView(button("Export private Songbook", () -> export(true)));
@@ -448,6 +511,10 @@ public final class MainActivity extends Activity {
       item.addView(button(present ? "Remove" : "Restore", () -> session.starter(id, !present)));
       body.addView(item);
     }
+    body.addView(
+        button(
+            "TinySoundFont license",
+            () -> policy("tinysoundfont-license.txt", "TinySoundFont · MIT")));
     body.addView(button("Privacy", () -> policy("privacy.txt", "Privacy")));
     body.addView(button("Music rights", () -> policy("legal.txt", "Music rights")));
   }
@@ -637,6 +704,8 @@ public final class MainActivity extends Activity {
           uris.add(data.getClipData().getItemAt(i).getUri());
       } else if (data.getData() != null) uris.add(data.getData());
       session.importSongs(uris);
+    } else if (request == FOLDER && data.getData() != null) {
+      session.importFolder(data.getData());
     } else if (request == VOICE) {
       ArrayList<String> values = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
       if (values != null && !values.isEmpty()) {

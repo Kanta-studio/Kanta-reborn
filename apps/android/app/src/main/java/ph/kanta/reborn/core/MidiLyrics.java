@@ -16,9 +16,33 @@ public final class MidiLyrics {
     }
   }
 
+  public static final class Message {
+    public final long milliseconds;
+    public final int status, a, b;
+
+    Message(long ms, int status, int a, int b) {
+      milliseconds = ms;
+      this.status = status;
+      this.a = a;
+      this.b = b;
+    }
+  }
+
+  public static final class Document {
+    public final List<Cue> cues;
+    public final List<Message> messages;
+    public final long durationMilliseconds;
+
+    Document(List<Cue> cues, List<Message> messages, long duration) {
+      this.cues = Collections.unmodifiableList(cues);
+      this.messages = Collections.unmodifiableList(messages);
+      durationMilliseconds = duration;
+    }
+  }
+
   private static final class Event {
     long tick;
-    int tempo, type;
+    int tempo, type, status, a, b;
     String text;
     int sequence;
 
@@ -82,6 +106,10 @@ public final class MidiLyrics {
   }
 
   public static List<Cue> parse(byte[] data) throws IOException {
+    return decode(data).cues;
+  }
+
+  public static Document decode(byte[] data) throws IOException {
     if (data.length > 16 * 1024 * 1024) throw new IOException("MIDI too large");
     Reader r = new Reader(data, 0, data.length);
     if (!r.magic("MThd")) throw new IOException("Not MIDI");
@@ -106,7 +134,7 @@ public final class MidiLyrics {
       long tick = 0;
       int running = 0;
       while (t.p < t.end) {
-        if (++total > 1000000) throw new IOException("Too many MIDI events");
+        if (++total > 250000) throw new IOException("Too many MIDI events");
         tick += t.vlq();
         if (tick > Integer.MAX_VALUE * 16L) throw new IOException("MIDI timeline too long");
         int status = t.u8();
@@ -130,20 +158,30 @@ public final class MidiLyrics {
             if (!text.startsWith("@") && !text.trim().isEmpty())
               events.add(new Event(tick, 0, type, text, seq++));
           } else t.skip(n);
-          if (type == 0x2f) break;
+          if (type == 0x2f) {
+            events.add(new Event(tick, 0, type, null, seq++));
+            break;
+          }
         } else if (status == 0xf0 || status == 0xf7) {
           running = 0;
           t.skip(t.vlq());
         } else if (status >= 0x80 && status <= 0xef) {
           running = status;
           int n = (status & 0xe0) == 0xc0 ? 1 : 2;
-          for (int i = 0; i < n; i++) if (t.u8() > 127) throw new IOException("Invalid MIDI data");
+          int a = t.u8(), b = n == 2 ? t.u8() : 0;
+          if (a > 127 || b > 127) throw new IOException("Invalid MIDI data");
+          Event message = new Event(tick, 0, 0, null, seq++);
+          message.status = status;
+          message.a = a;
+          message.b = b;
+          events.add(message);
         } else throw new IOException("Unsupported MIDI status");
       }
     }
     events.sort(Comparator.comparingLong((Event e) -> e.tick).thenComparingInt(e -> e.sequence));
     boolean lyrics = events.stream().anyMatch(e -> e.type == 5);
     ArrayList<Cue> cues = new ArrayList<>();
+    ArrayList<Message> messages = new ArrayList<>();
     long last = 0;
     double micros = 0;
     int tempo = 500000;
@@ -152,6 +190,11 @@ public final class MidiLyrics {
     for (Event e : events) {
       micros += (e.tick - last) * (double) tempo / ppq;
       last = e.tick;
+      if (micros > 6L * 60 * 60 * 1000000) throw new IOException("MIDI exceeds six hours");
+      if (e.status != 0) {
+        messages.add(new Message((long) (micros / 1000), e.status, e.a, e.b));
+        continue;
+      }
       if (e.tempo > 0) {
         tempo = e.tempo;
         continue;
@@ -169,7 +212,7 @@ public final class MidiLyrics {
       line.append(clean);
     }
     if (line.length() > 0) cues.add(new Cue(lineStart, line.toString().trim()));
-    return Collections.unmodifiableList(cues);
+    return new Document(cues, messages, (long) (micros / 1000));
   }
 
   public static int activeIndex(List<Cue> cues, long milliseconds) {
