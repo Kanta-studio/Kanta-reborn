@@ -1,0 +1,78 @@
+name: Swift Core CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Commercial asset guard
+        run: bash Tools/verify-commercial-assets.sh
+      - name: Background media provenance guard
+        run: bash Tools/verify-media-provenance.sh
+      - name: iOS privacy configuration guard
+        run: bash Tools/verify-ios-privacy.sh
+      - name: Release metadata guard
+        run: bash Tools/verify-release-metadata.sh
+      - name: Release tooling regression tests
+        run: python3 -m unittest discover -s Tests/ReleaseToolingTests -p 'test_*.py'
+      - name: Starter KAR structural and deterministic tests
+        run: python3 Tests/test_starter_kar_generator.py
+      - name: Swift version
+        run: swift --version
+      - name: Xcode version / App Store SDK gate
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          major="$(xcodebuild -version | awk '/Xcode/ {split($2, v, "."); print v[1]; exit}')"
+          if [[ -z "$major" || "$major" -lt 26 ]]; then
+            echo "::error::App Store uploads require Xcode 26 or later as of April 28, 2026."
+            exit 1
+          fi
+      - name: Test core packages
+        run: swift test
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+      - name: Generate iOS project
+        run: xcodegen generate
+      - name: Build Release iOS Simulator app
+        run: >
+          xcodebuild
+          -project GeloKaraoke.xcodeproj
+          -scheme GeloKaraoke
+          -configuration Release
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/DerivedData
+          DEBUG_INFORMATION_FORMAT=dwarf-with-dsym
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - name: Launch Host and CONTROL in the same CI run
+        run: python3 Tools/smoke-host-simulator.py
+      - name: Retain simulator runtime proof and crash evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kanta-core-host-smoke
+          path: ci-host-smoke/
+          if-no-files-found: ignore
+          retention-days: 7
+
+

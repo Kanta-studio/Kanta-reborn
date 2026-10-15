@@ -1,0 +1,55 @@
+KANTA ORIGINAL SOURCE RECOVERY — 2026-10-13
+
+RESULT: PARTIAL RECOVERY. No GitHub access or app rebuild was used.
+
+iOS: Four original working snapshots recovered. 208 distinct repository-relative file paths, including 131 Swift paths (different versions retained separately).
+These snapshots are NOT a merged, complete or verified buildable checkout. Uncommitted edits are preserved exactly. Do not blindly overlay snapshots.
+Two local synthetic snapshot commits survive; the background snapshot also contains its staged index and loose/dangling Git objects. These are NOT the original upstream Git history.
+Git object databases, refs, indexes and logs are preserved. Local Git configuration was replaced with a credential-free core configuration; hooks were omitted. Python bytecode caches were omitted. No signing keys or credentials are included.
+Original source/configuration/workflow/doc files, starter KAR files and SF2, app artwork, background images and videos are included where recovered. Previously saved documentation, songbooks and screenshots are retained separately.
+
+Android: No original Kotlin/Java source, Gradle project, or Git history was found. The archive preserves two historical debug APKs and an original CI artifact ZIP with APK and test reports. These are compiled artifacts, NOT recovered original source. Nothing was decompiled or rebuilt.
+
+MISSING / UNVERIFIED:
+- Complete current source of both repositories and all changes absent from these historical snapshots.
+- Original upstream Git history, branches and PR metadata.
+- iOS signing materials and IPA; Android signing keys (intentionally not sought for export).
+- Exact latest GitHub state cannot be established offline.
+- A cached iOS tree at 5eea5bd543f73953b9a6b6f6b223138999b39c47 lists 237 file paths; 58 are absent from all four recovered source snapshots. Missing-known-paths.txt lists them. Some asset bytes may survive separately; this is an older-tree comparison, not a current completeness percentage.
+- Separate historical simulator recordings remain in saved files and are not source code; not duplicated here.
+
+SNAPSHOTS:
+[
+  {
+    "snapshot": "stage-ui-66ac7381630c",
+    "files": 123,
+    "swift_files": 71,
+    "available_commits": [
+      "8d89348432dbd81e3143cfe871a2cfee5eae4cdf 2026-10-10 23:44:43 +0700 Source snapshot of main afe80aa"
+    ]
+  },
+  {
+    "snapshot": "scoring-023d470e1608",
+    "files": 108,
+    "swift_files": 101,
+    "available_commits": [
+      "bb7c7ec72fbf253af219b2700811f5c6a27d2179 2026-10-07 06:14:46 -0500 baseline"
+    ]
+  },
+  {
+    "snapshot": "backgrounds-5ba7ecfff074",
+    "files": 33,
+    "swift_files": 11,
+    "available_commits": []
+  },
+  {
+    "snapshot": "starter-pack-8ac9fea55453",
+    "files": 56,
+    "swift_files": 26,
+    "available_commits": []
+  }
+]
+
+INTEGRITY:
+MANIFEST-SHA256.json in each ZIP records the size and SHA-256 of all other files. ZIP CRC checks performed. Available Git databases checked with git fsck; dangling objects preserved.
+Secret review covered source and decompressed Git objects for common credential signatures; matches were signing-validator literals and explicit test fixtures. Credential stores, environment files and signing files are excluded. This does not certify unavailable source or external systems.
