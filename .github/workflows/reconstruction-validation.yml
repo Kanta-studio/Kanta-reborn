@@ -20,7 +20,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install required Android platform
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0" "ndk;27.2.12479018" "cmake;3.22.1"'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-36" "build-tools;35.0.0" "ndk;27.2.12479018" "cmake;3.22.1"'
       - name: Native SoundFont sanitizer regression
         run: |
           cc -D_POSIX_C_SOURCE=200809L -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer apps/android/tests/soundfont-test.c -lm -o /tmp/kanta-soundfont-test
@@ -34,6 +34,7 @@ jobs:
         timeout-minutes: 15
         run: |
           set -euo pipefail
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           "$SDKMANAGER" "emulator" "system-images;android-35;google_apis;x86_64"
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n kanta-test -k "system-images;android-35;google_apis;x86_64" --force
@@ -52,6 +53,9 @@ jobs:
           adb logcat -d > android-logcat.log
           adb exec-out run-as ph.kanta.reborn cat files/runtime-stage.png > android-runtime-stage.png
           grep -q 'KANTA runtime: .* checks passed' android-runtime.log
+      - name: Preserve Android runtime diagnostics
+        if: always()
+        run: timeout 20s "$ANDROID_HOME/platform-tools/adb" logcat -d > android-logcat.log 2>&1 || true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

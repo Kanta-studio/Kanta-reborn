@@ -71,6 +71,13 @@ static size_t sf_validate(const unsigned char* data, size_t size) {
         for (size_t i = 0; i + 1 < tables[table].count; ++i) {
             const unsigned char* gen = tables[table].data + i * 4;
             unsigned op = sf_u16(gen), value = sf_u16(gen + 2);
+            /* The pinned loader shifts signed coarse offsets; reject negative values before that operation. */
+            if ((op == 4 || op == 12 || op == 45 || op == 50) && (value & 0x8000)) return 0;
+            int signed_value = (int16_t)value;
+            if ((op == 51 && (signed_value < -120 || signed_value > 120)) ||
+                (op == 52 && (signed_value < -99 || signed_value > 99)) ||
+                (op == 56 && signed_value > 1200) ||
+                (op == 58 && (signed_value < -1 || signed_value > 127))) return 0;
             if (op > 60 || ((op == 43 || op == 44) && (gen[2] > gen[3] || gen[3] > 127))) return 0;
             if ((op == 41 && (table != 3 || value >= tables[4].count - 1)) ||
                 (op == 53 && (table != 7 || value >= tables[8].count - 1))) return 0;

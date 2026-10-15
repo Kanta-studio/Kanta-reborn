@@ -12,4 +12,4 @@ Build: AGP 8.13.2, verified Gradle 8.13 wrapper, Java 17, minSdk 26, targetSdk 3
 
 See ../../docs/ARCHITECTURE.md and ../../docs/CODEBASE_CONTEXT_PACKET.md.
 
-Import bounds: MIDI 16 MiB / 250,000 events / six hours; SF2 32 MiB with strict structure and sample validation; folder scan 10,000 entries, 1,024 directories and depth 16. SF3 and unsupported/oversized banks are rejected. MIDI poly/channel pressure, SoundFont modulators and effects are not implemented by the selected renderer. Folder selection makes private copies; it does not watch or edit the source. Bank changes apply to subsequent playback.
+Import bounds: MIDI 16 MiB / 250,000 events / six hours; SF2 32 MiB with strict structure and sample validation; folder scan 10,000 entries, 1,024 directories and depth 16. SF3, negative coarse sample offsets (unsupported safely by the pinned loader), and unsupported/oversized banks are rejected. MIDI poly/channel pressure, SoundFont modulators and effects are not implemented by the selected renderer. Folder selection makes private copies; it does not watch or edit the source. Bank changes apply to subsequent playback.
