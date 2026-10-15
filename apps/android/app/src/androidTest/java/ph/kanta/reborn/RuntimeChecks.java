@@ -93,6 +93,22 @@ public final class RuntimeChecks extends Instrumentation {
       check(
           state(() -> !session.playing && !session.loading && session.queue.snapshot().size() == 2),
           "Cancelled preparation consumed a reservation");
+      await(
+          () -> {
+            for (int slot = 0; slot < 8; slot++) if (!session.party.ready(slot)) return false;
+            return true;
+          },
+          "Generated party pads did not load");
+      runOnMainSync(
+          () -> {
+            for (int slot = 0; slot < 8; slot++) session.triggerPad(slot);
+          });
+      check(
+          state(() -> session.party.activeVoices() <= 4 && session.queue.snapshot().size() == 2),
+          "Party audio changed karaoke reservations or exceeded voice bound");
+      runOnMainSync(session::stopParty);
+      check(
+          state(() -> session.party.activeVoices() == 0), "Party stop-all retained active voices");
       runOnMainSync(session::next);
       await(
           () -> session.playing && session.current != null,

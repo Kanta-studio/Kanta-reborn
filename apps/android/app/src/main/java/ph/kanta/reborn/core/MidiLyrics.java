@@ -9,10 +9,40 @@ public final class MidiLyrics {
   public static final class Cue {
     public final long milliseconds;
     public final String line;
+    public final List<Fragment> fragments;
 
-    Cue(long ms, String line) {
+    Cue(long ms, String text, List<Fragment> source) {
       milliseconds = ms;
-      this.line = line;
+      int start = 0, end = text.length();
+      while (start < end && Character.isWhitespace(text.charAt(start))) start++;
+      while (end > start && Character.isWhitespace(text.charAt(end - 1))) end--;
+      line = text.substring(start, end);
+      ArrayList<Fragment> values = new ArrayList<>();
+      for (Fragment fragment : source)
+        values.add(
+            new Fragment(
+                fragment.milliseconds,
+                Math.max(0, Math.min(line.length(), fragment.endCharacters - start))));
+      fragments = Collections.unmodifiableList(values);
+    }
+
+    public int highlightedCharacters(long position) {
+      int end = 0;
+      for (Fragment fragment : fragments) {
+        if (fragment.milliseconds > position) break;
+        end = fragment.endCharacters;
+      }
+      return end;
+    }
+  }
+
+  public static final class Fragment {
+    public final long milliseconds;
+    public final int endCharacters;
+
+    Fragment(long milliseconds, int endCharacters) {
+      this.milliseconds = milliseconds;
+      this.endCharacters = endCharacters;
     }
   }
 
@@ -155,7 +185,7 @@ public final class MidiLyrics {
             events.add(new Event(tick, tempo, type, null, seq++));
           } else if (type == 1 || type == 5) {
             String text = t.text((int) n);
-            if (!text.startsWith("@") && !text.trim().isEmpty())
+            if (!text.startsWith("@") && !text.isEmpty())
               events.add(new Event(tick, 0, type, text, seq++));
           } else t.skip(n);
           if (type == 0x2f) {
@@ -187,6 +217,17 @@ public final class MidiLyrics {
     int tempo = 500000;
     StringBuilder line = new StringBuilder();
     long lineStart = 0;
+    ArrayList<Fragment> fragments = new ArrayList<>();
+    final int lyricType = lyrics ? 5 : 1;
+    boolean marked =
+        events.stream()
+            .filter(e -> e.type == lyricType && e.text != null)
+            .anyMatch(
+                e ->
+                    e.text.indexOf('/') >= 0
+                        || e.text.indexOf('\\') >= 0
+                        || e.text.indexOf('\n') >= 0
+                        || e.text.indexOf('\r') >= 0);
     for (Event e : events) {
       micros += (e.tick - last) * (double) tempo / ppq;
       last = e.tick;
@@ -201,17 +242,37 @@ public final class MidiLyrics {
       }
       if (e.type != (lyrics ? 5 : 1)) continue;
       String raw = e.text;
-      boolean newline = raw.startsWith("/") || raw.startsWith("\\") || raw.startsWith("\n");
-      if (newline && line.length() > 0) {
-        cues.add(new Cue(lineStart, line.toString().trim()));
+      if (!marked && line.length() > 0) {
+        cues.add(new Cue(lineStart, line.toString(), fragments));
         line.setLength(0);
+        fragments.clear();
       }
-      if (line.length() == 0) lineStart = (long) (micros / 1000);
-      String clean = raw.replace('/', ' ').replace('\\', ' ').replace('\r', ' ').replace('\n', ' ');
-      if (line.length() + clean.length() > 4096) throw new IOException("Lyric line too long");
-      line.append(clean);
+      long time = (long) (micros / 1000);
+      for (int i = 0; i < raw.length(); ) {
+        char value = raw.charAt(i);
+        if (value == '/' || value == '\\' || value == '\n' || value == '\r') {
+          if (line.length() > 0 && !line.toString().trim().isEmpty())
+            cues.add(new Cue(lineStart, line.toString(), fragments));
+          line.setLength(0);
+          fragments.clear();
+          i++;
+        } else {
+          int end = i + 1;
+          while (end < raw.length()
+              && raw.charAt(end) != '/'
+              && raw.charAt(end) != '\\'
+              && raw.charAt(end) != '\n'
+              && raw.charAt(end) != '\r') end++;
+          if (line.length() == 0) lineStart = time;
+          if (line.length() + end - i > 4096) throw new IOException("Lyric line too long");
+          line.append(raw, i, end);
+          fragments.add(new Fragment(time, line.length()));
+          i = end;
+        }
+      }
     }
-    if (line.length() > 0) cues.add(new Cue(lineStart, line.toString().trim()));
+    if (line.length() > 0 && !line.toString().trim().isEmpty())
+      cues.add(new Cue(lineStart, line.toString(), fragments));
     return new Document(cues, messages, (long) (micros / 1000));
   }
 

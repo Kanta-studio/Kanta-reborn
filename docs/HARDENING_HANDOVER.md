@@ -87,3 +87,10 @@ Cloud run 38801573776 passed native sanitizer checks, all 167 domain assertions,
 ## iOS online runtime/artifact follow-up — October 16, 2026
 
 Prepared a separate owner-labeled iPhone/iPad runtime workflow, actual simulator recordings/screenshots and an unsigned device IPA packaging gate. The Xcode UI suite now isolates interactions on MainActor, selects the Morning Light starter by stable identity and waits for actual current-song/playing state before pause/resume. This addresses asynchronous preparation rather than weakening the playback assertion. Device archive uses the existing personal-signing flag and omits iCloud entitlements, retaining all original Apple bundle identities. No signing material is requested or exposed. These changes require hosted UI compilation and execution; no runtime/IPA pass is claimed yet.
+
+
+## Android stage and party follow-up — October 16, 2026
+
+Added source-timed KAR fragment highlighting (including inline markers and unmarked line timing), cached native text layout, persistent lyric sizing and optional first-party perspective lights. Eight synthesized WAV pads, independent volumes, bounded four-voice SoundPool playback, stop-all and custom short-clip assignment now project the single SessionController. Intermission selects existing MP3/WAV media, is opt-in and stops for active karaoke, focus loss or background; no reservation queue is duplicated. Per-slot generations fence async metadata/load results and custom selection persists after decoder acknowledgement. Party generation follows main-library readiness rather than blocking it.
+
+Local checks: 197 domain assertions, deterministic/non-silent bounded WAV checks via Java's independent audio decoder, source lyric-boundary cases and API 36 runtime/instrumentation compilation pass. Emulator instrumentation now includes party loading, voice bounds, stop-all and unchanged reservations. Hosted validation remains pending; custom clip/loop physical audio, camera/video and microphone parity remain open.
