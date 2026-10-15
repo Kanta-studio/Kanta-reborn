@@ -19,3 +19,8 @@ Actual browser interoperability check also passed: a fresh synthetic Android exp
 Reviewed active iOS and Android source comments under the shared coding standard. Tightened comments in eleven existing Swift files, corrected the obsolete FTS5 fallback description, and removed an unmeasured 48,000-title responsiveness claim. Android comments already describe concrete ownership and bounds. Required attribution and recovery snapshots remain unchanged. The shared instructions explicitly cover existing and new code.
 
 Validation: non-comment lines are byte-identical in every changed source file; all 50 release-tooling tests and git diff whitespace checks passed. No runtime behavior changed. Platform builds remain unverified; the next build gate is the previously prepared, owner-authorized consolidated CI run.
+
+
+## Standing CI authorization — October 15, 2026
+
+The owner removed the per-run CI approval and run-count limit. CI and necessary repair reruns are authorized without repeated confirmation. Consolidate coherent changes and investigate failures before retries. Platform quotas, policy denials, signing and release acceptance remain separate boundaries. Root AGENTS.md supersedes historical per-run approval instructions.

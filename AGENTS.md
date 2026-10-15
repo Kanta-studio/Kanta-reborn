@@ -6,7 +6,7 @@ Keep native iOS and Android source, dependencies, build systems and signing inde
 Use one authoritative playback/FIFO queue state owner per native app. Give each reservation a distinct identity, even for repeated songs. Score natural completion at most once per playback identity.
 Keep scoring, camera preview, microphone monitoring and experimental DSP opt-in. Preserve imported source bytes. Never include user music catalogs, credentials or signing materials.
 Update architecture and handover documentation when behavior or boundaries change. Distinguish recovered, reconstructed, compiled, tested and released.
-Do not trigger GitHub Actions without explicit current authorization. Do not activate historical workflows during the recovery import.
+Standing owner authorization (October 15, 2026): run CI and necessary failure-repair reruns without a user-imposed run-count limit or repeated permission requests. Batch coherent changes, inspect failures before rerunning, and respect platform quotas and policy denials. This supersedes older per-run approval requirements in recovered instructions. Signing, public releases and deployment retain their separate release gates. Do not activate historical workflows during the recovery import.
 Never overlay historical snapshots wholesale. Reconcile overlapping implementations and record provenance.
 
 Before substantive refactors, follow `docs/CODING_CONTEXT_GUIDE.md` and refresh `docs/CODEBASE_CONTEXT_PACKET.md` from actual source. Do not assume suggested libraries are installed, or confuse source-review risks with measured bottlenecks. Gather existing files directly from the online repository instead of asking the owner for local settings or copies.
