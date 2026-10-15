@@ -280,12 +280,32 @@ final class SessionController {
           boolean valid = false;
           try {
             if (file.length() <= 0 || file.length() > 8 * 1024 * 1024) throw new IOException();
-            try (MediaMetadataRetriever metadata = new MediaMetadataRetriever()) {
+            MediaMetadataRetriever metadata = new MediaMetadataRetriever();
+            try {
               metadata.setDataSource(file.getAbsolutePath());
               long duration =
                   Long.parseLong(
                       metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
-              valid = duration > 0 && duration <= 30000;
+              MediaExtractor extractor = new MediaExtractor();
+              try {
+                extractor.setDataSource(file.getAbsolutePath());
+                if (extractor.getTrackCount() > 64) throw new IOException();
+                for (int track = 0; track < extractor.getTrackCount(); track++) {
+                  MediaFormat format = extractor.getTrackFormat(track);
+                  String mime = format.getString(MediaFormat.KEY_MIME);
+                  if (mime == null || !mime.startsWith("audio/")) continue;
+                  valid =
+                      ShortClipBounds.accepts(
+                          duration,
+                          format.getInteger(MediaFormat.KEY_SAMPLE_RATE),
+                          format.getInteger(MediaFormat.KEY_CHANNEL_COUNT));
+                  break;
+                }
+              } finally {
+                extractor.release();
+              }
+            } finally {
+              metadata.release();
             }
           } catch (Exception ignored) {
           }
@@ -296,7 +316,8 @@ final class SessionController {
                 if (!accepted) {
                   if (persist) {
                     assigningPad = false;
-                    message = "Party clips must be MP3/WAV, at most 8 MB and 30 seconds.";
+                    message =
+                        "Use a shorter mono or stereo MP3/WAV clip (at most 8 MB / 30 seconds).";
                     publish();
                   }
                   return;

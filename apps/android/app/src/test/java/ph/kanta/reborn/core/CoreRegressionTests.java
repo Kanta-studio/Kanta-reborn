@@ -328,6 +328,12 @@ public final class CoreRegressionTests {
         check(peak > 100 && peak <= 24000, "Silent or clipped party sound");
       }
     }
+    check(ShortClipBounds.accepts(2000, 44100, 2), "Small stereo clip rejected");
+    check(!ShortClipBounds.accepts(30000, 44100, 2), "Truncated SoundPool clip accepted");
+    check(!ShortClipBounds.accepts(Long.MAX_VALUE, 44100, 2), "Clip duration overflow");
+    check(
+        !ShortClipBounds.accepts(1000, -1, 2) && !ShortClipBounds.accepts(1000, 44100, 8),
+        "Invalid clip format accepted");
     boolean invalidPad = false;
     try {
       PartySounds.wave(8);

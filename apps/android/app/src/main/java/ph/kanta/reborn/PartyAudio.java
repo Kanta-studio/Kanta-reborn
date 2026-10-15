@@ -25,6 +25,7 @@ final class PartyAudio {
   private final long[] versions = new long[8];
   private MediaPlayer loop;
   private File loopFile;
+  private boolean loopStarted;
   float sfxVolume = .6f, loopVolume = .35f;
 
   PartyAudio(Runnable changed, Consumer<String> failed) {
@@ -130,6 +131,7 @@ final class PartyAudio {
             if (loop == player) {
               try {
                 player.start();
+                loopStarted = true;
               } catch (RuntimeException error) {
                 stopLoop();
                 failed.accept("Between-song audio output is unavailable.");
@@ -152,12 +154,7 @@ final class PartyAudio {
   }
 
   boolean loopPlaying() {
-    if (loop == null) return false;
-    try {
-      return loop.isPlaying();
-    } catch (IllegalStateException error) {
-      return false;
-    }
+    return loopStarted;
   }
 
   int activeVoices() {
@@ -165,6 +162,7 @@ final class PartyAudio {
   }
 
   void stopLoop() {
+    loopStarted = false;
     if (loop != null) {
       loop.release();
       loop = null;
