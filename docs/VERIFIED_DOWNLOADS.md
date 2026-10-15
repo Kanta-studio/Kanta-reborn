@@ -1,14 +1,9 @@
 # Verified preview downloads
 
-The download-packaging workflow copies application bytes from the accepted Android run [38807243721](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38807243721) and iOS run [38806377805](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38806377805). It does not compile, sign or alter either app.
+The packaging workflow preserves accepted application bytes without compilation or signing. Android 0.4.0 source `2ced06c5c6063e15e227cc094b2462a36a03e7f2` passed run [38825170997](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38825170997), including 201 domain assertions and 47 emulator checks. iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed device packaging and both simulator walkthroughs in run [38806377805](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38806377805).
 
-Android source: `b3a6cd7c795e2aaea4e48254ede290b4f616d671`.
-iOS source: `3c12a1fb962ac956250a8f238c01eace13f560d2`.
+Each platform bundle contains one application, SHA256.txt, build-info.json and README.txt. The instrumentation APK is excluded. Read-only packaging checks successful run/source/artifact identity, expiry, available artifact digest, archive bounds and app contents. The IPA retains its original checksum, bundle identity, software notices and unsigned personal-signing flags. Authorization headers are stripped on storage redirects.
 
-The read-only workflow checks successful run identity, source revision, artifact identity, expiry, available artifact digest, archive bounds and application contents. The iOS package additionally retains and checks the original IPA checksum, device bundle identity, required notices and unsigned personal-signing configuration. Redirects never forward the GitHub token to artifact storage.
+Only kanta-gelo dispatch or the owner-approved-download-packaging PR label runs packaging. Outputs require GitHub sign-in and are retained for 30 days. A failure never replaces accepted app bytes or creates a public release. iOS requires separate trusted personal signing and has no iCloud Save. Android remains debug-signed; physical-device and production-distribution acceptance stay open.
 
-Each platform bundle contains one application, SHA256.txt, build-info.json and README.txt. The Android instrumentation APK is excluded. The iOS IPA requires separate trusted personal signing; it is not directly installable, distributed through TestFlight, or entitled for iCloud Save.
-
-Run the workflow manually after merge, or apply `owner-approved-download-packaging` to its pull request as kanta-gelo. Only that owner's dispatch or label starts the job. Outputs are retained for 30 days and GitHub requires sign-in to download Actions artifacts. A packaging failure never replaces an accepted build or publishes a public release.
-
-Artifact availability is temporary. Website links must describe these as testing downloads and show the source build and signing restrictions. Physical-device audio, microphone, camera and latency acceptance remain separate from CI and simulator checks.
+The website's download manifest and platform pages must be updated only after packaging succeeds and provides actual artifact identities. Earlier bundles remain identified by their original source/run metadata.
