@@ -83,3 +83,11 @@ Latest iOS checkpoint: run 38806377805 passed on 3c12a1fb962ac956250a8f238c01eac
 
 
 Validated Android stage/party checkpoint: source b3a6cd7c795e2aaea4e48254ede290b4f616d671 passed run 38807243721 with 201 domain assertions, 28 actual API 35 emulator checks, NDK APK/instrumentation assembly, lint, native sanitizer checks and browser interoperability. Covered nested/cyclic SAF traversal, partial failure, cancellation/reopen, byte identity, custom pad decode/reset, bounded voices, stop-all, intermission gating and real karaoke playback. Only Markdown reconciliation follows that source. Personal photo/video, camera, microphone, companion and official YouTube work remain separate; no physical-device or signed-release claim is made.
+
+## Android personal-media implementation — October 16, 2026
+
+Workspace access resumed. The previously local draft is being published as a separate Android-only batch, based on current main. StageMediaStore adds bounded private byte-preserving photo/video copies, atomic persisted selection and cancellation/rollback. StageSurface adds a main-Looper muted video-only projection with generation fencing, actual-first-frame visibility and release on deactivation/detach. Photos use sampled EXIF-oriented display decoding; original bytes are never rewritten.
+
+The frequent publication path now retains the stage, transport and navigation subtree, avoiding video teardown/recreation on queue or option changes. Control panel rebuilding and in-memory library search remain source-review performance risks, not measured latency results. Five weighted tabs replace clipped horizontal navigation. No playback/FIFO or audio-clock ownership changes.
+
+Local API 36 compilation of production and instrumentation sources passed; 201 domain checks and actual browser export/decrypt/wrong-code/tamper checks passed. Focused runtime cases cover persisted photo/video selection, malformed-media rollback, source-byte identity, stable stage identity, visible navigation and muted-video first-frame/deactivate/reactivate behavior. Hosted run 38825170997 passed APK/lint/native/browser checks and all 47 emulator checks on source 2ced06c5c6063e15e227cc094b2462a36a03e7f2. Camera, microphone processing, companion networking and official YouTube remain unfinished.

@@ -8,7 +8,7 @@
 
 `recovery/ios/snapshots` contains other original snapshots without nested Git databases. They are evidence, not dependencies. Complete recovery ZIPs remain preserved separately. Historical source variants must be reconciled file by file.
 
-`docs/evidence/website/2026-10-15` stores exact public-site bytes, extracted readable text and URL/SHA-256 manifest. It is evidence only, not a newly deployed website. No public song catalog may be added.
+`docs/evidence/website/2026-10-15` stores exact public-site bytes, extracted readable text and URL/SHA-256 manifest. It remains immutable evidence; the active restored website is maintained separately under apps/web. No public song catalog may be added.
 
 ## Runtime contracts
 
@@ -58,3 +58,11 @@ After both walkthroughs pass, the same workflow builds a separate unsigned iPhon
 MIDI lyric cues retain original fragment timestamps and character boundaries. StageView uses those source events for highlighting, the existing audible clock for position, and cached StaticLayout objects for stable text. No word timings are invented. Adjustable lyric size and optional first-party perspective lights are projections of SessionController state; animation owns no playback clock.
 
 PartyAudio owns at most four SoundPool voices and one separate MediaPlayer for explicitly enabled idle intermission music. SessionController alone decides eligibility using foreground, audio focus, current song, loading state and the existing FIFO. It stops auxiliary audio on focus loss/background and never consumes reservations for SFX. Builtin synthesis runs after the main library becomes ready. Custom pad validation runs on IO; per-slot generations retire stale validation/load results, and preference changes commit only after decode acknowledgement. Original media is reused byte-identically from My Set.
+
+## Android personal stage media
+
+StageMediaStore is owned by the serial IO executor. It copies selected files into hash-named private storage, validates content and bounds before committing versioned AtomicFile selection metadata, preserves original bytes and rolls back failed/cancelled imports. Photos are limited to 32 MiB and 100 megapixels/16,384 pixels per dimension; display decode samples to at most 2,048 pixels and honors EXIF orientation without rewriting the source. Videos are limited to 512 MiB, 8,192 pixels per dimension and six hours. Only the replaced same-kind private copy is removed after commit; unknown files are not swept.
+
+SessionController remains the sole queue/transport owner and publishes the selected visual through independent operation and display generations. StageSurface owns only a lifecycle-bound muted looping MediaPlayer, its TextureView surface and the existing lyric projection. It starts visual video only in the foreground, releases it when inactive/detached, retains Scenic behind failed/unrendered video and fences stale preparation callbacks. Fullscreen suppresses the redundant primary video renderer; a separate external-display projection may own another decoder. No camera, audio monitoring, network permission or second karaoke queue is introduced.
+
+MainActivity retains its stage/transport/navigation tree across controller publication and rebuilds only the selected control panel. Five weighted navigation tabs remain visible on narrow phones. The app icon reuses the original recovered iOS artwork byte-for-byte. The test-only solid-color silent MP4 is procedurally generated and has documented provenance; no third-party clip is bundled. Cloud run 38825170997 passed source 2ced06c5c6063e15e227cc094b2462a36a03e7f2: APK/instrumentation assembly, lint, native sanitizer checks, all 201 domain checks, browser interoperability and 47 actual API 35 runtime checks. Physical-device acceptance remains open.

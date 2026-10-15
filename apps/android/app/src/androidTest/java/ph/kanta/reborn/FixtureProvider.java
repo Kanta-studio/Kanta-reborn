@@ -87,6 +87,10 @@ public final class FixtureProvider extends ContentProvider {
         return "Any SoundFont.SF2";
       case "audio":
         return "Original tone.wav";
+      case "photo":
+        return "Original photo.png";
+      case "video":
+        return "Original video.mp4";
       default:
         throw new IllegalArgumentException("Unknown fixture");
     }
@@ -99,7 +103,13 @@ public final class FixtureProvider extends ContentProvider {
     name(document);
     File output = new File(getContext().getCacheDir(), document + ".fixture");
     try (FileOutputStream stream = new FileOutputStream(output)) {
-      if (document.equals("song") || document.equals("bank")) {
+      if (document.equals("video")) {
+        try (InputStream input = getContext().getAssets().open("stage-color.mp4")) {
+          byte[] block = new byte[4096];
+          int count;
+          while ((count = input.read(block)) != -1) stream.write(block, 0, count);
+        }
+      } else if (document.equals("song") || document.equals("bank")) {
         Context app = getContext().createPackageContext("ph.kanta.reborn", 0);
         try (InputStream input =
             app.getAssets()
@@ -111,6 +121,12 @@ public final class FixtureProvider extends ContentProvider {
           int count;
           while ((count = input.read(bytes)) != -1) stream.write(bytes, 0, count);
         }
+      } else if (document.equals("photo")) {
+        android.graphics.Bitmap image =
+            android.graphics.Bitmap.createBitmap(80, 60, android.graphics.Bitmap.Config.ARGB_8888);
+        image.eraseColor(android.graphics.Color.CYAN);
+        image.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream);
+        image.recycle();
       } else if (document.equals("audio")) stream.write(tone());
       else if (document.equals("bad")) stream.write(new byte[24]);
       else throw new FileNotFoundException("Not a fixture file");
