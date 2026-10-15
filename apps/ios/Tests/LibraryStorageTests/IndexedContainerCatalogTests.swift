@@ -383,3 +383,23 @@ private func appendCatalogUInt32LE(
     ])
 }
 
+
+
+@Test func standaloneIndexRemainsSearchableWithoutPlaybackOffsets() throws {
+    let source = LibrarySourceRecord(
+        displayName: "Titles only", bookmarkData: Data(),
+        lastScan: LibraryScanResult(rootDisplayName: "Titles only", assets: [
+            DiscoveredLibraryAsset(relativePath: "titles.bin", sizeBytes: 100, kind: .libraryIndex)
+        ])
+    )
+    #expect(IndexedContainerCatalog.indexRelativePath(for: source) == "titles.bin")
+    #expect(IndexedContainerCatalog.sourceFiles(for: source) == nil)
+    let index = makeCatalogIndex(titles: ["One", "Two"], offsets: [0x504a0009, 0x34dd0009])
+    let songs = try IndexedContainerCatalog.catalogOnlySongs(for: source, indexData: index)
+    #expect(songs.map(\.title) == ["One", "Two"])
+    #expect(songs.allSatisfy { !$0.isPlayable })
+    #expect(songs[0].id.rawValue == "indexed:" + source.id.uuidString.lowercased() + ":0")
+    #expect(throws: IndexedContainerCatalogError.malformedTitleIndex) {
+        _ = try IndexedContainerCatalog.catalogOnlySongs(for: source, indexData: Data())
+    }
+}

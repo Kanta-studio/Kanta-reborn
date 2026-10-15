@@ -41,3 +41,10 @@ Run 38742284862: Android assembleDebug, lintDebug, domain regressions, captured 
 ## Third cloud validation repair — October 15, 2026
 
 Run 38743316223 passed Android again. iOS test compilation reached RoomScoreReliabilityTests and found completedScore missing from the active LiveKaraokeScoringSession. The preserved scoring-023d470e1608 implementation differs only in completed versus elapsed target selection and clearing observations after latency changes; reconciled those exact changes and connected final Host scoring to the reliability gate. Existing room-score tests cover unheard song endings and latency invalidation. Apple test execution and simulator build require the next cloud run; no green claim is carried forward.
+
+
+## Full test/source reconciliation — October 15, 2026
+
+Following the owner request, audited the complete active test layout (36 Swift files, seven SwiftPM test targets plus Xcode UI suite) and explicit local type-qualified references. The remaining definite missing static APIs were IndexedContainerCatalog.indexRelativePath and catalogOnlySongs. Added bounded metadata-only decoding and a fixture asserting standalone/unsupported titles remain non-playable; stable IDs align with validated entries. No test assertions were removed.
+
+Added test-layout preflight, documented all suite boundaries in TESTING.md, and separated cloud test compilation from execution. The app build now attempts independently after package failure; logs upload even on failure, exposing multiple integration errors in one run. Layout check and 50 release-tooling tests passed locally. Fourth run 38744293195 passed Android and reached the missing catalog APIs in iOS; fresh cloud compilation/execution remains required. This audit cannot guarantee absence of runtime or future integration defects.

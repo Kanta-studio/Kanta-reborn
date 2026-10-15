@@ -50,13 +50,30 @@ jobs:
         run: |
           xcodebuild -version
           swift --version
+          python3 ../../tools/verify-test-layout.py
           python3 -m unittest discover -s Tests/ReleaseToolingTests
           python3 -m unittest discover -s Tests -p test_starter_kar_generator.py
           python3 Tools/verify-starter-resources.py
-      - name: Swift package tests
-        run: swift test --parallel
-      - name: Unsigned simulator build
+      - name: Compile Swift package and test targets
         run: |
+          set -o pipefail
+          swift build --build-tests 2>&1 | tee swift-test-build.log
+      - name: Swift package tests
+        run: |
+          set -o pipefail
+          swift test --skip-build --parallel 2>&1 | tee swift-test-results.log
+      - name: Unsigned simulator build
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
           if ! command -v xcodegen >/dev/null; then brew install xcodegen; fi
           xcodegen generate
-          xcodebuild -project GeloKaraoke.xcodeproj -scheme GeloKaraoke -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -project GeloKaraoke.xcodeproj -scheme GeloKaraoke -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build 2>&1 | tee simulator-build.log
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ios-reconstruction-diagnostics
+          path: apps/ios/*.log
+          if-no-files-found: ignore
+          retention-days: 7

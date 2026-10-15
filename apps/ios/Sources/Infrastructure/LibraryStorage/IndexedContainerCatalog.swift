@@ -34,6 +34,37 @@ public enum IndexedContainerCatalogError:
 }
 
 public enum IndexedContainerCatalog {
+    public static func indexRelativePath(for source: LibrarySourceRecord) -> String? {
+        firstPath(of: .libraryIndex, in: source.lastScan?.assets ?? [])
+    }
+
+    /// Unverified offsets remain searchable metadata and never become playback assets.
+    public static func catalogOnlySongs(
+        for source: LibrarySourceRecord,
+        indexData: Data
+    ) throws -> [LibrarySong] {
+        guard indexRelativePath(for: source) != nil else {
+            throw IndexedContainerCatalogError.missingContainerPair
+        }
+        guard indexData.count <= 32 * 1024 * 1024 else {
+            throw IndexedContainerCatalogError.malformedTitleIndex
+        }
+        let report = IndexedLibraryProbe.inspect(indexData, sampleLimit: 0)
+        let records = IndexedLibraryProbe.decodeTitleRecords(indexData)
+        guard !records.isEmpty, records.count == report.titleIndexRecordCount else {
+            throw IndexedContainerCatalogError.malformedTitleIndex
+        }
+        return records.enumerated().map { index, record in
+            let title = record.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            return LibrarySong(
+                id: SongID(rawValue: "indexed:" + source.id.uuidString.lowercased() + ":" + String(index)),
+                title: title.isEmpty ? "Legacy Song \(index + 1)" : title,
+                mediaKind: .legacyContainer,
+                isPlayable: false
+            )
+        }
+    }
+
     public static func sourceFiles(
         for source: LibrarySourceRecord
     ) -> IndexedContainerSourceFiles? {
