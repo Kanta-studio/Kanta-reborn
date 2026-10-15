@@ -51,3 +51,16 @@ private let roomTarget = TargetPitchWindow(startMilliseconds: 0, endMilliseconds
     #expect(session.observationCount == 0)
     #expect(session.completedScore == nil)
 }
+
+
+@Test func extremeTargetDurationAndInvalidWindowsDoNotOverflowScoring() {
+    let longTarget = TargetPitchWindow(startMilliseconds: 0, endMilliseconds: Int64.max, midiNote: 69)
+    let result = KaraokePitchScorer.score(observations: [roomObservation(0)],
+        targets: [longTarget, longTarget], expectedObservationIntervalMilliseconds: 1)
+    #expect(result.overall.isFinite)
+    #expect(result.timingCoverage > 0 && result.timingCoverage < 1)
+    var invalid = roomTarget
+    invalid.startMilliseconds = -1
+    let rejected = KaraokePitchScorer.score(observations: [roomObservation(0)], targets: [invalid])
+    #expect(rejected.matchedObservationCount == 0)
+}

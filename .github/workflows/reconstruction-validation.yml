@@ -40,7 +40,6 @@ jobs:
     runs-on: macos-15
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
-      SWIFT_BACKTRACE: enable=yes
     timeout-minutes: 25
     defaults:
       run:

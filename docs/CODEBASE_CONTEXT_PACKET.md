@@ -1,6 +1,6 @@
 # Codebase Context Packet — KANTA Reborn
 
-Snapshot: 2026-10-15, working tree on `recovery/platform-separated-import`; post-import reconstruction is in progress and is not yet a published release. The last published foundation is commit `332eb5bdad133c2240637276b0c252761dfc0574` / draft PR #1.
+Snapshot: 2026-10-15, active reconstruction on `recovery/platform-separated-import` / draft PR #1. Source, tests and workflow are published; this is not a signed or device-accepted release.
 
 ## Android stack
 
@@ -22,13 +22,13 @@ Snapshot: 2026-10-15, working tree on `recovery/platform-separated-import`; post
 
 ## Network / remote
 
-The recovered iOS baseline contains optional PIN-authorized plaintext LAN control. Pagination and singer reservation interfaces are being reconciled with newer UI. It must not be described as encrypted. Android companion transport has not been reconstructed; no Android server/socket implementation exists yet. The website's newer encrypted-Android/cross-platform claims are requirements/evidence, not this reconstruction's shipping capabilities.
+The recovered iOS baseline contains optional PIN-authorized plaintext LAN control. Pagination and singer reservation interfaces are reconciled with the newer UI. Command retries use a bounded, connection-scoped replay cache that pins in-flight requests; reconnect/durable replay remains open. It must not be described as encrypted. Android companion transport has not been reconstructed; no Android server/socket implementation exists yet. The website's newer encrypted-Android/cross-platform claims are requirements/evidence, not this reconstruction's shipping capabilities.
 
 ## iOS recovery
 
 `apps/ios/` retains SwiftUI/AVFoundation architecture, SwiftPM modules and XcodeGen configuration. The original stage UI snapshot has been supplemented with 78 individually selected missing paths, including 60 Swift files, from the historical snapshots. No existing baseline file was overwritten during that restoration.
 
-Missing Favorites storage, SQLite catalog, CSV/private Songbook export, SFX engine and C compression bridge are newly reconstructed code, not recovered originals. Their Swift compile/runtime acceptance is pending. The AES-GCM Songbook envelope follows the captured browser reader; new tests cover durable Save retries, failed writes, literal/Unicode search, CSV quoting and encryption round-trip.
+Missing Favorites storage, SQLite catalog, CSV/private Songbook export, SFX engine and C compression bridge are newly reconstructed code, not recovered originals. All Swift package/test targets compile in hosted validation. The full unsigned Release simulator app build passed run 38746167309; package runtime acceptance is still pending the scoring arithmetic repair. Xcode 26.2 / Swift 6.2 is selected explicitly. The AES-GCM Songbook envelope follows the captured browser reader; new tests cover durable Save retries, failed writes, literal/Unicode search, CSV quoting and encryption round-trip.
 
 ## Current risks and bottlenecks
 
@@ -40,5 +40,5 @@ No device performance measurements exist for the reconstruction. Source-review r
 - Four starter-generation/fixture tests and the starter resource guard passed.
 - C bridge compiled with warnings treated as errors for its Linux unsupported-codec branch; Apple CommonCrypto path still requires Apple compilation.
 - All nine runtime Java files compiled against official Android API 36 references and Java 17 host libraries. Forty-six core regression checks passed. Cloud run 38742284862 also passed Gradle APK/lint and captured browser interoperability; device launch/runtime acceptance remain pending.
-- Swift compiler/Xcode are not present on this server. New Swift tests have been written but not executed.
-- Two consolidated cloud runs have executed. Android passed on the second run; iOS test compilation found a missing replay-cache type, now reconstructed pending fresh validation. No merge, signing or deployment.
+- Hosted Swift execution includes the new persistence, CSV and native audio cases; the serial run stopped at scoring latency overflow. All test targets compile, and the unsigned Release simulator build passed on run 38746167309. A repaired scorer awaits fresh validation.
+- Cloud validation is iterative under standing owner authorization. Android build/lint/domain/browser checks pass. All 36 Swift test files are wired into seven package suites plus the Xcode UI suite; layout preflight and diagnostic artifacts support reconciliation. No UI automation, merge, signing or deployment is claimed.

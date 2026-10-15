@@ -133,42 +133,40 @@ public enum KaraokePitchScorer {
         )
 
         let usable = observations.filter {
-            $0.frequencyHz > 0
+            $0.frequencyHz.isFinite && $0.frequencyHz > 0
+                && $0.confidence.isFinite
                 && $0.confidence >= confidenceThreshold
         }
 
         var pitchScores: [Double] = []
         var observedSlots = 0
-        var expectedSlots = 0
+        var expectedSlots = 0.0
 
         for target in targets {
-            let duration = max(
-                1,
-                target.endMilliseconds
-                    - target.startMilliseconds
-            )
-            let expected = max(
-                1,
-                Int(
-                    ceil(
-                        Double(duration)
-                            / Double(interval)
-                    )
-                )
-            )
-            expectedSlots += expected
+            guard target.startMilliseconds >= 0,
+                  target.endMilliseconds > target.startMilliseconds,
+                  target.frequencyHz.isFinite, target.frequencyHz > 0 else { continue }
+            let duration = target.endMilliseconds - target.startMilliseconds
+            let expected = (duration - 1) / interval + 1
+            expectedSlots += Double(expected)
 
-            let matches = usable.filter { observation in
-                let corrected =
-                    observation.timestampMilliseconds
-                    - latencyMilliseconds
-                return corrected >= target.startMilliseconds
-                    && corrected <= target.endMilliseconds
+            // One observation per time slot: bursts cannot impersonate sustained singing.
+            // Half-open windows also prevent counting a boundary in two adjacent notes.
+            var slots: [Int64: PitchObservation] = [:]
+            for observation in usable {
+                let (corrected, overflow) = observation.timestampMilliseconds
+                    .subtractingReportingOverflow(latencyMilliseconds)
+                guard !overflow, corrected >= target.startMilliseconds,
+                      corrected < target.endMilliseconds else { continue }
+                let slot = (corrected - target.startMilliseconds) / interval
+                if slots[slot] == nil || observation.confidence > slots[slot]!.confidence {
+                    slots[slot] = observation
+                }
             }
+            observedSlots += slots.count
 
-            observedSlots += min(matches.count, expected)
-
-            for observation in matches {
+            for slot in slots.keys.sorted() {
+                guard let observation = slots[slot] else { continue }
                 let cents = 1_200 * log2(
                     observation.frequencyHz
                         / target.frequencyHz

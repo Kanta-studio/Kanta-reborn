@@ -53,3 +53,10 @@ Added test-layout preflight, documented all suite boundaries in TESTING.md, and 
 ## Expanded validation diagnostics — October 15, 2026
 
 Run 38744977603 compiled all Swift package/test targets successfully, then test execution terminated with signal 5 after starting concurrent native audio and domain tests; the log supplied no stack or failed assertion. The independent simulator build exposed two scoringMessage references introduced during reconciliation; removed these unsupported status assignments while retaining the completed-score reliability gate. The next run executes every package test serially with Swift backtraces enabled, uploads package logs before the app build, and retains recent package-process IPS reports. Crash causality is not yet established; no tests were skipped and no runtime pass is claimed.
+
+
+## Serial scoring diagnosis — October 15, 2026
+
+Run 38746167309 compiled all package/test targets. Early package artifact showed native audio cases passing, duplicate burst/boundary score assertions failing, then signal 5 at scorerRejectsInvalidPitchAndLatencyOverflow. The active scorer subtracted Int64.min without overflow handling. Reconciled the full scorer hardening from scoring-023d470e1608 while preserving the newer finite MIDI-note conversion. Also made expected-slot calculation integer-safe for Int64.max durations and rejected invalid mutable target windows; added focused extreme-value coverage. Existing assertions are retained. Removed SWIFT_BACKTRACE injection after the runner reported privileged-executable backtraces unsupported. Apple revalidation is pending.
+
+Run 38746167309 also completed the full unsigned Release iOS Simulator app build successfully; no package-process IPS report was produced. The next run validates the scorer repair on a changed head. Native audio tests, including non-silent original starter SF2 rendering, passed in the serial run before the scoring crash.
