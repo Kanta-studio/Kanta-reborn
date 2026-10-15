@@ -3,8 +3,7 @@ import LibraryStorage
 import UIKit
 import SwiftUI
 
-/// Browses the imported song metadata without loading any audio payloads.
-/// Rows are paged so even a 48,000-title library stays responsive.
+/// Pages imported song metadata without loading audio payloads.
 @MainActor
 struct KantaSongbookView: View {
     let library: BookmarkedKaraokeLibrary?

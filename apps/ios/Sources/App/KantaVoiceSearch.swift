@@ -3,9 +3,7 @@ import SwiftUI
 import GeloKaraokeCore
 @preconcurrency import Speech
 
-/// iOS 17-compatible, opt-in speech-to-search. SFSpeechRecognizer recognizes
-/// one locale per request, so language selection is explicit rather than
-/// pretending to detect Filipino/English code-switching automatically.
+/// Opt-in speech search with an explicit locale per recognition request.
 enum KantaVoiceLanguage: String, CaseIterable, Identifiable {
     case filipino
     case englishPhilippines

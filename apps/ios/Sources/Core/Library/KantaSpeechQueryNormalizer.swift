@@ -1,7 +1,7 @@
 import Foundation
 
 /// Turns spoken Filipino/English search commands into a title, artist, or code
-/// query without ever modifying the owner's underlying catalog metadata.
+/// query without modifying catalog metadata.
 public enum KantaSpeechQueryNormalizer {
     public static func normalized(_ transcription: String) -> String {
         let spoken = transcription.trimmingCharacters(in: .whitespacesAndNewlines)

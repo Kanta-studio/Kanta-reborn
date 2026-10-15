@@ -4,8 +4,8 @@ import Foundation
 import SwiftUI
 @preconcurrency import WhisperKit
 
-/// A user-installed, *multilingual* (not English-only) Whisper Core ML pack.
-/// This is completely independent of Apple Speech.framework's supportedLocales.
+/// User-installed multilingual Whisper Core ML model. Locale availability
+/// is independent of Speech.framework.
 @MainActor
 final class KantaFilipinoModelStore: ObservableObject {
     static let shared = KantaFilipinoModelStore()
@@ -151,8 +151,7 @@ final class KantaFilipinoModelStore: ObservableObject {
         isTranscribing = true
         defer { isTranscribing = false }
 
-        // No audio, titles, or query text are sent to our server.
-        // Only an already-installed local Core ML folder is accepted.
+        // Inference uses the installed model; audio and query text stay on device.
         let engine = try await WhisperKit(
             WhisperKitConfig(
                 modelFolder: folder.path,

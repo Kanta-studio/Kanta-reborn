@@ -107,9 +107,8 @@ final class ICloudSyncCoordinator: ObservableObject {
     @Published private(set) var deletionMessage: String?
 
     private let settings: KantaUserSettings
-    // Never initialize iCloud KVS during routine offline app/Host startup.
-    // Access the OS service only when the owner explicitly starts iCloud
-    // Save/Restore/Delete; unsigned simulators lack KVS signing entitlement.
+    // Defer KVS access until an explicit backup action. Unsigned simulators
+    // lack the entitlement required to initialize this service at startup.
     private var keyValueStore: NSUbiquitousKeyValueStore {
         NSUbiquitousKeyValueStore.default
     }

@@ -1,6 +1,6 @@
 import Foundation
 
-/// A source-timed fragment. No estimated word durations are invented.
+/// A KAR fragment timed by source events rather than estimated word durations.
 public struct KaraokeLyricFragment: Equatable, Sendable {
     public let milliseconds: Int64
     public let text: String

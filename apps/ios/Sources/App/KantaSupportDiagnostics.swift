@@ -26,9 +26,8 @@ final class KantaSupportDiagnostics: ObservableObject {
     private var didBeginSession = false
 
     init(defaults: UserDefaults = .standard) {
-        // Swift's two-phase initialization prohibits reading stored
-        // properties through self until every non-default property is set.
-        // Resolve the on-disk state with local values before assignment.
+        // Resolve persisted state locally before assigning stored properties
+        // to satisfy Swift two-phase initialization.
         let isEnabled = defaults.bool(forKey: Key.enabled)
         let root = (FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask

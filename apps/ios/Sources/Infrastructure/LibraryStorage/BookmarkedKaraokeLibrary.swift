@@ -506,8 +506,7 @@ public actor BookmarkedKaraokeLibrary: KaraokeLibraryAccess {
             return results
         }
 
-        // Fail-safe on older environments where SQLite FTS5 is unavailable,
-        // disk full, or a catalog migration was interrupted.
+        // Search the loaded catalog if the persistent index is unavailable.
         let matches: [LibrarySong]
         if normalized.isEmpty {
             matches = orderedSongs

@@ -51,10 +51,8 @@ public enum VerifiedLibraryBackup {
         return Int64(size)
     }
 
-    /// A reused URL can retain metadata from the preceding copy, even when the
-    /// underlying file has changed. Clear both cached and temporary values before
-    /// EVERY read, including the starting snapshot; refreshing only afterward
-    /// incorrectly compares a stale baseline against the current file.
+    /// Clear URL metadata before each read, including the initial snapshot,
+    /// so verification compares current file values against a fresh baseline.
     private static func freshResourceValues(
         at url: URL,
         forKeys keys: Set<URLResourceKey>

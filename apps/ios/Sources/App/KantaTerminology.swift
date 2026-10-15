@@ -6,10 +6,7 @@ enum KantaTerminology {
     // Keep system chrome Latin-only unless a verified Baybayin font is bundled.
     static let displayName = "KANTA"
 
-    // Functional controls intentionally use Latin labels so system UI remains
-    // readable on every supported device even when a Baybayin fallback font is
-    // unavailable or visually inconsistent. Baybayin stays available as a
-    // deliberate brand accent rather than being mixed into tappable chrome.
+    // Use Latin control labels until a consistent Baybayin font is bundled.
     static let mySet = "MY SET"
     static let loop = "LOOP"
     static let scenic = "SCENIC"

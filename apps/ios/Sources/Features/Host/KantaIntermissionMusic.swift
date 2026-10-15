@@ -10,9 +10,7 @@ final class KantaIntermissionMusic: ObservableObject {
     @Published var enabled = false {
         didSet { updatePlayback() }
     }
-    // Never reassign an @Published property from its own didSet.
-    // The former observer recursively invoked the synthesized setter and
-    // overflowed the main thread's stack when Host constructed this model.
+    // Self-assignment in didSet recurses through the synthesized @Published setter.
     @Published private(set) var volume: Float = 0.23
     @Published private(set) var songTitle: String?
     @Published private(set) var isPlaying = false
