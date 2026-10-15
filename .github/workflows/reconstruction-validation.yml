@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   android:
-    if: github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'owner-approved-validation')
+    if: github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || (github.event.label.name == 'owner-approved-validation' || github.event.label.name == 'owner-approved-android-validation'))
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -32,27 +32,7 @@ jobs:
         run: node tools/verify-songbook-browser-interop.mjs apps/android/app/build/synthetic-songbook.json docs/evidence/website/2026-10-15/songbook.js
       - name: Android emulator runtime checks
         timeout-minutes: 15
-        run: |
-          set -euo pipefail
-          export PATH="$ANDROID_HOME/platform-tools:$PATH"
-          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          "$SDKMANAGER" "emulator" "system-images;android-35;google_apis;x86_64"
-          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n kanta-test -k "system-images;android-35;google_apis;x86_64" --force
-          sudo chmod 666 /dev/kvm
-          "$ANDROID_HOME/emulator/emulator" -avd kanta-test -no-window -no-audio -no-snapshot -no-boot-anim -gpu swiftshader_indirect > emulator.log 2>&1 &
-          adb wait-for-device
-          for attempt in $(seq 1 120); do
-            if [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; then break; fi
-            sleep 2
-          done
-          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
-          adb shell input keyevent 82
-          adb install apps/android/app/build/outputs/apk/debug/app-debug.apk
-          adb install apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-          adb shell am instrument -w ph.kanta.reborn.test/ph.kanta.reborn.RuntimeChecks | tee android-runtime.log
-          adb logcat -d > android-logcat.log
-          adb exec-out run-as ph.kanta.reborn cat files/runtime-stage.png > android-runtime-stage.png
-          grep -q 'KANTA runtime: .* checks passed' android-runtime.log
+        run: python3 tools/run-android-runtime.py
       - name: Preserve Android runtime diagnostics
         if: always()
         run: timeout 20s "$ANDROID_HOME/platform-tools/adb" logcat -d > android-logcat.log 2>&1 || true

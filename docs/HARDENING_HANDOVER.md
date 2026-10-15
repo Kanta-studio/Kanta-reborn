@@ -82,3 +82,6 @@ Local validation: 167 domain assertions, browser interoperability, runtime/instr
 
 
 Cloud run 38801573776 passed native sanitizer checks, all 167 domain assertions, browser interoperability, NDK APK and instrumentation assembly, and lint. The emulator setup stopped before app launch because `adb` was absent from PATH. The workflow now installs platform-tools explicitly, exports its path and collects logcat independently after failure. No emulator pass is claimed from that attempt. Native review also added a pre-loader rejection for negative coarse offsets and invalid tuning/root-key ranges; vendor bytes remain unchanged. Fresh changed-head execution is required.
+
+
+Run 38802025283 passed iOS package tests and simulator compilation again, plus Android NDK/APK, lint, native/domain/browser checks. Android emulator never launched: its log reports Unknown AVD name because avdmanager and emulator resolved different default AVD homes. The runtime helper now shares an explicit isolated ANDROID_AVD_HOME across both tools, checks emulator process liveness, bounds every device call/startup, and retains logs/screenshots with cleanup. Android-only owner labeling permits focused infrastructure repair runs without rebuilding unchanged iOS source. No app runtime acceptance is claimed until the repaired runner executes it.
