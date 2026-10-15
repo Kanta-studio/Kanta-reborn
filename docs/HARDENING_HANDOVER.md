@@ -93,3 +93,8 @@ Run 38802025283 passed iOS package tests and simulator compilation again, plus A
 
 
 Run 38802630169 compiled the complete app/UI target. All three iPhone tests passed, including real Morning Light playback, transport and menus. iPad menu walkthrough passed; landscape keypad hittability failed, leaving orientation state for the next starter case and an invalid popover hit target. Captures show a stale window/orientation geometry. UI tests now restore portrait before/after each case, await a stable visible control frame/window orientation, and retain a capture before landscape hit assertions. Assertions are preserved. The workflow now uploads iPhone evidence before independent iPad execution. Device IPA remains blocked until both pass; no UI or signing success is carried onto the changed head.
+
+
+## Validated native-media milestone — October 16, 2026
+
+Run 38805798316 passed on `87e5aa21dc4dc3d2e2e043e8c1cbdd1beafc4ce5`: Android NDK/APK/instrumentation assembly, lint, 167 domain assertions, browser interoperability, native sanitizer tests (439.3 Hz tone / 880.3 Hz transposed, truncation, invalid references and 2,000 mutations) and 13 actual API 35 emulator checks. The explicit AVD-home repair enabled real JNI/AudioTrack playback, cancellation/FIFO, controls, pause/resume, failed preparation and native activity rendering. iOS source is unchanged from passing run 38802025283 (158 package tests and unsigned simulator app build). Only documentation changes follow this validated source head. PR #3 iPad runtime repair and PR #4 stage/party additions remain separately unverified. No signing, physical-device or deployment claim is made.
