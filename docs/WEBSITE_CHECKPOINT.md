@@ -22,3 +22,11 @@ All ten preview pages and public CSS, JavaScript and download manifest returned 
 A browser inspection was attempted, but the runtime reported `environment_offline`. Visual inspection, mobile hit-target testing and an interactive browser Songbook walkthrough were therefore not completed in this session. Previous browser cryptographic interoperability checks remain valid because the reader script is unchanged.
 
 The verified preview is eligible for promotion to the existing `kanta-public.vercel.app` alias without rebuilding. Prior production deployment `dpl_7XxphF9QFPMArBbiaWgs2hw3oDvH` is retained for rollback. Record the actual promotion result separately; this checkpoint does not claim a promotion before it occurs.
+
+## Production result
+
+The preview-promotion endpoint returned HTTP 422 without a more specific explanation. The same verified static files were submitted through the normal production-deployment endpoint instead; no install/build command or application recompilation was involved.
+
+Production deployment `dpl_2ar7Pidc2z7m29vGRDJGGRdjkaJb` is READY, target `production`, with source metadata `12f59c9e62d7abcea5743bec7d2fac7441a1cf0a`. Its assigned public alias is https://kanta-public.vercel.app.
+
+All ten public pages, both stylesheets, the browser reader script and downloads.json returned HTTP 200 through the production alias and exactly matched the validated source. The security headers are present; production HTML has no appended preview toolbar. Native app source and artifact bytes were unchanged. The prior deployment remains available for rollback.
