@@ -1160,3 +1160,8 @@ Actions, merge, signed IPA or release is claimed by this source update.
 ## Reborn recovery boundary — 2026-10-15
 
 Root docs/ARCHITECTURE.md describes the new platform separation and reconstructed missing storage/export/SFX boundaries. Existing LocalKaraokeController remains authoritative. Missing paths were restored individually; absent infrastructure was newly authored. Historical CI/release claims above do not validate this batch.
+
+
+## Reborn online runtime validation — October 16, 2026
+
+The monorepo root owns the active workflows. `ios-runtime-artifacts.yml` is owner-labeled/manual only and compiles the Xcode UI target before iPhone/iPad interactions. Stable starter/current-song accessibility identifiers let tests await real controller playback without assuming a title appears immediately after preparation. Captures distinguish real playback from explicitly named demo fixtures. After both walkthroughs pass, a separate unsigned personal-signing iPhoneOS archive omits iCloud entitlements and uses the existing packager; it is not a signed release. See root `docs/ARCHITECTURE.md` and the current root handover instead of the historical source/status paragraphs above.

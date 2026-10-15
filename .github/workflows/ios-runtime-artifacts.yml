@@ -1,0 +1,79 @@
+name: Owner-approved iOS runtime and unsigned artifacts
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+concurrency:
+  group: ios-runtime-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+jobs:
+  ios-runtime:
+    if: github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'owner-approved-ios-runtime')
+    runs-on: macos-15
+    timeout-minutes: 55
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    defaults:
+      run:
+        working-directory: apps/ios
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate resources and generate project
+        run: |
+          python3 ../../tools/verify-test-layout.py
+          python3 -m unittest discover -s Tests/ReleaseToolingTests
+          python3 Tools/verify-starter-resources.py
+          if ! command -v xcodegen >/dev/null; then brew install xcodegen; fi
+          xcodegen generate
+      - name: Compile app and UI tests
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing -project GeloKaraoke.xcodeproj -scheme GeloKaraoke -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO 2>&1 | tee runtime-test-build.log
+      - name: Real iPhone walkthrough
+        run: python3 ../../tools/capture-ios-runtime.py --device iphone
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ios-iphone-runtime-evidence
+          path: apps/ios/runtime-captures/**
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Real iPad walkthrough
+        if: ${{ !cancelled() }}
+        run: python3 ../../tools/capture-ios-runtime.py --device ipad
+      - name: Build unsigned personal-signing device archive
+        run: |
+          set -o pipefail
+          xcodebuild archive -project GeloKaraoke.xcodeproj -scheme GeloKaraoke -configuration Release -destination 'generic/platform=iOS' -archivePath build/KANTA-personal.xcarchive -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO CODE_SIGN_ENTITLEMENTS='' SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) KANTA_PERSONAL_SIGNING' 2>&1 | tee unsigned-device-build.log
+          python3 Tools/package-altstore-ipa.py --app build/KANTA-personal.xcarchive/Products/Applications/KANTA.app --output build/KANTA-personal-unsigned.ipa
+          shasum -a 256 build/KANTA-personal-unsigned.ipa > build/KANTA-personal-unsigned.sha256
+          python3 - <<'PY'
+          import json, os, pathlib
+          pathlib.Path('build/artifact-info.json').write_text(json.dumps({
+              'source_sha': os.environ['GITHUB_SHA'],
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'platform': 'iPhoneOS', 'signed': False,
+              'personal_signing': True, 'icloud_available': False,
+              'installation': 'Requires separate personal signing. Not directly installable or TestFlight.'
+          }, indent=2) + '\n')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ios-runtime-evidence
+          path: |
+            apps/ios/runtime-captures/**
+            apps/ios/*-build.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: KANTA-personal-unsigned
+          path: |
+            apps/ios/build/KANTA-personal-unsigned.ipa
+            apps/ios/build/KANTA-personal-unsigned.sha256
+            apps/ios/build/artifact-info.json
+          if-no-files-found: error
+          retention-days: 7

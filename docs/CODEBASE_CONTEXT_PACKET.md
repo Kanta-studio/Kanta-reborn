@@ -1,6 +1,6 @@
 # Codebase Context Packet — KANTA Reborn
 
-Snapshot: 2026-10-15, PR #1 merged at `1720a54f31123f2ef59d41383dc41ef06c5855d5`; current Android media work on `feature/native-media-parity` (uncommitted source). Source, tests and workflow are published; this is not a signed or device-accepted release.
+Snapshot: 2026-10-15, PR #1 merged at `1720a54f31123f2ef59d41383dc41ef06c5855d5`; current Android media work on `feature/native-media-parity` (published PR #2). Source, tests and workflow are published; this is not a signed or device-accepted release.
 
 ## Android stack
 
@@ -51,6 +51,11 @@ SAF individual/folder imports accept MIDI/KAR, MP3/WAV and SF2. Folder scans are
 
 SF2 acceptance is deliberately bounded: 32 MiB input, 128 MiB native allocation budget per worker, 128 voices, 1,024 presets, 8,192 expanded regions and bounded traversal. Structural chunk/table/reference checks precede the unchanged third-party parser; final sample/loop bounds are checked before rendering. Negative coarse sample offsets are rejected before the pinned loader can perform a signed shift. Out-of-range coarse/fine tuning and root keys are rejected. Unsupported banks fail visibly rather than being treated as a successful override. Physical sound quality, latency, bank compatibility and long-session acceptance remain open.
 
+The iOS runtime follow-up changes only accessibility identities, UI-test isolation/waits, and root validation/artifact orchestration. Core playback ownership and persisted formats are unchanged. Xcode UI-target compilation, both simulator walkthroughs and the unsigned device archive remain pending on that branch.
+
 ## Validated native-media checkpoint
 
 Source head `87e5aa21dc4dc3d2e2e043e8c1cbdd1beafc4ce5` passed run 38805798316: native sanitizer/tone/mutation checks, Gradle NDK APK and instrumentation build, lint, all 167 domain assertions, captured browser interoperability and 13 actual emulator checks (JNI/AudioTrack playback, FIFO, cancellation, controls, pause/resume, failed preparation and UI). iOS app/package source is unchanged from run 38802025283, which passed all 158 package tests and simulator compilation. This checkpoint changes documentation only. iPad runtime, advanced Android parity, signing and deployment remain separate.
+
+
+Latest iOS checkpoint: run 38806377805 passed on 3c12a1fb962ac956250a8f238c01eace13f560d2, including all three UI walkthrough tests on both iPhone and iPad, app/UI compilation and unsigned personal-signing device archive/IPA packaging. No assertions were removed. See the IOS_RUNTIME_CHECKPOINT.md ledger for retained artifact identities and acceptance boundaries. Earlier pending statements above describe their dated attempts; signing, installation and physical-device acceptance remain open. Only documentation follows that validated source.

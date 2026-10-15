@@ -1757,3 +1757,8 @@ Actual checks: 50 recovered release-tooling tests, four starter-generation tests
 Reviewed active iOS and Android source comments under the shared coding standard. Tightened comments in eleven existing Swift files, corrected the obsolete FTS5 fallback description, and removed an unmeasured 48,000-title responsiveness claim. Android comments already describe concrete ownership and bounds. Required attribution and recovery snapshots remain unchanged. The shared instructions explicitly cover existing and new code.
 
 Validation: non-comment lines are byte-identical in every changed source file; all 50 release-tooling tests and git diff whitespace checks passed. No runtime behavior changed. Platform builds remain unverified; the next build gate is the previously prepared, owner-authorized consolidated CI run.
+
+
+## Reborn iPhone/iPad runtime and unsigned packaging — October 16, 2026
+
+Current repository: `kanta-gelo/Kanta-reborn`. The active root workflow compiles the complete Xcode UI suite and captures actual iPhone/iPad walkthroughs. Starter selection and the playing title have stable accessibility identifiers; MainActor UI tests wait for the real selected song and Pause state before transport assertions. App playback ownership is unchanged. After both simulator walkthroughs pass, the workflow builds a separate unsigned personal-signing iPhoneOS archive with iCloud entitlements omitted, validates/package it using the existing packager and retains source/hash metadata. This is not Apple signing or installation evidence. Local release-tooling tests (50), test-layout guard, Python syntax and workflow YAML parsing pass. Hosted UI execution and IPA creation remain pending. Root documentation supersedes dated historical status claims above.
