@@ -1,6 +1,16 @@
 # Codebase Context Packet — KANTA Reborn
 
-Snapshot: 2026-10-15, PR #1 merged at `1720a54f31123f2ef59d41383dc41ef06c5855d5`; current Android media work on `feature/native-media-parity` (published PR #2). Source, tests and workflow are published; this is not a signed or device-accepted release.
+Current snapshot: merged Android stage/party and iOS runtime work, verified download packaging and restored website. Native source revisions and checks are listed below and in the root README. This is a testing reconstruction, not a signed production release.
+
+## Current accepted state
+
+Android source `b3a6cd7c795e2aaea4e48254ede290b4f616d671` passed 201 domain assertions and 28 actual API 35 emulator checks in run 38807243721, plus build/lint/native/browser checks. iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed all three UI walkthroughs on both iPhone and iPad simulators and unsigned device archive/IPA packaging in run 38806377805; package source previously passed 158 tests.
+
+The static website is now maintained under `apps/web`, with verified 30-day GitHub Actions download bundles. Packaging and website checks passed in runs 38812761100 and 38813213292. The browser Songbook script/stylesheet remain byte-identical to recovery evidence, with network access blocked by CSP.
+
+The current Android UI rebuilds views on frequent publication and can clip the final navigation tab on narrow screens. A stable-stage subtree/navigation repair and private photo/video background implementation exist only as an unmerged local draft; API 36 source compilation was checked before the workspace went offline, but no cloud build, runtime acceptance or publication is claimed. Do not infer this draft is in main or in the downloads.
+
+Camera, microphone processing, secure companion networking and official YouTube remain separate Android work. Hardware quality, latency, long-session behavior and final distribution remain open across platforms. Historical work notes below retain their original chronology; current checkpoints supersede earlier pending statements.
 
 ## Android stack
 

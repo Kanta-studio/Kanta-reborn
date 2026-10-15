@@ -118,3 +118,15 @@ Latest iOS checkpoint: run 38806377805 passed on 3c12a1fb962ac956250a8f238c01eac
 
 
 Validated Android stage/party checkpoint: source b3a6cd7c795e2aaea4e48254ede290b4f616d671 passed run 38807243721 with 201 domain assertions, 28 actual API 35 emulator checks, NDK APK/instrumentation assembly, lint, native sanitizer checks and browser interoperability. Covered nested/cyclic SAF traversal, partial failure, cancellation/reopen, byte identity, custom pad decode/reset, bounded voices, stop-all, intermission gating and real karaoke playback. Only Markdown reconciliation follows that source. Personal photo/video, camera, microphone, companion and official YouTube work remain separate; no physical-device or signed-release claim is made.
+
+## Website and clean download checkpoint — October 15, 2026 UTC
+
+PR #5 merged verified download packaging; PR #6 merged the restored static website. Android and iOS remain separate native projects, with `apps/web` as a third independent directory. Main after these merges is `12f59c9e62d7abcea5743bec7d2fac7441a1cf0a`.
+
+Run 38812761100 passed five packaging tests, checked original successful run/artifact identities and retained original app bytes. Separate 30-day Android and unsigned iOS bundles include SHA-256 and build records, require GitHub sign-in, and exclude the Android instrumentation APK. The unsigned personal IPA still requires signing and has no iCloud Save.
+
+Website run 38813213292 passed static checks. Production deployment `dpl_2ar7Pidc2z7m29vGRDJGGRdjkaJb` is READY on https://kanta-public.vercel.app. All ten public pages and four public assets match validated source over HTTP. The private browser reader remains unchanged and CSP still blocks network connections. Visual inspection was attempted but blocked by `environment_offline`.
+
+The local branch `feature/android-stage-media` contains uncommitted private photo/video stage, lifecycle, source-byte preservation, stable UI subtree/navigation and fixture/runtime-test work. It compiled against API 36 before the environment disconnected, but has not been published or runtime validated. Preserve that draft when workspace access returns; do not reset the checkout or claim the feature shipped.
+
+Next implementation work: resume and publish that bounded media draft, run build/lint/domain/native/browser/emulator checks, then address optional camera, microphone and companion features individually. Keep official YouTube integration under its documented playback plan. Physical-device and Apple-signing tasks remain outside completed online acceptance. Necessary CI/reruns are not capped by the user.
