@@ -176,7 +176,7 @@ public final class MainActivity extends Activity {
     root.requestApplyInsets();
     LinearLayout header = row();
     TextView brand = text("KANTA · ᜃᜈ᜔ᜆ", 22, GOLD);
-    brand.setTypeface(null, 1);
+    brand.setTypeface(null, android.graphics.Typeface.BOLD);
     header.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
     header.addView(button("Help", this::help));
     root.addView(header);

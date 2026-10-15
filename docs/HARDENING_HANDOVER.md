@@ -29,3 +29,5 @@ The owner removed the per-run CI approval and run-count limit. CI and necessary 
 ## First cloud validation — October 15, 2026
 
 Run 38741919509 passed iOS source guards (50 release-tooling tests, four starter-generator tests and resource guard), then stopped before compilation: macos-15 selected Xcode 16.4 / Swift 6.1, while Package.swift requires Swift 6.2. The workflow now selects the runner-installed Xcode 26.2 explicitly. Android validation is still in progress. No Apple compile or simulator acceptance is claimed.
+
+Android run 38741919509 assembled the debug APK, then lint stopped on MainActivity's literal font-style argument (WrongConstant). Replaced the value with Typeface.BOLD without changing rendering semantics. The run reported six additional lint warnings; these remain for review. Domain regression and browser interoperability steps did not execute after the lint failure. Both corrections require fresh validation on the changed head.
