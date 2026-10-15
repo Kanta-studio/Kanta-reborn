@@ -17,6 +17,11 @@ final class SessionController {
 
   final ReservationQueue queue = new ReservationQueue();
   final ExecutorService io = Executors.newSingleThreadExecutor();
+  final ExecutorService preparation = Executors.newSingleThreadExecutor();
+  final ExecutorService folderWorker = Executors.newSingleThreadExecutor();
+  final java.util.concurrent.atomic.AtomicBoolean importCancelled =
+      new java.util.concurrent.atomic.AtomicBoolean();
+  private File selectedSoundFont;
   final Handler main = new Handler(Looper.getMainLooper());
   final Context context;
   android.graphics.Bitmap scenic;
@@ -31,7 +36,10 @@ final class SessionController {
   String singer = "", message = "Opening your library…";
   boolean ready = false, loading = false, playing = false, importing = false;
   private Listener listener;
-  private MediaPlayer player, pending;
+  private PlaybackBackend player, pending;
+  float volume = 1, tempo = 1;
+  int pitch;
+  String soundFontName = "KANTA original tone";
   private long generation = 0;
   private final AudioManager audio;
   private final AudioFocusRequest focus;
@@ -71,6 +79,8 @@ final class SessionController {
           try {
             repository = new LibraryRepository(context);
             repository.load();
+            File bank = repository.soundFont();
+            String bankLabel = repository.soundFontName();
             List<Song> loaded = repository.songs();
             List<LibraryRepository.SavedSet> sets = repository.sets();
             List<ReservationQueue.Entry> restored = repository.queue();
@@ -79,6 +89,8 @@ final class SessionController {
                   songs = loaded;
                   savedSets = sets;
                   queue.restore(restored);
+                  selectedSoundFont = bank;
+                  soundFontName = bankLabel;
                   ready = true;
                   message = "Your music. Your stage.";
                   publish();
@@ -161,49 +173,30 @@ final class SessionController {
     long token = ++generation;
     message = "Opening " + entry.song.title;
     publish();
-    io.execute(
+    File selectedBank = selectedSoundFont;
+    preparation.execute(
         () -> {
           try {
             File file = new File(repository.media, entry.song.fileName);
-            List<MidiLyrics.Cue> cues =
+            MidiLyrics.Document midi =
                 entry.song.fileName.endsWith(".mid")
-                    ? MidiLyrics.parse(java.nio.file.Files.readAllBytes(file.toPath()))
-                    : Collections.emptyList();
+                    ? MidiLyrics.decode(java.nio.file.Files.readAllBytes(file.toPath()))
+                    : null;
+            File bank = selectedBank;
+            List<MidiLyrics.Cue> cues = midi == null ? Collections.emptyList() : midi.cues;
             main.post(
                 () -> {
                   if (token != generation) return;
-                  try {
-                    MediaPlayer candidate = new MediaPlayer();
-                    pending = candidate;
-                    candidate.setAudioAttributes(
-                        new AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_MEDIA)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                            .build());
-                    candidate.setDataSource(file.getAbsolutePath());
-                    candidate.setOnErrorListener(
-                        (p, what, extra) -> {
-                          if (token == generation && pending == p) {
-                            pending = null;
-                            p.release();
-                            loading = false;
-                            message =
-                                "This music file could not be played. The reservation is still in"
-                                    + " Up Next.";
-                            publish();
-                          }
-                          return true;
-                        });
-                    candidate.setOnPreparedListener(
-                        p -> {
-                          if (token != generation || pending != p) {
-                            p.release();
+                  PlaybackBackend.Callback callbacks =
+                      new PlaybackBackend.Callback() {
+                        public void ready(PlaybackBackend candidate) {
+                          if (token != generation || pending != candidate) {
+                            candidate.release();
                             return;
                           }
-                          // A removed reservation cannot start through a late prepare callback.
                           if (queue.snapshot().stream().noneMatch(e -> e.id.equals(entry.id))) {
                             pending = null;
-                            p.release();
+                            candidate.release();
                             loading = false;
                             publish();
                             return;
@@ -211,14 +204,39 @@ final class SessionController {
                           if (audio.requestAudioFocus(focus)
                               != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                             pending = null;
-                            p.release();
+                            candidate.release();
                             loading = false;
                             message = "Audio is busy. Try Play again.";
                             publish();
                             return;
                           }
+                          try {
+                            candidate.controls(volume, tempo, pitch);
+                            candidate.start();
+                          } catch (Exception e) {
+                            failed(candidate);
+                          }
+                        }
+
+                        public void started(PlaybackBackend candidate) {
+                          if (player == candidate) {
+                            playing = true;
+                            publish();
+                            return;
+                          }
+                          if (token != generation
+                              || pending != candidate
+                              || queue.snapshot().stream().noneMatch(e -> e.id.equals(entry.id))) {
+                            candidate.release();
+                            if (pending == candidate) {
+                              pending = null;
+                              loading = false;
+                              publish();
+                            }
+                            return;
+                          }
                           releaseCurrent();
-                          player = p;
+                          player = candidate;
                           pending = null;
                           queue.remove(entry.id);
                           current = entry.song;
@@ -226,40 +244,48 @@ final class SessionController {
                           lyrics = cues;
                           playing = true;
                           loading = false;
-                          p.setOnCompletionListener(
-                              done -> {
-                                if (player != done) return;
-                                played.add(current);
-                                if (played.size() > 10000) played.remove(0);
-                                releaseCurrent();
-                                current = null;
-                                lyrics = Collections.emptyList();
-                                publish();
-                                if (!loading) nextIfReserved();
-                              });
-                          p.setOnErrorListener(
-                              (failed, what, extra) -> {
-                                if (player == failed) {
-                                  releaseCurrent();
-                                  message =
-                                      "Playback stopped because the media could not be decoded.";
-                                  publish();
-                                }
-                                return true;
-                              });
-                          p.start();
                           message = entry.song.title;
                           saveQueue();
                           publish();
-                        });
-                    candidate.prepareAsync();
-                  } catch (Exception e) {
-                    if (pending != null) {
-                      pending.release();
-                      pending = null;
-                    }
+                        }
+
+                        public void completed(PlaybackBackend completed) {
+                          if (player != completed) return;
+                          played.add(current);
+                          if (played.size() > 10000) played.remove(0);
+                          releaseCurrent();
+                          current = null;
+                          lyrics = Collections.emptyList();
+                          publish();
+                          if (!loading) nextIfReserved();
+                        }
+
+                        public void failed(PlaybackBackend failed) {
+                          if (pending == failed) {
+                            pending = null;
+                            failed.release();
+                            loading = false;
+                            message =
+                                "This song or SoundFont could not be played. The reservation"
+                                    + " remains in Up Next.";
+                          } else if (player == failed) {
+                            releaseCurrent();
+                            message = "Playback stopped because the media could not be decoded.";
+                          } else {
+                            failed.release();
+                            return;
+                          }
+                          publish();
+                        }
+                      };
+                  try {
+                    pending =
+                        midi == null
+                            ? new FileAudioPlayback(file, callbacks)
+                            : new SoundFontPlayback(bank, midi, callbacks);
+                  } catch (Exception | LinkageError e) {
                     loading = false;
-                    message = "This song could not be opened. The reservation is still in Up Next.";
+                    message = "Could not prepare this song. Your reservation remains in Up Next.";
                     publish();
                   }
                 });
@@ -268,11 +294,34 @@ final class SessionController {
                 () -> {
                   if (token != generation) return;
                   loading = false;
-                  message = "Could not read this music file. Remove it or choose another song.";
+                  message = "This music file is unreadable or exceeds supported MIDI limits.";
                   publish();
                 });
           }
         });
+  }
+
+  void setVolume(float value) {
+    if (!Float.isFinite(value)) return;
+    volume = Math.max(0, Math.min(1, value));
+    try {
+      if (player != null) player.controls(volume, tempo, pitch);
+    } catch (Exception e) {
+      message = "Could not apply volume";
+    }
+  }
+
+  void controls(float volume, float tempo, int pitch) {
+    if (!Float.isFinite(volume) || !Float.isFinite(tempo)) return;
+    this.volume = Math.min(1, Math.max(0, volume));
+    this.tempo = Math.min(2, Math.max(0.5f, tempo));
+    this.pitch = Math.min(12, Math.max(-12, pitch));
+    try {
+      if (player != null) player.controls(this.volume, this.tempo, this.pitch);
+    } catch (Exception e) {
+      message = "This audio decoder cannot apply that playback setting.";
+    }
+    publish();
   }
 
   private void nextIfReserved() {
@@ -294,8 +343,6 @@ final class SessionController {
     else if (audio.requestAudioFocus(focus) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
       try {
         player.start();
-        playing = true;
-        publish();
       } catch (IllegalStateException e) {
         message = "Please choose Next to reopen this song";
         publish();
@@ -345,7 +392,7 @@ final class SessionController {
 
   long position() {
     try {
-      return player == null ? 0 : player.getCurrentPosition();
+      return player == null ? 0 : player.position();
     } catch (IllegalStateException e) {
       return 0;
     }
@@ -353,21 +400,23 @@ final class SessionController {
 
   void importSongs(List<Uri> files) {
     if (!ready || importing) return;
+    importCancelled.set(false);
     importing = true;
     message = "Importing your selected songs…";
     publish();
     io.execute(
         () -> {
           int good = 0, failed = 0;
-          for (Uri uri : files) {
-            try {
-              repository.importSong(uri);
-              good++;
-            } catch (Exception e) {
-              failed++;
-            }
+          try {
+            int[] counts = repository.importBatch(files, importCancelled::get);
+            good = counts[0];
+            failed = counts[1];
+          } catch (Exception e) {
+            failed = files.size();
           }
           List<Song> loaded = repository.songs();
+          File bank = repository.soundFont();
+          String bankLabel = repository.soundFontName();
           String result =
               "Imported "
                   + good
@@ -378,10 +427,48 @@ final class SessionController {
           main.post(
               () -> {
                 songs = loaded;
+                selectedSoundFont = bank;
+                soundFontName = bankLabel;
                 importing = false;
                 message = result;
                 publish();
               });
+        });
+  }
+
+  void cancelImports() {
+    importCancelled.set(true);
+  }
+
+  void importFolder(Uri tree) {
+    if (!ready || importing) return;
+    importing = true;
+    importCancelled.set(false);
+    message = "Finding music in your selected folder…";
+    publish();
+    folderWorker.execute(
+        () -> {
+          try {
+            List<Uri> files =
+                DocumentTreeScanner.scan(context.getContentResolver(), tree, importCancelled::get);
+            main.post(
+                () -> {
+                  importing = false;
+                  if (importCancelled.get()) {
+                    message = "Folder import cancelled.";
+                    publish();
+                    return;
+                  }
+                  importSongs(files);
+                });
+          } catch (Exception e) {
+            main.post(
+                () -> {
+                  importing = false;
+                  message = "The folder is unavailable, cancelled or exceeds the scan limit.";
+                  publish();
+                });
+          }
         });
   }
 

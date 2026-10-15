@@ -71,4 +71,22 @@ Run 38747387142 executed all 157 Swift package tests without the prior crash: 15
 
 Cloud run 38748040876 passed on source head 56c9fedbb70b79ebc350e4678d5620554d53c983: all 158 Swift package tests, 50 release-tooling tests, four starter-generator tests, starter/layout guards, unsigned Release iOS Simulator build, Android APK/lint/46 domain regressions and browser interoperability. No assertions or suites were disabled. The test-layout guard and TESTING.md contracts are now required by root engineering instructions.
 
-This checkpoint updates documentation only after the validated source commit; application source remains byte-identical to that passing head. UI automation, physical-device audio/camera/performance, secure companion transport, signing and release/deployment remain unverified. Advanced Android parity and official YouTube playback remain queued separately. PR #1 remains unmerged.
+This checkpoint updates documentation only after the validated source commit; application source remains byte-identical to that passing head. UI automation, physical-device audio/camera/performance, secure companion transport, signing and release/deployment remain unverified. Advanced Android parity and official YouTube playback remain queued separately. PR #1 subsequently merged at 1720a54f31123f2ef59d41383dc41ef06c5855d5.
+
+
+## Native Android media follow-up — October 15, 2026
+
+`feature/native-media-parity` replaces system MIDI playback with bounded, revision-pinned MIT TinySoundFont synthesis while preserving the one controller/FIFO owner. Separate preparation and folder workers keep Next independent of import IO. Start acknowledgement commits reservations; cancellation/error retain them. SAF folder/SF2 import is transactional, source bytes remain unchanged, and failed metadata writes roll back new copies. The output-frame clock preserves audible lyric timing across tempo changes. Pitch/tempo/volume controls apply to both backends subject to platform support.
+
+Local validation: 167 domain assertions, browser interoperability, runtime/instrumentation Java compilation against API 36 and native ASan/UBSan checks passed, including an audible generated tone, octave transposition, targeted invalid references, truncation and 2,000 mutations. Local LeakSanitizer is restricted by process inspection; allocator-balance assertions pass. The cloud workflow adds NDK builds and actual Android emulator instrumentation with screenshot/log artifacts. Changed-head cloud execution is pending. This does not establish physical audio acceptance or remaining advanced parity.
+
+
+Cloud run 38801573776 passed native sanitizer checks, all 167 domain assertions, browser interoperability, NDK APK and instrumentation assembly, and lint. The emulator setup stopped before app launch because `adb` was absent from PATH. The workflow now installs platform-tools explicitly, exports its path and collects logcat independently after failure. No emulator pass is claimed from that attempt. Native review also added a pre-loader rejection for negative coarse offsets and invalid tuning/root-key ranges; vendor bytes remain unchanged. Fresh changed-head execution is required.
+
+
+Run 38802025283 passed iOS package tests and simulator compilation again, plus Android NDK/APK, lint, native/domain/browser checks. Android emulator never launched: its log reports Unknown AVD name because avdmanager and emulator resolved different default AVD homes. The runtime helper now shares an explicit isolated ANDROID_AVD_HOME across both tools, checks emulator process liveness, bounds every device call/startup, and retains logs/screenshots with cleanup. Android-only owner labeling permits focused infrastructure repair runs without rebuilding unchanged iOS source. No app runtime acceptance is claimed until the repaired runner executes it.
+
+
+## Validated native-media milestone — October 16, 2026
+
+Run 38805798316 passed on `87e5aa21dc4dc3d2e2e043e8c1cbdd1beafc4ce5`: Android NDK/APK/instrumentation assembly, lint, 167 domain assertions, browser interoperability, native sanitizer tests (439.3 Hz tone / 880.3 Hz transposed, truncation, invalid references and 2,000 mutations) and 13 actual API 35 emulator checks. The explicit AVD-home repair enabled real JNI/AudioTrack playback, cancellation/FIFO, controls, pause/resume, failed preparation and native activity rendering. iOS source is unchanged from passing run 38802025283 (158 package tests and unsigned simulator app build). Only documentation changes follow this validated source head. PR #3 iPad runtime repair and PR #4 stage/party additions remain separately unverified. No signing, physical-device or deployment claim is made.

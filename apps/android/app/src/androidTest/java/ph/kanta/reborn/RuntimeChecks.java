@@ -1,0 +1,163 @@
+package ph.kanta.reborn;
+
+import android.app.*;
+import android.content.*;
+import android.graphics.Bitmap;
+import android.os.*;
+import android.view.*;
+import android.widget.TextView;
+import java.io.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
+import ph.kanta.reborn.core.*;
+
+/**
+ * Instrumentation exercises real JNI, AudioTrack and activity lifecycle on a clean test install.
+ */
+public final class RuntimeChecks extends Instrumentation {
+  private int checks;
+  private MainActivity activity;
+  private SessionController session;
+
+  @Override
+  public void onCreate(Bundle arguments) {
+    super.onCreate(arguments);
+    start();
+  }
+
+  private void check(boolean condition, String message) {
+    checks++;
+    if (!condition) throw new AssertionError(message);
+  }
+
+  private boolean state(BooleanSupplier predicate) {
+    AtomicReference<Boolean> result = new AtomicReference<>(false);
+    runOnMainSync(() -> result.set(predicate.getAsBoolean()));
+    return result.get();
+  }
+
+  private void await(BooleanSupplier predicate, String message) {
+    long deadline = SystemClock.uptimeMillis() + 15000;
+    while (!state(predicate) && SystemClock.uptimeMillis() < deadline) SystemClock.sleep(50);
+    check(state(predicate), message);
+  }
+
+  private boolean contains(View view, String text) {
+    if (view instanceof TextView && ((TextView) view).getText().toString().contains(text))
+      return true;
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++)
+        if (contains(group.getChildAt(i), text)) return true;
+    }
+    return false;
+  }
+
+  @Override
+  public void onStart() {
+    Bundle result = new Bundle();
+    try {
+      Intent launch =
+          new Intent(getTargetContext(), MainActivity.class)
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      activity = (MainActivity) startActivitySync(launch);
+      session = ((KantaApplication) activity.getApplication()).session;
+      await(() -> session.ready, "Library did not open");
+      check(state(() -> session.songs.size() == 3), "Clean install starter catalog");
+      check(
+          state(() -> contains(activity.getWindow().getDecorView(), "KANTA")),
+          "Native activity did not render");
+      Song song = session.songs.get(0);
+      runOnMainSync(
+          () -> {
+            session.reserve(song, "First");
+            session.reserve(song, "Second");
+          });
+      check(
+          state(
+              () ->
+                  session.queue.snapshot().size() == 2
+                      && !session
+                          .queue
+                          .snapshot()
+                          .get(0)
+                          .id
+                          .equals(session.queue.snapshot().get(1).id)),
+          "Distinct reservations");
+      runOnMainSync(
+          () -> {
+            session.next();
+            session.pause();
+          });
+      SystemClock.sleep(500);
+      check(
+          state(() -> !session.playing && !session.loading && session.queue.snapshot().size() == 2),
+          "Cancelled preparation consumed a reservation");
+      runOnMainSync(session::next);
+      await(
+          () -> session.playing && session.current != null,
+          "Native MIDI player did not start: " + session.message);
+      check(
+          state(() -> session.queue.snapshot().size() == 1 && session.singer.equals("First")),
+          "Start acknowledgement violated FIFO");
+      await(() -> session.position() >= 300, "AudioTrack audible clock did not advance");
+      runOnMainSync(() -> session.controls(.7f, 1.5f, 3));
+      long before = position();
+      await(() -> session.position() > before + 300, "Controlled playback stopped advancing");
+      Bitmap capture = getUiAutomation().takeScreenshot();
+      if (capture != null) {
+        try (FileOutputStream out =
+            new FileOutputStream(new File(getTargetContext().getFilesDir(), "runtime-stage.png"))) {
+          capture.compress(Bitmap.CompressFormat.PNG, 100, out);
+        }
+        capture.recycle();
+      }
+      runOnMainSync(session::pause);
+      SystemClock.sleep(150);
+      long paused = position();
+      SystemClock.sleep(250);
+      check(position() - paused < 50, "Paused audible clock advanced");
+      runOnMainSync(session::toggle);
+      await(() -> session.playing && session.position() > paused + 100, "Resume failed");
+      runOnMainSync(session::stop);
+      // Missing private data must leave the remaining singer's reservation recoverable.
+      Song missing =
+          new Song("missing-runtime-fixture", "Missing fixture", "", "999", "missing.mid", false);
+      runOnMainSync(
+          () -> {
+            session.remove(session.queue.peek().id);
+            session.reserve(missing, "Retry");
+            session.next();
+          });
+      await(() -> !session.loading, "Failed media preparation never completed");
+      check(
+          state(
+              () ->
+                  !session.playing
+                      && session.queue.peek() != null
+                      && session.queue.peek().song.id.equals(missing.id)),
+          "Failed preparation consumed reservation");
+      runOnMainSync(
+          () -> {
+            session.remove(session.queue.peek().id);
+            activity.finish();
+          });
+      result.putString(
+          "stream",
+          "KANTA runtime: "
+              + checks
+              + " checks passed (native MIDI, FIFO, cancellation, controls, pause/resume, failed"
+              + " prepare, UI)\n");
+      finish(Activity.RESULT_OK, result);
+    } catch (Throwable failure) {
+      result.putString("stream", android.util.Log.getStackTraceString(failure));
+      finish(Activity.RESULT_CANCELED, result);
+    }
+  }
+
+  private long position() {
+    AtomicReference<Long> value = new AtomicReference<>(0L);
+    runOnMainSync(() -> value.set(session.position()));
+    return value.get();
+  }
+}

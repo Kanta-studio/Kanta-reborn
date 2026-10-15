@@ -59,7 +59,22 @@ public final class CoreRegressionTests {
     check(traversal, "Unsafe media path accepted");
     for (String name : new String[] {"morning-light", "sing-together", "starlight-echo"}) {
       byte[] midi = Files.readAllBytes(Paths.get(args[0], name + ".kar"));
-      List<MidiLyrics.Cue> cues = MidiLyrics.parse(midi);
+      MidiLyrics.Document document = MidiLyrics.decode(midi);
+      List<MidiLyrics.Cue> cues = document.cues;
+      check(!document.messages.isEmpty(), "Starter MIDI events missing");
+      check(
+          document.durationMilliseconds > cues.get(cues.size() - 1).milliseconds,
+          "End of track duration lost");
+      boolean noteOn = false, noteOff = false;
+      long previousTime = -1;
+      for (MidiLyrics.Message message : document.messages) {
+        check(message.milliseconds >= previousTime, "Nonmonotonic MIDI event time");
+        previousTime = message.milliseconds;
+        noteOn |= (message.status & 0xf0) == 0x90 && message.b > 0;
+        noteOff |=
+            (message.status & 0xf0) == 0x80 || (message.status & 0xf0) == 0x90 && message.b == 0;
+      }
+      check(noteOn && noteOff, "Starter note lifetime missing");
       check(cues.size() >= 3, "Starter lyrics missing " + name);
       check(cues.get(0).milliseconds == 0, "First lyric time");
       for (int i = 1; i < cues.size(); i++)
@@ -99,8 +114,25 @@ public final class CoreRegressionTests {
     midiOut.writeShort(2);
     midiOut.writeShort(480);
     byte[] tempoTrack = {
-      0, (byte) 255, 81, 3, 7, (byte) 161, 32, (byte) 131, 96, (byte) 255, 81, 3, 15, 66, 64, 0,
-      (byte) 255, 47, 0
+      0,
+      (byte) 255,
+      81,
+      3,
+      7,
+      (byte) 161,
+      32,
+      (byte) 131,
+      96,
+      (byte) 255,
+      81,
+      3,
+      15,
+      66,
+      64,
+      0,
+      (byte) 255,
+      47,
+      0
     };
     byte[] lyricTrack = {
       0, (byte) 255, 5, 2, 47, 65, (byte) 135, 64, (byte) 255, 5, 2, 47, 66, 0, (byte) 255, 47, 0
@@ -120,6 +152,80 @@ public final class CoreRegressionTests {
       malformed = true;
     }
     check(malformed, "Invalid MIDI magic accepted");
+    RenderedPlaybackClock clock = new RenderedPlaybackClock(1000);
+    check(clock.position(0) == 0, "Empty playback clock");
+    clock.append(0, 0, 1);
+    clock.append(1000, 1000, 2);
+    clock.append(2000, 3000, .5);
+    check(clock.position(500) == 500, "Buffered tempo applied before audible boundary");
+    check(clock.position(1000) == 1000, "Tempo boundary discontinuity");
+    check(clock.position(1500) == 2000, "Audible fast tempo clock");
+    check(clock.position(2500) == 3250, "Audible slow tempo clock");
+    boolean invalidClock = false;
+    try {
+      clock.append(3000, 3500, Double.NaN);
+    } catch (IllegalArgumentException e) {
+      invalidClock = true;
+    }
+    check(invalidClock, "Nonfinite tempo accepted");
+    boolean backwardsClock = false;
+    try {
+      clock.append(2000, 3500, 1);
+    } catch (IllegalArgumentException e) {
+      backwardsClock = true;
+    }
+    check(backwardsClock, "Backwards render clock accepted");
+    byte[] channelTrack = {
+      0,
+      (byte) 0xc0,
+      12,
+      0,
+      (byte) 0xb0,
+      7,
+      90,
+      0,
+      (byte) 0xe0,
+      0,
+      64,
+      0,
+      (byte) 0x90,
+      69,
+      127,
+      (byte) 0x83,
+      0x60,
+      69,
+      0,
+      (byte) 0x83,
+      0x60,
+      (byte) 0xff,
+      0x2f,
+      0
+    };
+    ByteArrayOutputStream channelBytes = new ByteArrayOutputStream();
+    DataOutputStream channelOut = new DataOutputStream(channelBytes);
+    channelOut.writeInt(0x4d546864);
+    channelOut.writeInt(6);
+    channelOut.writeShort(0);
+    channelOut.writeShort(1);
+    channelOut.writeShort(480);
+    channelOut.writeInt(0x4d54726b);
+    channelOut.writeInt(channelTrack.length);
+    channelOut.write(channelTrack);
+    MidiLyrics.Document channels = MidiLyrics.decode(channelBytes.toByteArray());
+    check(channels.messages.size() == 5, "Typed channel events lost");
+    check(
+        channels.messages.get(0).status == 0xc0 && channels.messages.get(0).a == 12,
+        "Program event");
+    check(
+        channels.messages.get(1).status == 0xb0 && channels.messages.get(1).b == 90,
+        "Control event");
+    check(
+        channels.messages.get(2).status == 0xe0 && channels.messages.get(2).b == 64,
+        "Pitch wheel event");
+    check(
+        channels.messages.get(4).milliseconds == 500 && channels.messages.get(4).b == 0,
+        "Running-status note off");
+    check(channels.durationMilliseconds == 1000, "Silent ending duration lost");
     Song dangerous = new Song("x", "=SUM(1,2)", "A\"B", "7", "x.wav", false);
     String csv = PrivateSongbook.csv(Arrays.asList(dangerous));
     check(csv.contains("\"'=SUM(1,2)\""), "Formula not neutralized");

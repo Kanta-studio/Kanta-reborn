@@ -17,3 +17,5 @@ iOS now includes individually restored original modules and newly reconstructed 
 See `docs/RECONSTRUCTION.md` before making feature or release claims. Historical iOS documentation describes earlier source states and is not current verification evidence.
 
 [Cloud validation](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38748040876) passed 158 Swift package tests, the unsigned Release simulator app build, Android APK/lint/domain checks and browser interoperability. See [testing contracts](docs/TESTING.md). No signed release, physical-device acceptance or UI automation is implied.
+
+Android native-media validation passed [run 38805798316](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38805798316): NDK APK assembly, lint, native sanitizer checks, 167 domain assertions, browser interoperability and 13 actual emulator checks. The same iOS application source passed 158 package tests and unsigned simulator compilation in [run 38802025283](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38802025283). New iPhone/iPad walkthrough and unsigned-device packaging work is tracked separately in PR #3; remaining Android stage/party work is in PR #4.
