@@ -243,6 +243,47 @@ public final class RuntimeChecks extends Instrumentation {
           "Video did not resume after reactivation");
       runOnMainSync(() -> session.scene("bayanDawn"));
       check(state(() -> session.stageVideo == null), "Scenic selection retained video playback");
+      check(
+          state(() -> !session.cameraPreviewEnabled && !activity.cameraStreaming()),
+          "Camera was enabled without opt-in");
+      check(
+          getTargetContext().checkSelfPermission(android.Manifest.permission.CAMERA)
+              != android.content.pm.PackageManager.PERMISSION_GRANTED,
+          "Fresh installation unexpectedly had camera permission");
+      shell("pm grant ph.kanta.reborn android.permission.CAMERA");
+      runOnMainSync(activity::toggleCamera);
+      await(
+          () -> activity.cameraStreaming() && ((StageSurface) stableStage.get()).isCameraVisible(),
+          "Opt-in front camera never rendered");
+      runOnMainSync(activity::fullscreen);
+      await(
+          () -> activity.cameraStreaming() && !((StageSurface) stableStage.get()).isCameraVisible(),
+          "Front camera did not move to fullscreen");
+      runOnMainSync(activity::closeFullscreen);
+      await(
+          () -> activity.cameraStreaming() && ((StageSurface) stableStage.get()).isCameraVisible(),
+          "Front camera did not return to the primary stage");
+      runOnMainSync(activity::toggleCamera);
+      check(
+          state(
+              () ->
+                  !session.cameraPreviewEnabled
+                      && !activity.cameraStreaming()
+                      && !((StageSurface) stableStage.get()).isCameraVisible()),
+          "Disabling the camera retained its preview");
+      runOnMainSync(activity::toggleCamera);
+      await(activity::cameraStreaming, "Camera did not reopen after explicit opt-in");
+      shell("input keyevent KEYCODE_HOME");
+      await(() -> !session.foreground, "Home did not background KANTA");
+      check(
+          state(() -> !session.cameraPreviewEnabled && !activity.cameraStreaming()),
+          "Backgrounding KANTA retained camera preview");
+      shell("am start -n ph.kanta.reborn/.MainActivity --activity-reorder-to-front");
+      await(() -> session.foreground, "KANTA did not return to the foreground");
+      check(
+          state(() -> !session.cameraPreviewEnabled && !activity.cameraStreaming()),
+          "Foregrounding KANTA re-enabled camera without opt-in");
+
       runOnMainSync(
           () -> {
             session.reserve(song, "First");
@@ -358,6 +399,14 @@ public final class RuntimeChecks extends Instrumentation {
     } catch (Throwable failure) {
       result.putString("stream", android.util.Log.getStackTraceString(failure));
       finish(Activity.RESULT_CANCELED, result);
+    }
+  }
+
+  private void shell(String command) throws IOException {
+    try (InputStream result =
+        new android.os.ParcelFileDescriptor.AutoCloseInputStream(
+            getUiAutomation().executeShellCommand(command))) {
+      readFixture(result);
     }
   }
 

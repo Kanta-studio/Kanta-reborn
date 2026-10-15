@@ -138,3 +138,11 @@ The workspace is online again. The local draft was checkpointed before review. A
 The Android 0.4.0 batch adds private photo/video stage imports, persisted selection, bounded validation and generation-fenced muted video lifecycle. MainActivity retains its stage/transport/navigation subtree and fits all five tabs on narrow phones. The original app mark is reused without modification. A 1,917-byte original solid-color MP4 replaces unvalidated runtime codec fixture generation. Existing emulator diagnostics are no longer overwritten by a post-shutdown ADB fallback.
 
 Local API 36 source/instrumentation compilation, 201 domain checks, browser interoperability and test-layout preflight passed. Cloud run 38825170997 passed APK/lint/native/browser checks, 201 domain assertions and 47 emulator checks; no release, physical audio/camera acceptance or signed distribution is claimed. Existing public downloads continue pointing to the earlier accepted builds until this source passes its checks.
+
+## Camera source prepared — October 16, 2026
+
+Android photo/video source passed run 38825170997 and is merged in PR #8. Refreshed clean download packaging passed run 38825727083 and merged in PR #9, with Android artifact 12015246566 and unsigned iOS artifact 12014309230. Public website links have not yet been switched to these bundles.
+
+A separate camera batch adds lifecycle-bound, default-off front preview, explicit permission handling, fullscreen transfer, background shutoff and no recording. AndroidX Activity/CameraX versions are pinned; embedded runtime licenses/notices are copied into an offline in-app asset. The merged-APK permission gate permits CAMERA as its only Android platform permission. No microphone, networking, queue/audio-owner or signing change is included.
+
+Host Gradle could not download through the Java wrapper's network path; this is not a cloud-build failure. Test-layout preflight and source formatting passed. Hosted compilation/lint/dependency and emulated-camera runtime checks are pending. Website desktop inspection now rendered the homepage and Android download page correctly, followed navigation and confirmed the Songbook missing-file alert; mobile and successful interactive unlock remain separate.

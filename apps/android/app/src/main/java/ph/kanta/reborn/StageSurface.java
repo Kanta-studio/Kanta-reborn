@@ -17,7 +17,7 @@ final class StageSurface extends FrameLayout implements TextureView.SurfaceTextu
   private Surface surface;
   private File attempted;
   private long generation = -1;
-  private boolean active = true, prepared, mediaLive;
+  private boolean active = true, prepared, mediaLive, cameraLive;
 
   StageSurface(Context context, SessionController session) {
     super(context);
@@ -41,7 +41,8 @@ final class StageSurface extends FrameLayout implements TextureView.SurfaceTextu
   }
 
   void refresh() {
-    File wanted = active && session.foreground ? session.stageVideo : null;
+    File wanted =
+        active && session.foreground && !session.cameraPreviewEnabled ? session.stageVideo : null;
     if (generation != session.visualGeneration
         || (attempted != null && !attempted.equals(wanted))
         || wanted == null) {
@@ -51,8 +52,28 @@ final class StageSurface extends FrameLayout implements TextureView.SurfaceTextu
     }
     if (wanted != null && attempted == null && video.isAvailable() && isAttachedToWindow())
       prepare(wanted);
-    lyrics.mediaVisible(mediaLive);
+    lyrics.mediaVisible(mediaLive || cameraLive);
     lyrics.refresh();
+  }
+
+  void mountCamera(android.view.View preview) {
+    closeVideo();
+    attempted = null;
+    addView(preview, getChildCount() - 1, new FrameLayout.LayoutParams(-1, -1));
+  }
+
+  void cameraFrame(boolean visible) {
+    cameraLive = visible;
+    lyrics.mediaVisible(cameraLive || mediaLive);
+  }
+
+  void unmountCamera(android.view.View preview) {
+    cameraFrame(false);
+    removeView(preview);
+  }
+
+  boolean isCameraVisible() {
+    return cameraLive;
   }
 
   private void prepare(File file) {
@@ -135,7 +156,7 @@ final class StageSurface extends FrameLayout implements TextureView.SurfaceTextu
   private void closeVideo() {
     prepared = false;
     mediaLive = false;
-    lyrics.mediaVisible(false);
+    lyrics.mediaVisible(cameraLive);
     if (player != null) {
       player.release();
       player = null;

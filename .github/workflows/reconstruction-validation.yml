@@ -27,7 +27,9 @@ jobs:
           /tmp/kanta-soundfont-test apps/android/app/src/main/assets/starter/kanta-tone.sf2
       - name: Build, lint and domain regression tests
         working-directory: apps/android
-        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:coreRegression :app:assembleDebugAndroidTest
+        run: ./gradlew --no-daemon :app:dependencies --configuration debugRuntimeClasspath :app:assembleDebug :app:lintDebug :app:coreRegression :app:assembleDebugAndroidTest
+      - name: Verify camera permission and offline notices
+        run: python3 tools/verify-android-runtime-package.py
       - name: Verify captured browser interoperability
         run: node tools/verify-songbook-browser-interop.mjs apps/android/app/build/synthetic-songbook.json docs/evidence/website/2026-10-15/songbook.js
       - name: Android emulator runtime checks

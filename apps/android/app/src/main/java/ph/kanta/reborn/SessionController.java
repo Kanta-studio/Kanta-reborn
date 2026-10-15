@@ -31,6 +31,7 @@ final class SessionController {
   private StageMediaStore stageStore;
   StageMediaStore.Selection stageSelection;
   boolean stageReady;
+  boolean cameraPreviewEnabled;
   String stageKind = "scenic";
   File stageVideo;
   long visualGeneration;

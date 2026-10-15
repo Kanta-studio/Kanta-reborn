@@ -16,8 +16,14 @@ import java.util.*;
 import java.util.concurrent.*;
 import ph.kanta.reborn.core.*;
 
-public final class MainActivity extends Activity {
-  private static final int MUSIC = 10, VOICE = 11, EXPORT = 12, FOLDER = 13, PHOTO = 14, VIDEO = 15;
+public final class MainActivity extends androidx.activity.ComponentActivity {
+  private static final int MUSIC = 10,
+      VOICE = 11,
+      EXPORT = 12,
+      FOLDER = 13,
+      PHOTO = 14,
+      VIDEO = 15,
+      CAMERA = 16;
   private static final int NAVY = 0xFF0B1023,
       PANEL = 0xFF19213E,
       CYAN = 0xFF6FE5E8,
@@ -29,6 +35,8 @@ public final class MainActivity extends Activity {
   private Button playButton, nextButton;
   private final Map<String, Button> navigationButtons = new HashMap<>();
   private Dialog fullscreen;
+  private CameraStage camera;
+  private boolean cameraPermissionPending;
   private Presentation presentation;
   private DisplayManager displays;
   private String tab = "Control", query = "", singer = "";
@@ -69,6 +77,7 @@ public final class MainActivity extends Activity {
   public void onCreate(Bundle saved) {
     super.onCreate(saved);
     session = ((KantaApplication) getApplication()).session;
+    camera = new CameraStage(this, session);
     if (saved != null) {
       tab = saved.getString("tab", "Control");
       query = saved.getString("query", "");
@@ -95,6 +104,8 @@ public final class MainActivity extends Activity {
   protected void onStop() {
     handler.removeCallbacksAndMessages(null);
     displays.unregisterDisplayListener(displayListener);
+    cameraPermissionPending = false;
+    camera.stop();
     session.listen(null);
     session.hostVisible(false);
     if (stage != null) stage.setVisualActive(false);
@@ -551,6 +562,10 @@ public final class MainActivity extends Activity {
     }
     body.addView(
         button(
+            "AndroidX and runtime software notices",
+            () -> policy("runtime-notices.txt", "Runtime software notices")));
+    body.addView(
+        button(
             "TinySoundFont license",
             () -> policy("tinysoundfont-license.txt", "TinySoundFont · MIT")));
     body.addView(button("Privacy", () -> policy("privacy.txt", "Privacy")));
@@ -581,8 +596,53 @@ public final class MainActivity extends Activity {
         .show();
   }
 
+  void toggleCamera() {
+    if (camera.enabled()) {
+      camera.stop();
+      session.publish();
+      return;
+    }
+    if (!session.foreground || cameraPermissionPending) return;
+    if (checkSelfPermission(android.Manifest.permission.CAMERA)
+        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+      cameraPermissionPending = true;
+      requestPermissions(new String[] {android.Manifest.permission.CAMERA}, CAMERA);
+      return;
+    }
+    camera.start(fullscreen != null && fullscreen.isShowing() ? fullscreenStage : stage);
+    session.publish();
+  }
+
+  boolean cameraStreaming() {
+    return camera.streaming();
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int request, String[] permissions, int[] grants) {
+    super.onRequestPermissionsResult(request, permissions, grants);
+    if (request != CAMERA || !cameraPermissionPending) return;
+    cameraPermissionPending = false;
+    if (session.foreground
+        && checkSelfPermission(android.Manifest.permission.CAMERA)
+            == android.content.pm.PackageManager.PERMISSION_GRANTED) toggleCamera();
+    else {
+      session.message = "Camera permission was not granted. Your saved background is unchanged.";
+      session.publish();
+    }
+  }
+
   private void scenic() {
     body.addView(text("Choose your stage", 22, Color.WHITE));
+    body.addView(
+        button(
+            camera.enabled() ? "Turn off front camera" : "Turn on front camera",
+            this::toggleCamera));
+    body.addView(
+        text(
+            "Optional live preview only. Nothing is recorded. Camera turns off when you leave"
+                + " KANTA. TV output uses a still background.",
+            14,
+            Color.WHITE));
     Button photo =
         button(
             "Choose your photo",
@@ -612,9 +672,21 @@ public final class MainActivity extends Activity {
             14,
             Color.WHITE));
     if (session.stageSelection != null && session.stageSelection.photo != null)
-      body.addView(button("Use your last photo", () -> session.chooseStage("photo")));
+      body.addView(
+          button(
+              "Use your last photo",
+              () -> {
+                camera.stop();
+                session.chooseStage("photo");
+              }));
     if (session.stageSelection != null && session.stageSelection.video != null)
-      body.addView(button("Use your last video", () -> session.chooseStage("video")));
+      body.addView(
+          button(
+              "Use your last video",
+              () -> {
+                camera.stop();
+                session.chooseStage("video");
+              }));
     if (session.importing) body.addView(button("Cancel import", session::cancelImports));
     String[] names = {
       "bayanDawn",
@@ -635,7 +707,10 @@ public final class MainActivity extends Activity {
               (session.stageKind.equals("scenic") && session.scenicName.equals(name) ? "✓ " : "")
                   + title,
               () -> {
-                if (session.stageReady) session.scene(name);
+                if (session.stageReady) {
+                  camera.stop();
+                  session.scene(name);
+                }
               }));
     }
   }
@@ -770,7 +845,11 @@ public final class MainActivity extends Activity {
     body.addView(size);
   }
 
-  private void fullscreen() {
+  void closeFullscreen() {
+    if (fullscreen != null) fullscreen.dismiss();
+  }
+
+  void fullscreen() {
     if (fullscreen != null && fullscreen.isShowing()) return;
     fullscreen = new Dialog(this, android.R.style.Theme_Material_NoActionBar_Fullscreen);
     LinearLayout content = column();
@@ -780,16 +859,18 @@ public final class MainActivity extends Activity {
     LinearLayout controls = row();
     addWeighted(controls, button("Play / Pause", session::toggle));
     addWeighted(controls, button("Next", session::next));
-    addWeighted(controls, button("Close", () -> fullscreen.dismiss()));
+    addWeighted(controls, button("Close", this::closeFullscreen));
     content.addView(controls);
     fullscreen.setContentView(content);
     fullscreen.setOnDismissListener(
         d -> {
           fullscreenStage = null;
           stage.setVisualActive(true);
+          camera.moveTo(stage);
         });
     stage.setVisualActive(false);
     fullscreen.show();
+    camera.moveTo(fullscreenStage);
   }
 
   private void refreshDisplay() {
@@ -981,7 +1062,7 @@ public final class MainActivity extends Activity {
                 + " fullscreen.\n\n"
                 + "4. Save playlists or the songs you finished in My Set.\n\n"
                 + "SoundFonts can be added in My Set. Loop has party sounds and between-song music."
-                + " This is a reconstruction preview; microphone effects, camera stages and"
+                + " This is a reconstruction preview; microphone effects and"
                 + " companion pairing are still being restored. They are not enabled in this"
                 + " version. Use music you have permission to use.")
         .setPositiveButton("Done", null)

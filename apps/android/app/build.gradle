@@ -9,8 +9,8 @@ android {
         minSdk 26
         targetSdk 36
         ndk { abiFilters "arm64-v8a", "armeabi-v7a", "x86_64" }
-        versionCode 4
-        versionName '0.4.0-reconstruction'
+        versionCode 5
+        versionName '0.5.0-reconstruction'
         testInstrumentationRunner 'ph.kanta.reborn.RuntimeChecks'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
@@ -34,3 +34,42 @@ tasks.register('coreRegression', JavaExec) {
     args file('src/main/assets/starter').absolutePath,
          layout.buildDirectory.file('synthetic-songbook.json').get().asFile.absolutePath
 }
+
+dependencies {
+    implementation 'androidx.activity:activity:1.10.1'
+    implementation 'androidx.camera:camera-camera2:1.5.3'
+    implementation 'androidx.camera:camera-lifecycle:1.5.3'
+    implementation 'androidx.camera:camera-view:1.5.3'
+}
+
+// Keep the exact upstream runtime notices available offline in the app.
+def runtimeNotices = layout.buildDirectory.dir('generated/runtime-notices')
+android.sourceSets.main.assets.srcDir(runtimeNotices)
+def noticesTask = tasks.register('generateRuntimeNotices') {
+    inputs.files({ configurations.getByName('releaseRuntimeClasspath') })
+    outputs.dir(runtimeNotices)
+    doLast {
+        def sections = []
+        configurations.getByName('releaseRuntimeClasspath').resolvedConfiguration.resolvedArtifacts
+            .sort { it.moduleVersion.id.toString() }.each { artifact ->
+                def coordinate = artifact.moduleVersion.id.toString()
+                sections.add("DEPENDENCY: ${coordinate}\n")
+                new java.util.zip.ZipFile(artifact.file).withCloseable { archive ->
+                    archive.entries().toList().sort { it.name }.each { entry ->
+                        if (!entry.directory && entry.name ==~ /(?i)(.*\/)?(license[^\/]*|notice[^\/]*|al2\.0)/) {
+                            if (entry.size > 1048576) throw new GradleException('Oversized runtime notice')
+                            archive.getInputStream(entry).withCloseable { input ->
+                                byte[] bytes = input.readNBytes(1048577)
+                                if (bytes.length > 1048576) throw new GradleException('Oversized runtime notice')
+                                sections.add("FILE: ${entry.name}\n" + new String(bytes, java.nio.charset.StandardCharsets.UTF_8) + '\n')
+                            }
+                        }
+                    }
+                }
+            }
+        def destination = runtimeNotices.get().file('runtime-notices.txt').asFile
+        destination.parentFile.mkdirs()
+        destination.text = sections.join('\n')
+    }
+}
+tasks.named('preBuild').configure { dependsOn noticesTask }
