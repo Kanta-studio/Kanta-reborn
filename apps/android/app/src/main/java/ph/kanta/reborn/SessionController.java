@@ -308,6 +308,7 @@ final class SessionController {
               metadata.release();
             }
           } catch (Exception ignored) {
+            valid = false;
           }
           final boolean accepted = valid;
           main.post(

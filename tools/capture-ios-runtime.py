@@ -2,6 +2,7 @@
 """Capture real iPhone/iPad interactions and preserve failed XCTest evidence."""
 from __future__ import annotations
 import json
+import argparse
 import os
 from pathlib import Path
 import signal
@@ -14,6 +15,9 @@ def run(*args: str, **kwargs):
     return subprocess.run(args, check=True, **kwargs)
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--device", choices=("iphone", "ipad"))
+    requested = parser.parse_args().device
     OUT.mkdir(exist_ok=True)
     devices = json.loads(subprocess.check_output(
         ["xcrun", "simctl", "list", "devices", "available", "--json"], text=True))
@@ -21,6 +25,7 @@ def main() -> int:
                  if "iOS" in runtime for d in rows if d.get("isAvailable", True)]
     selected = []
     for label, prefix, preferred in (("iphone", "iPhone", "iPhone 16 Pro"), ("ipad", "iPad", "iPad (9th generation)")):
+        if requested and requested != label: continue
         choices = [(name, udid) for name, udid in available if name.startswith(prefix)]
         if not choices: raise RuntimeError(f"No available {label} simulator")
         name, udid = next((item for item in choices if item[0] == preferred), choices[0])
@@ -64,7 +69,7 @@ def main() -> int:
         passed = passed and video.exists() and video.stat().st_size > 0
         results.append(dict(**device, passed=passed))
         print(f"{label}: {'PASS' if passed else 'FAIL'}", flush=True)
-    (OUT / "manifest.json").write_text(json.dumps(dict(source_sha=os.environ.get("GITHUB_SHA"),
+    (OUT / (f"manifest-{requested}.json" if requested else "manifest.json")).write_text(json.dumps(dict(source_sha=os.environ.get("GITHUB_SHA"),
         results=results, boundary="Real simulator interactions; demo tests are named separately. Videos do not prove hardware audio."), indent=2) + "\n")
     return 0 if all(item["passed"] for item in results) else 1
 

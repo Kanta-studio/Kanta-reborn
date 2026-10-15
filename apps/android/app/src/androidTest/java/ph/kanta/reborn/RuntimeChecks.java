@@ -104,10 +104,10 @@ public final class RuntimeChecks extends Instrumentation {
             isolated.songs().stream()
                 .filter(value -> value.title.equals("Original KAR"))
                 .findFirst()
-                .orElseThrow();
+                .orElseThrow(() -> new AssertionError("Missing fixture song"));
         check(
             java.util.Arrays.equals(
-                original.readAllBytes(),
+                readFixture(original),
                 java.nio.file.Files.readAllBytes(new File(isolated.media, copy.fileName).toPath())),
             "Imported source bytes changed");
       }
@@ -118,7 +118,10 @@ public final class RuntimeChecks extends Instrumentation {
       await(
           () -> !session.importing && session.songs.size() == 4, "Controller audio import failed");
       Song loopSong =
-          session.songs.stream().filter(SessionController::isAudio).findFirst().orElseThrow();
+          session.songs.stream()
+              .filter(SessionController::isAudio)
+              .findFirst()
+              .orElseThrow(() -> new AssertionError("Missing fixture song"));
       runOnMainSync(
           () -> {
             session.reserve(song, "First");
@@ -235,6 +238,17 @@ public final class RuntimeChecks extends Instrumentation {
       result.putString("stream", android.util.Log.getStackTraceString(failure));
       finish(Activity.RESULT_CANCELED, result);
     }
+  }
+
+  private byte[] readFixture(InputStream input) throws IOException {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    byte[] block = new byte[4096];
+    int count;
+    while ((count = input.read(block)) != -1) {
+      if (bytes.size() + count > 16 * 1024 * 1024) throw new IOException("Fixture too large");
+      bytes.write(block, 0, count);
+    }
+    return bytes.toByteArray();
   }
 
   private long position() {
