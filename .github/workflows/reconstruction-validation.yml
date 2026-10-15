@@ -52,6 +52,7 @@ jobs:
             android-runtime.log
             android-logcat.log
             android-runtime-stage.png
+            android-runtime-camera.png
             emulator.log
           if-no-files-found: ignore
           retention-days: 7

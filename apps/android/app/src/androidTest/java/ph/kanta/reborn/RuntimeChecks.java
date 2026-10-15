@@ -333,6 +333,15 @@ public final class RuntimeChecks extends Instrumentation {
           state(() -> session.queue.snapshot().size() == 1 && session.singer.equals("First")),
           "Start acknowledgement violated FIFO");
       await(() -> session.position() >= 300, "AudioTrack audible clock did not advance");
+      runOnMainSync(activity::toggleCamera);
+      await(activity::cameraStreaming, "Camera did not coexist with native MIDI playback");
+      long cameraPosition = position();
+      await(
+          () -> session.playing && session.position() > cameraPosition + 200,
+          "Camera preview interrupted the audible karaoke clock");
+      capture("runtime-camera.png");
+      runOnMainSync(activity::toggleCamera);
+
       runOnMainSync(() -> session.controls(.7f, 1.5f, 3));
       long before = position();
       await(() -> session.position() > before + 300, "Controlled playback stopped advancing");
@@ -399,6 +408,18 @@ public final class RuntimeChecks extends Instrumentation {
     } catch (Throwable failure) {
       result.putString("stream", android.util.Log.getStackTraceString(failure));
       finish(Activity.RESULT_CANCELED, result);
+    }
+  }
+
+  private void capture(String name) throws IOException {
+    Bitmap image = getUiAutomation().takeScreenshot();
+    if (image == null) throw new IOException("Missing runtime screenshot");
+    try (FileOutputStream output =
+        new FileOutputStream(new File(getTargetContext().getFilesDir(), name))) {
+      if (!image.compress(Bitmap.CompressFormat.PNG, 100, output))
+        throw new IOException("Cannot save runtime screenshot");
+    } finally {
+      image.recycle();
     }
   }
 

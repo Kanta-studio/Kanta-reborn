@@ -55,6 +55,9 @@ def main() -> int:
             with (ROOT / "android-runtime-stage.png").open("wb") as output:
                 run(adb, "exec-out", "run-as", "ph.kanta.reborn", "cat", "files/runtime-stage.png", stdout=output, timeout=20)
             if (ROOT / "android-runtime-stage.png").stat().st_size == 0: raise RuntimeError("Missing real stage capture")
+            with (ROOT / "android-runtime-camera.png").open("wb") as output:
+                run(adb, "exec-out", "run-as", "ph.kanta.reborn", "cat", "files/runtime-camera.png", stdout=output, timeout=20)
+            if (ROOT / "android-runtime-camera.png").stat().st_size == 0: raise RuntimeError("Missing real camera capture")
         return 0
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
         print(f"Android runtime acceptance failed: {error}", flush=True)
