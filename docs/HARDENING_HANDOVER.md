@@ -85,3 +85,8 @@ Cloud run 38801573776 passed native sanitizer checks, all 167 domain assertions,
 
 
 Run 38802025283 passed iOS package tests and simulator compilation again, plus Android NDK/APK, lint, native/domain/browser checks. Android emulator never launched: its log reports Unknown AVD name because avdmanager and emulator resolved different default AVD homes. The runtime helper now shares an explicit isolated ANDROID_AVD_HOME across both tools, checks emulator process liveness, bounds every device call/startup, and retains logs/screenshots with cleanup. Android-only owner labeling permits focused infrastructure repair runs without rebuilding unchanged iOS source. No app runtime acceptance is claimed until the repaired runner executes it.
+
+
+## Validated native-media milestone — October 16, 2026
+
+Run 38805798316 passed on `87e5aa21dc4dc3d2e2e043e8c1cbdd1beafc4ce5`: Android NDK/APK/instrumentation assembly, lint, 167 domain assertions, browser interoperability, native sanitizer tests (439.3 Hz tone / 880.3 Hz transposed, truncation, invalid references and 2,000 mutations) and 13 actual API 35 emulator checks. The explicit AVD-home repair enabled real JNI/AudioTrack playback, cancellation/FIFO, controls, pause/resume, failed preparation and native activity rendering. iOS source is unchanged from passing run 38802025283 (158 package tests and unsigned simulator app build). Only documentation changes follow this validated source head. PR #3 iPad runtime repair and PR #4 stage/party additions remain separately unverified. No signing, physical-device or deployment claim is made.
