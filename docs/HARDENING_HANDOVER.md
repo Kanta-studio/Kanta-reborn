@@ -24,3 +24,8 @@ Validation: non-comment lines are byte-identical in every changed source file; a
 ## Standing CI authorization — October 15, 2026
 
 The owner removed the per-run CI approval and run-count limit. CI and necessary repair reruns are authorized without repeated confirmation. Consolidate coherent changes and investigate failures before retries. Platform quotas, policy denials, signing and release acceptance remain separate boundaries. Root AGENTS.md supersedes historical per-run approval instructions.
+
+
+## First cloud validation — October 15, 2026
+
+Run 38741919509 passed iOS source guards (50 release-tooling tests, four starter-generator tests and resource guard), then stopped before compilation: macos-15 selected Xcode 16.4 / Swift 6.1, while Package.swift requires Swift 6.2. The workflow now selects the runner-installed Xcode 26.2 explicitly. Android validation is still in progress. No Apple compile or simulator acceptance is claimed.

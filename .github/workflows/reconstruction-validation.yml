@@ -38,6 +38,8 @@ jobs:
   ios:
     if: github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'owner-approved-validation')
     runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     timeout-minutes: 25
     defaults:
       run:
