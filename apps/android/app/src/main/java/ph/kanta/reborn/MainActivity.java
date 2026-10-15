@@ -79,6 +79,7 @@ public final class MainActivity extends Activity {
   @Override
   protected void onStart() {
     super.onStart();
+    session.hostVisible(true);
     session.listen(this::render);
     handler.post(tick);
     displays.registerDisplayListener(displayListener, handler);
@@ -90,6 +91,7 @@ public final class MainActivity extends Activity {
     handler.removeCallbacksAndMessages(null);
     displays.unregisterDisplayListener(displayListener);
     session.listen(null);
+    session.hostVisible(false);
     if (!isChangingConfigurations()) session.pause();
     if (presentation != null) presentation.dismiss();
     presentation = null;
@@ -565,23 +567,133 @@ public final class MainActivity extends Activity {
   }
 
   private void loop() {
-    body.addView(text("Loop", 22, GOLD));
+    body.addView(text("Loop & party sounds", 22, GOLD));
     body.addView(
         text(
-            "Between-song music is being restored. Your karaoke queue continues to play in order.",
-            16,
+            "Choose an imported MP3/WAV for between-song music. It stops for karaoke and when you"
+                + " leave the app. Party clips can be assigned from My Set (up to 8 MB / 30"
+                + " seconds).",
+            15,
             Color.WHITE));
+    Song loopSong =
+        session.songs.stream()
+            .filter(song -> song.id.equals(session.loopSongId))
+            .findFirst()
+            .orElse(null);
+    body.addView(
+        button(
+            loopSong == null ? "Choose between-song music" : "Music: " + loopSong.title,
+            () -> chooseAudio("Between-song music", session::chooseIntermission)));
+    Button enabled =
+        button(
+            session.loopEnabled ? "Turn off between-song music" : "Turn on between-song music",
+            session::toggleIntermission);
+    enabled.setEnabled(loopSong != null);
+    body.addView(enabled);
+    volumeControl(
+        "Between-song volume",
+        session.party.loopVolume,
+        value -> session.partyVolumes(session.party.sfxVolume, value));
+    volumeControl(
+        "Party sound volume",
+        session.party.sfxVolume,
+        value -> session.partyVolumes(value, session.party.loopVolume));
+    body.addView(text("Original synthesized party sounds", 18, GOLD));
+    body.addView(button("Stop all party audio", session::stopParty));
+    for (int i = 0; i < PartySounds.TITLES.size(); i++) {
+      final int slot = i;
+      LinearLayout row = row();
+      Button trigger =
+          button(
+              PartySounds.TITLES.get(i) + (session.customPads[i].isEmpty() ? "" : " · custom"),
+              () -> session.triggerPad(slot));
+      trigger.setEnabled(session.party.ready(i));
+      row.addView(trigger, new LinearLayout.LayoutParams(0, -2, 1));
+      Button assign =
+          button(
+              "Assign clip",
+              () ->
+                  chooseAudio(PartySounds.TITLES.get(slot), song -> session.assignPad(slot, song)));
+      assign.setEnabled(!session.assigningPad);
+      row.addView(assign);
+      if (!session.customPads[i].isEmpty())
+        row.addView(button("Reset", () -> session.resetPad(slot)));
+      body.addView(row);
+    }
     queue();
+  }
+
+  private void chooseAudio(String title, java.util.function.Consumer<Song> selected) {
+    List<Song> audio = new ArrayList<>();
+    for (Song song : session.songs) if (SessionController.isAudio(song)) audio.add(song);
+    if (audio.isEmpty()) {
+      new AlertDialog.Builder(this)
+          .setTitle(title)
+          .setMessage("Add an MP3 or WAV in My Set first. Your originals stay unchanged.")
+          .setPositiveButton("OK", null)
+          .show();
+      return;
+    }
+    String[] names = audio.stream().map(song -> song.title).toArray(String[]::new);
+    new AlertDialog.Builder(this)
+        .setTitle(title)
+        .setItems(names, (dialog, index) -> selected.accept(audio.get(index)))
+        .setNegativeButton("Cancel", null)
+        .show();
+  }
+
+  private void volumeControl(
+      String title, float initial, java.util.function.Consumer<Float> apply) {
+    body.addView(text(title, 16, GOLD));
+    SeekBar bar = new SeekBar(this);
+    bar.setMax(100);
+    bar.setProgress(Math.round(initial * 100));
+    bar.setContentDescription(title);
+    bar.setOnSeekBarChangeListener(
+        new SeekBar.OnSeekBarChangeListener() {
+          public void onProgressChanged(SeekBar seek, int progress, boolean user) {
+            if (user) apply.accept(progress / 100f);
+          }
+
+          public void onStartTrackingTouch(SeekBar seek) {}
+
+          public void onStopTrackingTouch(SeekBar seek) {}
+        });
+    body.addView(bar);
   }
 
   private void realm() {
     body.addView(text("Realm", 22, GOLD));
     body.addView(
         text(
-            "More animated stages are coming. Choose Scenic to use the ten original backgrounds"
-                + " today.",
+            "Animated lights behind your lyrics. Turn this off for a still stage.",
             16,
             Color.WHITE));
+    body.addView(
+        button(
+            session.realm ? "Turn off animated lights" : "Turn on animated lights",
+            () -> {
+              session.realm = !session.realm;
+              session.publish();
+            }));
+    body.addView(text("Lyric size", 18, GOLD));
+    SeekBar size = new SeekBar(this);
+    size.setMax(75);
+    size.setProgress(Math.round((session.lyricScale - .75f) * 100));
+    size.setContentDescription("Lyric size");
+    size.setOnSeekBarChangeListener(
+        new SeekBar.OnSeekBarChangeListener() {
+          public void onProgressChanged(SeekBar bar, int value, boolean user) {
+            if (user) session.lyricSize(.75f + value / 100f);
+          }
+
+          public void onStartTrackingTouch(SeekBar bar) {}
+
+          public void onStopTrackingTouch(SeekBar bar) {
+            session.publish();
+          }
+        });
+    body.addView(size);
   }
 
   private void fullscreen() {

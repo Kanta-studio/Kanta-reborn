@@ -21,6 +21,20 @@ public final class CoreRegressionTests {
     return new Song("one", "Morning Light", "KANTA Originals", "001", "morning-light.mid", true);
   }
 
+  private static MidiLyrics.Document midiTrack(byte[] track) throws IOException {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    DataOutputStream out = new DataOutputStream(bytes);
+    out.writeInt(0x4d546864);
+    out.writeInt(6);
+    out.writeShort(0);
+    out.writeShort(1);
+    out.writeShort(480);
+    out.writeInt(0x4d54726b);
+    out.writeInt(track.length);
+    out.write(track);
+    return MidiLyrics.decode(bytes.toByteArray());
+  }
+
   public static void main(String[] args) throws Exception {
     ReservationQueue queue = new ReservationQueue();
     UUID request = UUID.randomUUID();
@@ -226,6 +240,107 @@ public final class CoreRegressionTests {
         channels.messages.get(4).milliseconds == 500 && channels.messages.get(4).b == 0,
         "Running-status note off");
     check(channels.durationMilliseconds == 1000, "Silent ending duration lost");
+    byte[] fragmentsTrack = {
+      0,
+      (byte) 255,
+      5,
+      4,
+      '/',
+      'H',
+      'e',
+      'l',
+      (byte) 0x83,
+      0x60,
+      (byte) 255,
+      5,
+      3,
+      'l',
+      'o',
+      ' ',
+      (byte) 0x83,
+      0x60,
+      (byte) 255,
+      5,
+      10,
+      'w',
+      'o',
+      'r',
+      'l',
+      'd',
+      '\n',
+      'N',
+      'e',
+      'x',
+      't',
+      0,
+      (byte) 255,
+      47,
+      0
+    };
+    MidiLyrics.Document fragmented = midiTrack(fragmentsTrack);
+    check(
+        fragmented.cues.size() == 2
+            && fragmented.cues.get(0).line.equals("Hello world")
+            && fragmented.cues.get(1).line.equals("Next"),
+        "Inline lyric line markers");
+    MidiLyrics.Cue timed = fragmented.cues.get(0);
+    check(timed.highlightedCharacters(-1) == 0, "Early fragment highlight");
+    check(
+        timed.highlightedCharacters(0) == 3 && timed.highlightedCharacters(499) == 3,
+        "Invented fragment timing");
+    check(
+        timed.highlightedCharacters(500) == 6 && timed.highlightedCharacters(1000) == 11,
+        "Source fragment boundary");
+    byte[] unmarked = {
+      0,
+      (byte) 255,
+      5,
+      3,
+      'O',
+      'n',
+      'e',
+      (byte) 0x83,
+      0x60,
+      (byte) 255,
+      5,
+      3,
+      'T',
+      'w',
+      'o',
+      0,
+      (byte) 255,
+      47,
+      0
+    };
+    check(midiTrack(unmarked).cues.size() == 2, "Unmarked lyrics collapsed into one line");
+    for (int sound = 0; sound < PartySounds.TITLES.size(); sound++) {
+      byte[] wave = PartySounds.wave(sound);
+      check(Arrays.equals(wave, PartySounds.wave(sound)), "Nondeterministic first-party sound");
+      try (javax.sound.sampled.AudioInputStream audio =
+          javax.sound.sampled.AudioSystem.getAudioInputStream(new ByteArrayInputStream(wave))) {
+        check(
+            audio.getFormat().getSampleRate() == 22050 && audio.getFrameLength() == 44100,
+            "Invalid party WAV format/duration");
+        byte[] pcm = audio.readAllBytes();
+        int peak = 0;
+        for (int offset = 0; offset < pcm.length; offset += 2)
+          peak = Math.max(peak, Math.abs((short) ((pcm[offset] & 255) | (pcm[offset + 1] << 8))));
+        check(peak > 100 && peak <= 24000, "Silent or clipped party sound");
+      }
+    }
+    check(ShortClipBounds.accepts(2000, 44100, 2), "Small stereo clip rejected");
+    check(!ShortClipBounds.accepts(30000, 44100, 2), "Truncated SoundPool clip accepted");
+    check(!ShortClipBounds.accepts(Long.MAX_VALUE, 44100, 2), "Clip duration overflow");
+    check(
+        !ShortClipBounds.accepts(1000, -1, 2) && !ShortClipBounds.accepts(1000, 44100, 8),
+        "Invalid clip format accepted");
+    boolean invalidPad = false;
+    try {
+      PartySounds.wave(8);
+    } catch (IllegalArgumentException e) {
+      invalidPad = true;
+    }
+    check(invalidPad, "Unknown pad accepted");
     Song dangerous = new Song("x", "=SUM(1,2)", "A\"B", "7", "x.wav", false);
     String csv = PrivateSongbook.csv(Arrays.asList(dangerous));
     check(csv.contains("\"'=SUM(1,2)\""), "Formula not neutralized");

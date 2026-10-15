@@ -1,0 +1,4 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <permission android:name="ph.kanta.reborn.RUNTIME_FIXTURES" android:protectionLevel="signature" />
+    <uses-permission android:name="ph.kanta.reborn.RUNTIME_FIXTURES" />
+</manifest>

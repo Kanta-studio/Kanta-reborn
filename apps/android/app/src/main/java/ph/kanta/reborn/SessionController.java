@@ -39,6 +39,14 @@ final class SessionController {
   private PlaybackBackend player, pending;
   float volume = 1, tempo = 1;
   int pitch;
+  float lyricScale = 1;
+  boolean realm;
+  final PartyAudio party;
+  private final android.content.SharedPreferences options;
+  boolean foreground, loopEnabled, auxiliaryInterrupted, assigningPad;
+  String loopSongId = "";
+  final String[] customPads = new String[8];
+  private final long[] padGeneration = new long[8];
   String soundFontName = "KANTA original tone";
   private long generation = 0;
   private final AudioManager audio;
@@ -46,6 +54,19 @@ final class SessionController {
 
   SessionController(Context context) {
     this.context = context;
+    options = context.getSharedPreferences("stage-options-v1", Context.MODE_PRIVATE);
+    lyricScale = Math.max(.75f, Math.min(1.5f, options.getFloat("lyricScale", 1)));
+    loopSongId = options.getString("loopSong", "");
+    party =
+        new PartyAudio(
+            this::publish,
+            notice -> {
+              loopEnabled = false;
+              message = notice;
+              publish();
+            });
+    party.volumes(options.getFloat("sfxVolume", .6f), options.getFloat("loopVolume", .35f));
+    for (int i = 0; i < 8; i++) customPads[i] = options.getString("pad." + i, "");
     audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
     focus =
         new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
@@ -56,7 +77,12 @@ final class SessionController {
                     .build())
             .setOnAudioFocusChangeListener(
                 change -> {
-                  if (change < 0) pause();
+                  if (change < 0) {
+                    auxiliaryInterrupted = true;
+                    loopEnabled = false;
+                    party.stopAll();
+                    pause();
+                  }
                 },
                 main)
             .build();
@@ -92,6 +118,7 @@ final class SessionController {
                   selectedSoundFont = bank;
                   soundFontName = bankLabel;
                   ready = true;
+                  preparePads();
                   message = "Your music. Your stage.";
                   publish();
                 });
@@ -112,7 +139,217 @@ final class SessionController {
   }
 
   void publish() {
+    updateIntermission();
     if (listener != null) listener.changed();
+  }
+
+  private void preparePads() {
+    io.execute(
+        () -> {
+          try {
+            ArrayList<File> padFiles = new ArrayList<>();
+            File padRoot = new File(context.getCacheDir(), "party-v1");
+            if (!padRoot.isDirectory() && !padRoot.mkdirs())
+              throw new IOException("Cannot create party cache");
+            for (int i = 0; i < 8; i++) {
+              File file = new File(padRoot, "pad-" + i + ".wav");
+              android.util.AtomicFile output = new android.util.AtomicFile(file);
+              FileOutputStream stream = output.startWrite();
+              try {
+                stream.write(PartySounds.wave(i));
+                output.finishWrite(stream);
+              } catch (Exception failure) {
+                output.failWrite(stream);
+                throw failure;
+              }
+              padFiles.add(file);
+            }
+            main.post(
+                () -> {
+                  party.loadBuiltins(padFiles);
+                  for (int i = 0; i < 8; i++) {
+                    final int slot = i;
+                    Song clip =
+                        songs.stream()
+                            .filter(song -> song.id.equals(customPads[slot]))
+                            .findFirst()
+                            .orElse(null);
+                    if (clip != null && isAudio(clip)) validatePad(slot, clip, false);
+                  }
+                });
+          } catch (Exception failure) {
+            main.post(
+                () -> {
+                  message = "Party sounds could not be loaded. Karaoke remains available.";
+                  publish();
+                });
+          }
+        });
+  }
+
+  static boolean isAudio(Song song) {
+    return song.fileName.endsWith(".mp3") || song.fileName.endsWith(".wav");
+  }
+
+  void hostVisible(boolean visible) {
+    foreground = visible;
+    if (!visible) {
+      party.stopAll();
+      loopEnabled = false;
+    }
+    updateIntermission();
+  }
+
+  private void updateIntermission() {
+    Song selected =
+        songs.stream()
+            .filter(song -> song.id.equals(loopSongId) && isAudio(song))
+            .findFirst()
+            .orElse(null);
+    boolean allowed =
+        foreground
+            && loopEnabled
+            && !auxiliaryInterrupted
+            && current == null
+            && !loading
+            && queue.peek() == null;
+    if (allowed && audio.requestAudioFocus(focus) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
+      allowed = false;
+    party.loop(
+        selected == null || repository == null
+            ? null
+            : new File(repository.media, selected.fileName),
+        allowed);
+  }
+
+  void chooseIntermission(Song song) {
+    if (!isAudio(song)) return;
+    loopSongId = song.id;
+    options.edit().putString("loopSong", loopSongId).apply();
+    publish();
+  }
+
+  void toggleIntermission() {
+    auxiliaryInterrupted = false;
+    loopEnabled = !loopEnabled;
+    publish();
+  }
+
+  void triggerPad(int slot) {
+    if (!foreground || audio.requestAudioFocus(focus) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
+      return;
+    auxiliaryInterrupted = false;
+    if (!party.trigger(slot)) {
+      message = "This party pad is still loading or unavailable.";
+      publish();
+    }
+  }
+
+  void stopParty() {
+    loopEnabled = false;
+    party.stopAll();
+    publish();
+  }
+
+  void partyVolumes(float sfx, float intermission) {
+    party.volumes(sfx, intermission);
+    options
+        .edit()
+        .putFloat("sfxVolume", party.sfxVolume)
+        .putFloat("loopVolume", party.loopVolume)
+        .apply();
+  }
+
+  void lyricSize(float scale) {
+    if (!Float.isFinite(scale)) return;
+    lyricScale = Math.max(.75f, Math.min(1.5f, scale));
+    options.edit().putFloat("lyricScale", lyricScale).apply();
+  }
+
+  void assignPad(int slot, Song song) {
+    if (assigningPad || !isAudio(song) || slot < 0 || slot >= 8) return;
+    assigningPad = true;
+    validatePad(slot, song, true);
+  }
+
+  private void validatePad(int slot, Song song, boolean persist) {
+    long token = ++padGeneration[slot];
+    io.execute(
+        () -> {
+          File file = new File(repository.media, song.fileName);
+          boolean valid = false;
+          try {
+            if (file.length() <= 0 || file.length() > 8 * 1024 * 1024) throw new IOException();
+            MediaMetadataRetriever metadata = new MediaMetadataRetriever();
+            try {
+              metadata.setDataSource(file.getAbsolutePath());
+              long duration =
+                  Long.parseLong(
+                      metadata.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+              MediaExtractor extractor = new MediaExtractor();
+              try {
+                extractor.setDataSource(file.getAbsolutePath());
+                if (extractor.getTrackCount() > 64) throw new IOException();
+                for (int track = 0; track < extractor.getTrackCount(); track++) {
+                  MediaFormat format = extractor.getTrackFormat(track);
+                  String mime = format.getString(MediaFormat.KEY_MIME);
+                  if (mime == null || !mime.startsWith("audio/")) continue;
+                  valid =
+                      ShortClipBounds.accepts(
+                          duration,
+                          format.getInteger(MediaFormat.KEY_SAMPLE_RATE),
+                          format.getInteger(MediaFormat.KEY_CHANNEL_COUNT));
+                  break;
+                }
+              } finally {
+                extractor.release();
+              }
+            } finally {
+              metadata.release();
+            }
+          } catch (Exception ignored) {
+            valid = false;
+          }
+          final boolean accepted = valid;
+          main.post(
+              () -> {
+                if (token != padGeneration[slot]) return;
+                if (!accepted) {
+                  if (persist) {
+                    assigningPad = false;
+                    message =
+                        "Use a shorter mono or stereo MP3/WAV clip (at most 8 MB / 30 seconds).";
+                    publish();
+                  }
+                  return;
+                }
+                party.assign(
+                    slot,
+                    file,
+                    success -> {
+                      if (persist) {
+                        assigningPad = false;
+                        if (success) {
+                          customPads[slot] = song.id;
+                          options.edit().putString("pad." + slot, song.id).apply();
+                          message = "Party clip assigned.";
+                        } else
+                          message =
+                              "This clip could not be decoded. Your previous pad is retained.";
+                        publish();
+                      }
+                    });
+              });
+        });
+  }
+
+  void resetPad(int slot) {
+    if (assigningPad || slot < 0 || slot >= 8) return;
+    padGeneration[slot]++;
+    party.reset(slot);
+    customPads[slot] = "";
+    options.edit().remove("pad." + slot).apply();
+    publish();
   }
 
   void reserve(Song song, String singer) {

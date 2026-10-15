@@ -53,9 +53,23 @@ SF2 acceptance is deliberately bounded: 32 MiB input, 128 MiB native allocation 
 
 The iOS runtime follow-up changes only accessibility identities, UI-test isolation/waits, and root validation/artifact orchestration. Core playback ownership and persisted formats are unchanged. Xcode UI-target compilation, both simulator walkthroughs and the unsigned device archive remain pending on that branch.
 
+## Android stage/party work snapshot
+
+The follow-up starts from the published native media and iOS runtime branches. StageView currently draws cached scenic bitmaps and line-level lyrics on a 100 ms UI refresh; it rebuilds wrapped text during drawing. Loop/Realm are explicit placeholders. No camera, video, party or intermission backend exists yet. The current work will retain SessionController as authority, keep source-timed lyric fragments, isolate optional stage/party resources, preserve imported bytes and add bounded storage/lifecycle rules. These are planned changes, not current acceptance claims.
+
+## Android stage/party branch implementation
+
+Source-timed fragment highlighting, cached native text layout, lyric sizing and opt-in procedural perspective lights are implemented. PartySounds generates eight deterministic two-second WAV pads; PartyAudio bounds SoundPool voices to four and owns a separate main-Looper intermission player. SessionController gates idle music and foreground/focus behavior; SharedPreferences retains selected local song IDs and independent volumes, never enabled monitoring/sensors. Custom MP3/WAV pads validate size (8 MiB) and duration (30 seconds) on IO, then persist after decode acknowledgement with stale-load fencing. No Android sensor, camera, video or companion implementation is implied. Local API 36 runtime/instrumentation compilation and 197 domain assertions pass; changed-head cloud/runtime validation remains pending.
+
+SoundPool's documented 1 MiB decoded limit requires an additional conservative 900 KiB PCM estimate for custom pads. MediaExtractor validates audio track rate/channels off-main; oversized decoded clips are rejected rather than silently truncated. Metadata retriever cleanup uses release() for minSdk 26 compatibility; close()/AutoCloseable starts at API 29. Both native loops and test snapshots now read acknowledged playback state, not invalid MediaPlayer preparation-state queries. Primary references: Android SoundPool and API 29 MediaMetadataRetriever diff documentation.
+
+
 ## Validated native-media checkpoint
 
 Source head `87e5aa21dc4dc3d2e2e043e8c1cbdd1beafc4ce5` passed run 38805798316: native sanitizer/tone/mutation checks, Gradle NDK APK and instrumentation build, lint, all 167 domain assertions, captured browser interoperability and 13 actual emulator checks (JNI/AudioTrack playback, FIFO, cancellation, controls, pause/resume, failed preparation and UI). iOS app/package source is unchanged from run 38802025283, which passed all 158 package tests and simulator compilation. This checkpoint changes documentation only. iPad runtime, advanced Android parity, signing and deployment remain separate.
 
 
 Latest iOS checkpoint: run 38806377805 passed on 3c12a1fb962ac956250a8f238c01eace13f560d2, including all three UI walkthrough tests on both iPhone and iPad, app/UI compilation and unsigned personal-signing device archive/IPA packaging. No assertions were removed. See the IOS_RUNTIME_CHECKPOINT.md ledger for retained artifact identities and acceptance boundaries. Earlier pending statements above describe their dated attempts; signing, installation and physical-device acceptance remain open. Only documentation follows that validated source.
+
+
+Validated Android stage/party checkpoint: source b3a6cd7c795e2aaea4e48254ede290b4f616d671 passed run 38807243721 with 201 domain assertions, 28 actual API 35 emulator checks, NDK APK/instrumentation assembly, lint, native sanitizer checks and browser interoperability. Covered nested/cyclic SAF traversal, partial failure, cancellation/reopen, byte identity, custom pad decode/reset, bounded voices, stop-all, intermission gating and real karaoke playback. Only Markdown reconciliation follows that source. Personal photo/video, camera, microphone, companion and official YouTube work remain separate; no physical-device or signed-release claim is made.
