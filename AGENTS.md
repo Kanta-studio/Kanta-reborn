@@ -8,3 +8,7 @@ Keep scoring, camera preview, microphone monitoring and experimental DSP opt-in.
 Update architecture and handover documentation when behavior or boundaries change. Distinguish recovered, reconstructed, compiled, tested and released.
 Do not trigger GitHub Actions without explicit current authorization. Do not activate historical workflows during the recovery import.
 Never overlay historical snapshots wholesale. Reconcile overlapping implementations and record provenance.
+
+Before substantive refactors, follow `docs/CODING_CONTEXT_GUIDE.md` and refresh `docs/CODEBASE_CONTEXT_PACKET.md` from actual source. Do not assume suggested libraries are installed, or confuse source-review risks with measured bottlenecks. Gather existing files directly from the online repository instead of asking the owner for local settings or copies.
+Follow `docs/GITHUB_PUBLISHING_POLICY.md` for content review and bounded publication. Keep the queued official YouTube integration in `docs/YOUTUBE_PLAYBACK_PLAN.md` behind the current reconstruction; never add ad suppression or unsupported parity claims.
+Use concise, professional engineering comments: explain intent, constraints, invariants and non-obvious edge cases. Avoid conversational progress notes, implementation narration and tool/model references in source comments. Preserve required licenses, copyrights, provenance and existing authorship records; do not rewrite history to imply a different author.

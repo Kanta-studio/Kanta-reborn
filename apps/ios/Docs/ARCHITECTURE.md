@@ -1155,3 +1155,8 @@ XCUITest navigation for the new default stage. Real starter-song playback
 captures and demo-only reservation/cancellation tests are separately named.
 Syntax/source checks are not an iOS build or camera validation. No new paid
 Actions, merge, signed IPA or release is claimed by this source update.
+
+
+## Reborn recovery boundary — 2026-10-15
+
+Root docs/ARCHITECTURE.md describes the new platform separation and reconstructed missing storage/export/SFX boundaries. Existing LocalKaraokeController remains authoritative. Missing paths were restored individually; absent infrastructure was newly authored. Historical CI/release claims above do not validate this batch.

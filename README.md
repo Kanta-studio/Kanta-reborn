@@ -2,13 +2,13 @@
 
 KANTA iPhone/iPad and Android reconstruction in one repository.
 
-**Status (2026-10-15): recovery import prepared; neither application is verified buildable.**
-The iOS directory contains a historical original working snapshot. Android original source was not recovered. This is not a release and does not reproduce the latest apps yet.
+**Status (2026-10-15): recovery import published; native reconstruction is in progress. Neither application is release-verified.**
+iOS now includes individually restored original modules and newly reconstructed missing infrastructure. Android original source was not recovered; a new native foundation implements local karaoke. This is not a release or complete feature-parity claim.
 
 | Location | Purpose |
 | --- | --- |
-| `apps/ios/` | Original stage-ui iOS snapshot, preserving its internal structure |
-| `apps/android/` | Android reconstruction requirements; no original Kotlin/Gradle project |
+| `apps/ios/` | Reconciled Swift app and reconstructed infrastructure |
+| `apps/android/` | Native Java/Gradle reconstruction |
 | `recovery/ios/` | Separate historical snapshots and known missing paths |
 | `docs/evidence/website/2026-10-15/` | Captured live website, guide, platform pages and Songbook reader |
 | `docs/ARCHITECTURE.md` | Monorepo boundaries and reconstruction contracts |

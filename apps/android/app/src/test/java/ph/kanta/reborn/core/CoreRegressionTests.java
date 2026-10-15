@@ -1,0 +1,173 @@
+package ph.kanta.reborn.core;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.security.*;
+import java.util.*;
+import javax.crypto.*;
+import javax.crypto.spec.*;
+
+/** No framework/JUnit dependency: run on a server JVM before allocating cloud CI. */
+public final class CoreRegressionTests {
+  private static int checks = 0;
+
+  private static void check(boolean yes, String message) {
+    checks++;
+    if (!yes) throw new AssertionError(message);
+  }
+
+  private static Song song() {
+    return new Song("one", "Morning Light", "KANTA Originals", "001", "morning-light.mid", true);
+  }
+
+  public static void main(String[] args) throws Exception {
+    ReservationQueue queue = new ReservationQueue();
+    UUID request = UUID.randomUUID();
+    ReservationQueue.Entry first = queue.reserve(request, song(), "Ana"),
+        retry = queue.reserve(request, song(), "Ana");
+    check(first.id.equals(retry.id), "Replay duplicates a reservation");
+    ReservationQueue.Entry second = queue.reserve(UUID.randomUUID(), song(), "Ben");
+    check(!first.id.equals(second.id), "Intentional duplicate song lost");
+    check(queue.snapshot().size() == 2, "Queue size");
+    queue.move(second.id, 0);
+    check(queue.peek().id.equals(second.id), "Reorder failed");
+    queue.remove(first.id);
+    queue.reserve(request, song(), "Ana");
+    check(queue.snapshot().size() == 1, "Removed request was replayed");
+    ArrayList<ReservationQueue.Entry> restored = new ArrayList<>(queue.snapshot());
+    ReservationQueue reopened = new ReservationQueue();
+    reopened.restore(restored);
+    check(reopened.peek().id.equals(second.id), "Reservation identity changed");
+    boolean duplicateRejected = false;
+    restored.add(restored.get(0));
+    try {
+      reopened.restore(restored);
+    } catch (IllegalArgumentException e) {
+      duplicateRejected = true;
+    }
+    check(duplicateRejected, "Duplicate queue identity accepted");
+    check(song().matches("morning originals"), "Multi-term search");
+    check(song().matches("001"), "Code search");
+    check(!song().matches("missing"), "False search match");
+    boolean traversal = false;
+    try {
+      new Song("x", "x", "", "", "../outside.mid", false);
+    } catch (IllegalArgumentException e) {
+      traversal = true;
+    }
+    check(traversal, "Unsafe media path accepted");
+    for (String name : new String[] {"morning-light", "sing-together", "starlight-echo"}) {
+      byte[] midi = Files.readAllBytes(Paths.get(args[0], name + ".kar"));
+      List<MidiLyrics.Cue> cues = MidiLyrics.parse(midi);
+      check(cues.size() >= 3, "Starter lyrics missing " + name);
+      check(cues.get(0).milliseconds == 0, "First lyric time");
+      for (int i = 1; i < cues.size(); i++)
+        check(
+            cues.get(i).milliseconds >= cues.get(i - 1).milliseconds, "Nonmonotonic lyric timing");
+      check(MidiLyrics.activeIndex(cues, -1) == -1, "Early lyric displayed");
+      check(MidiLyrics.activeIndex(cues, cues.get(1).milliseconds) == 1, "Lyric boundary");
+      boolean bad = false;
+      try {
+        MidiLyrics.parse(Arrays.copyOf(midi, midi.length - 6));
+      } catch (IOException e) {
+        bad = true;
+      }
+      check(bad, "Truncated MIDI accepted");
+    }
+    java.util.concurrent.ExecutorService workers =
+        java.util.concurrent.Executors.newFixedThreadPool(8);
+    ReservationQueue concurrentQueue = new ReservationQueue();
+    UUID sharedRequest = UUID.randomUUID();
+    Set<UUID> responseIds = new HashSet<>();
+    List<java.util.concurrent.Future<ReservationQueue.Entry>> futures = new ArrayList<>();
+    for (int i = 0; i < 32; i++)
+      futures.add(workers.submit(() -> concurrentQueue.reserve(sharedRequest, song(), "Singer")));
+    for (java.util.concurrent.Future<ReservationQueue.Entry> future : futures)
+      responseIds.add(future.get().id);
+    workers.shutdown();
+    check(responseIds.size() == 1, "Concurrent replay returned different identities");
+    check(concurrentQueue.snapshot().size() == 1, "Concurrent replay duplicated queue state");
+    check(
+        new Song("accent", "Kántá", "", "", "accent.mid", false).matches("kanta"),
+        "Accent-insensitive search");
+    ByteArrayOutputStream midiBytes = new ByteArrayOutputStream();
+    DataOutputStream midiOut = new DataOutputStream(midiBytes);
+    midiOut.writeInt(0x4d546864);
+    midiOut.writeInt(6);
+    midiOut.writeShort(1);
+    midiOut.writeShort(2);
+    midiOut.writeShort(480);
+    byte[] tempoTrack = {
+      0, (byte) 255, 81, 3, 7, (byte) 161, 32, (byte) 131, 96, (byte) 255, 81, 3, 15, 66, 64, 0,
+      (byte) 255, 47, 0
+    };
+    byte[] lyricTrack = {
+      0, (byte) 255, 5, 2, 47, 65, (byte) 135, 64, (byte) 255, 5, 2, 47, 66, 0, (byte) 255, 47, 0
+    };
+    for (byte[] track : new byte[][] {tempoTrack, lyricTrack}) {
+      midiOut.writeInt(0x4d54726b);
+      midiOut.writeInt(track.length);
+      midiOut.write(track);
+    }
+    check(
+        MidiLyrics.parse(midiBytes.toByteArray()).get(1).milliseconds == 1500,
+        "Cross-track tempo mapping");
+    boolean malformed = false;
+    try {
+      MidiLyrics.parse(new byte[20]);
+    } catch (IOException e) {
+      malformed = true;
+    }
+    check(malformed, "Invalid MIDI magic accepted");
+    Song dangerous = new Song("x", "=SUM(1,2)", "A\"B", "7", "x.wav", false);
+    String csv = PrivateSongbook.csv(Arrays.asList(dangerous));
+    check(csv.contains("\"'=SUM(1,2)\""), "Formula not neutralized");
+    check(csv.contains("\"A\"\"B\""), "CSV quote escape");
+    PrivateSongbook.Export export = PrivateSongbook.seal(csv), another = PrivateSongbook.seal(csv);
+    check(export.accessCode.length() == 32, "Code entropy representation");
+    check(!export.accessCode.equals(another.accessCode), "Export secret reused");
+    String marker = "\"payload\":\"";
+    int start = export.envelope.indexOf(marker) + marker.length();
+    byte[] combined =
+        Base64.getDecoder()
+            .decode(export.envelope.substring(start, export.envelope.indexOf('"', start)));
+    byte[] key =
+        MessageDigest.getInstance("SHA-256")
+            .digest(("KANTA-SONGBOOK-V1:" + export.accessCode).getBytes(StandardCharsets.UTF_8));
+    Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+    cipher.init(
+        Cipher.DECRYPT_MODE,
+        new SecretKeySpec(key, "AES"),
+        new GCMParameterSpec(128, Arrays.copyOf(combined, 12)));
+    String plain =
+        new String(
+            cipher.doFinal(Arrays.copyOfRange(combined, 12, combined.length)),
+            StandardCharsets.UTF_8);
+    check(plain.equals(csv), "Browser envelope round trip");
+    combined[combined.length - 1] ^= 1;
+    boolean tampered = false;
+    try {
+      cipher.init(
+          Cipher.DECRYPT_MODE,
+          new SecretKeySpec(key, "AES"),
+          new GCMParameterSpec(128, Arrays.copyOf(combined, 12)));
+      cipher.doFinal(Arrays.copyOfRange(combined, 12, combined.length));
+    } catch (AEADBadTagException e) {
+      tampered = true;
+    }
+    check(tampered, "Tampering accepted");
+    if (args.length > 1) {
+      String fixture =
+          "{\"code\":\""
+              + export.accessCode
+              + "\",\"envelope\":"
+              + export.envelope
+              + ",\"csvBase64\":\""
+              + Base64.getEncoder().encodeToString(csv.getBytes(StandardCharsets.UTF_8))
+              + "\"}";
+      Files.write(Paths.get(args[1]), fixture.getBytes(StandardCharsets.UTF_8));
+    }
+    System.out.println("KANTA Android core: " + checks + " regression checks passed");
+  }
+}
