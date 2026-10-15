@@ -36,3 +36,8 @@ Android run 38741919509 assembled the debug APK, then lint stopped on MainActivi
 ## Second cloud validation — October 15, 2026
 
 Run 38742284862: Android assembleDebug, lintDebug, domain regressions, captured browser interoperability and artifact upload passed. iOS source guards passed using Xcode 26.2, then Swift test compilation found the absent RemoteCommandReplayCache referenced by recovered tests. Reconstructed the bounded cache, wired it into the existing connection after pairing validation, and added saturation coverage so executing commands cannot be evicted. Cached failures replay without re-execution; successful retries return current state. This protection is connection-scoped; reconnect/durable replay and transport encryption remain open. Removed a stale package exclude for absent Core/README.md. Fresh Swift execution and simulator build are pending.
+
+
+## Third cloud validation repair — October 15, 2026
+
+Run 38743316223 passed Android again. iOS test compilation reached RoomScoreReliabilityTests and found completedScore missing from the active LiveKaraokeScoringSession. The preserved scoring-023d470e1608 implementation differs only in completed versus elapsed target selection and clearing observations after latency changes; reconciled those exact changes and connected final Host scoring to the reliability gate. Existing room-score tests cover unheard song endings and latency invalidation. Apple test execution and simulator build require the next cloud run; no green claim is carried forward.

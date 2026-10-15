@@ -92,10 +92,9 @@ public struct LiveKaraokeScoringSession: Sendable {
     public mutating func setLatencyMilliseconds(
         _ value: Int64
     ) {
-        latencyMilliseconds = min(
-            max(value, -500),
-            1_500
-        )
+        let clamped = min(max(value, -500), 1_500)
+        if clamped != latencyMilliseconds { resetObservations() }
+        latencyMilliseconds = clamped
     }
 
     public mutating func updatePlaybackAnchor(
@@ -181,21 +180,26 @@ public struct LiveKaraokeScoringSession: Sendable {
         observationCount = 0
     }
 
-    public var score: KaraokeScoreBreakdown? {
+    public var score: KaraokeScoreBreakdown? { makeScore(completed: false) }
+
+    public var completedScore: KaraokeScoreBreakdown? { makeScore(completed: true) }
+
+    private func makeScore(completed: Bool) -> KaraokeScoreBreakdown? {
         guard !alignedObservations.isEmpty else {
             return nil
         }
 
+        let position = completed ? Int64.max : latestPlaybackPositionMilliseconds
         let elapsedTargets = target.windows.compactMap {
             window -> TargetPitchWindow? in
             guard window.startMilliseconds
-                    <= latestPlaybackPositionMilliseconds else {
+                    <= position else {
                 return nil
             }
 
             let end = min(
                 window.endMilliseconds,
-                latestPlaybackPositionMilliseconds
+                position
             )
             guard end > window.startMilliseconds else {
                 return nil
