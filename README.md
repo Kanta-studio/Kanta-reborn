@@ -19,3 +19,9 @@ See `docs/RECONSTRUCTION.md` before making feature or release claims. Historical
 [Cloud validation](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38748040876) passed 158 Swift package tests, the unsigned Release simulator app build, Android APK/lint/domain checks and browser interoperability. See [testing contracts](docs/TESTING.md). No signed release, physical-device acceptance or UI automation is implied.
 
 Android native-media validation passed [run 38805798316](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38805798316): NDK APK assembly, lint, native sanitizer checks, 167 domain assertions, browser interoperability and 13 actual emulator checks. The same iOS application source passed 158 package tests and unsigned simulator compilation in [run 38802025283](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38802025283). New iPhone/iPad walkthrough and unsigned-device packaging work is tracked separately in PR #3; remaining Android stage/party work is in PR #4.
+
+
+iPhone and iPad walkthroughs and unsigned device IPA packaging also passed [run 38806377805](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38806377805). See [runtime/artifact checkpoint](docs/IOS_RUNTIME_CHECKPOINT.md). The IPA still requires separate personal signing.
+
+
+Android stage/party source passed [run 38807243721](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38807243721): 201 domain assertions and 28 actual emulator checks, plus build/lint/native/browser checks. See [checkpoint](docs/ANDROID_STAGE_CHECKPOINT.md).

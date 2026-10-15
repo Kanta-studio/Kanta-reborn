@@ -112,3 +112,9 @@ Run 38805798316 passed on `87e5aa21dc4dc3d2e2e043e8c1cbdd1beafc4ce5`: Android ND
 
 
 The native media baseline is merged as PR #2 (`52e1cf4d5fbc3e8666e87f41631ef8718d3b3c74`). Stage/party source now includes the repaired, bounded emulator helper and the independent iOS runtime diagnostics branch. The 201 local domain assertions and updated runtime/instrumentation source compile; the stage/party cloud run still must pass before merge. This consolidation retains the earlier accepted native source and the pending iPad repair rather than overlaying snapshots.
+
+
+Latest iOS checkpoint: run 38806377805 passed on 3c12a1fb962ac956250a8f238c01eace13f560d2, including all three UI walkthrough tests on both iPhone and iPad, app/UI compilation and unsigned personal-signing device archive/IPA packaging. No assertions were removed. See IOS_RUNTIME_CHECKPOINT.md for retained artifact identities and acceptance boundaries. Earlier pending statements above describe their dated attempts; signing, installation and physical-device acceptance remain open. Only documentation follows that validated source.
+
+
+Validated Android stage/party checkpoint: source b3a6cd7c795e2aaea4e48254ede290b4f616d671 passed run 38807243721 with 201 domain assertions, 28 actual API 35 emulator checks, NDK APK/instrumentation assembly, lint, native sanitizer checks and browser interoperability. Covered nested/cyclic SAF traversal, partial failure, cancellation/reopen, byte identity, custom pad decode/reset, bounded voices, stop-all, intermission gating and real karaoke playback. Only Markdown reconciliation follows that source. Personal photo/video, camera, microphone, companion and official YouTube work remain separate; no physical-device or signed-release claim is made.
