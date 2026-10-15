@@ -312,3 +312,22 @@ import Testing
     let beganEvicted = cache.begin(first)
     #expect(beganEvicted) // Replay protection is intentionally bounded.
 }
+
+
+@Test func remoteReplayCapacityDoesNotEvictExecutingCommands() {
+    var cache = RemoteCommandReplayCache(capacity: 1)
+    let active = UUID()
+    let next = UUID()
+    let began = cache.begin(active)
+    #expect(began)
+    let overflow = cache.begin(next)
+    #expect(!overflow)
+    #expect(cache.result(for: active) == .inFlight)
+    cache.finish(UUID(), result: .succeeded)
+    #expect(cache.result(for: active) == .inFlight)
+    cache.finish(active, result: .succeeded)
+    let accepted = cache.begin(next)
+    #expect(accepted)
+    #expect(cache.result(for: active) == nil)
+    #expect(cache.result(for: next) == .inFlight)
+}

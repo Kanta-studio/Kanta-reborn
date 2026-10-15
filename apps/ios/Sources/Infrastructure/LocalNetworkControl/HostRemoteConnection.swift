@@ -23,6 +23,7 @@ final class HostRemoteConnection {
     private let queue: DispatchQueue
     private var gate: RemoteHostSessionGate
     private var decoder = RemoteFrameStreamDecoder()
+    private var commandReplay = RemoteCommandReplayCache()
     private var didClose = false
 
     init(
@@ -145,20 +146,36 @@ final class HostRemoteConnection {
             }
 
         case let .execute(command):
+            guard commandReplay.begin(envelope.id) else {
+                switch commandReplay.result(for: envelope.id) {
+                case let .failed(failure):
+                    send(.failure(failure))
+                case .succeeded:
+                    let snapshot = await controller.snapshot()
+                    send(.snapshot(snapshot))
+                case .inFlight:
+                    break
+                case nil:
+                    send(.failure(RemoteFailure(
+                        code: "host_busy",
+                        message: "The host is processing too many commands."
+                    )))
+                }
+                return
+            }
             do {
                 try await controller.send(command)
+                commandReplay.finish(envelope.id, result: .succeeded)
                 let snapshot = await controller.snapshot()
+                guard !didClose else { return }
                 onSnapshot?(snapshot)
             } catch {
-                send(
-                    .failure(
-                        RemoteFailure(
-                            code: "command_failed",
-                            message:
-                                "The host could not execute that command."
-                        )
-                    )
+                let failure = RemoteFailure(
+                    code: "command_failed",
+                    message: "The host could not execute that command."
                 )
+                commandReplay.finish(envelope.id, result: .failed(failure))
+                send(.failure(failure))
             }
 
         case let .search(request):

@@ -39,6 +39,6 @@ No device performance measurements exist for the reconstruction. Source-review r
 - 50 recovered Python release-tooling tests passed.
 - Four starter-generation/fixture tests and the starter resource guard passed.
 - C bridge compiled with warnings treated as errors for its Linux unsupported-codec branch; Apple CommonCrypto path still requires Apple compilation.
-- All nine runtime Java files compiled against official Android API 36 references and Java 17 host libraries. Forty-six core regression checks passed; Gradle APK/lint, device launch and runtime acceptance remain pending.
+- All nine runtime Java files compiled against official Android API 36 references and Java 17 host libraries. Forty-six core regression checks passed. Cloud run 38742284862 also passed Gradle APK/lint and captured browser interoperability; device launch/runtime acceptance remain pending.
 - Swift compiler/Xcode are not present on this server. New Swift tests have been written but not executed.
-- No new GitHub Actions run, merge, signing or deployment.
+- Two consolidated cloud runs have executed. Android passed on the second run; iOS test compilation found a missing replay-cache type, now reconstructed pending fresh validation. No merge, signing or deployment.

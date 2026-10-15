@@ -24,8 +24,7 @@ let package = Package(
     targets: [
         .target(
             name: "GeloKaraokeCore",
-            path: "Sources/Core",
-            exclude: ["README.md"]
+            path: "Sources/Core"
         ),
         .target(
             name: "GeloLegacyCompression",

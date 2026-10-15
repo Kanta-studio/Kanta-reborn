@@ -37,3 +37,6 @@ KantaApplication owns one SessionController. MediaPlayer creation, commands and 
 SAF imports create hash-identified, byte-preserved private files; AtomicFile commits metadata, queue references, saved sets and starter tombstones. SMF 0/1 lyric parsing bounds files, tracks, events, text and timing while merging tempo across tracks. Android's built-in MIDI renderer is used; SF2 overrides are not implemented. Failed prepare retains the reservation; stale or removed reservations cannot start. Native StageView, fullscreen and TV Presentation project the same playback time without a second queue or progress bar.
 
 Explicit Android exports use the shared CSV/AES-GCM browser format. The manifest has no Internet, microphone or camera permissions. Device-provider speech is user initiated and disclosed. Advanced audio, camera/video, intermission/SFX, folder import and encrypted companion transport remain unfinished. The official YouTube integration is queued in docs/YOUTUBE_PLAYBACK_PLAN.md.
+
+
+The recovered iOS LAN connection now suppresses duplicate command envelope IDs through a bounded 512-entry cache on the main actor. Completed results may be evicted; in-flight commands stay pinned. This is connection-scoped, not durable replay protection across reconnects, and does not encrypt the recovered plaintext protocol.
