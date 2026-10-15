@@ -151,6 +151,15 @@ final class PartyAudio {
     }
   }
 
+  boolean loopPlaying() {
+    if (loop == null) return false;
+    try {
+      return loop.isPlaying();
+    } catch (IllegalStateException error) {
+      return false;
+    }
+  }
+
   int activeVoices() {
     return voices.size();
   }

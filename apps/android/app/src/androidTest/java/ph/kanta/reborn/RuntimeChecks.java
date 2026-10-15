@@ -68,6 +68,57 @@ public final class RuntimeChecks extends Instrumentation {
           state(() -> contains(activity.getWindow().getDecorView(), "KANTA")),
           "Native activity did not render");
       Song song = session.songs.get(0);
+      LibraryRepository isolated =
+          new LibraryRepository(getTargetContext().createDeviceProtectedStorageContext());
+      isolated.load();
+      java.util.List<android.net.Uri> files =
+          DocumentTreeScanner.scan(
+              getTargetContext().getContentResolver(),
+              android.provider.DocumentsContract.buildTreeDocumentUri(
+                  FixtureProvider.AUTHORITY, "root"),
+              () -> false);
+      check(files.size() == 4, "SAF nested traversal or cycle bound");
+      boolean cancelled = false;
+      try {
+        isolated.importBatch(
+            java.util.Arrays.asList(FixtureProvider.file("song"), FixtureProvider.file("bank")),
+            () -> isolated.songs().size() > 3);
+      } catch (java.io.InterruptedIOException expected) {
+        cancelled = true;
+      }
+      check(cancelled && isolated.songs().size() == 3, "Cancelled batch published staged songs");
+      LibraryRepository afterCancel =
+          new LibraryRepository(getTargetContext().createDeviceProtectedStorageContext());
+      afterCancel.load();
+      check(afterCancel.songs().size() == 3, "Cancelled batch changed durable catalog");
+      int[] imported = isolated.importBatch(files, () -> false);
+      check(
+          imported[0] == 3 && imported[1] == 1 && isolated.songs().size() == 5,
+          "SAF partial import or SoundFont selection");
+      check(
+          !isolated.soundFontName().equals("KANTA original tone"),
+          "SoundFont override not retained");
+      try (InputStream original =
+          getTargetContext().getContentResolver().openInputStream(FixtureProvider.file("song"))) {
+        Song copy =
+            isolated.songs().stream()
+                .filter(value -> value.title.equals("Original KAR"))
+                .findFirst()
+                .orElseThrow();
+        check(
+            java.util.Arrays.equals(
+                original.readAllBytes(),
+                java.nio.file.Files.readAllBytes(new File(isolated.media, copy.fileName).toPath())),
+            "Imported source bytes changed");
+      }
+      runOnMainSync(
+          () ->
+              session.importSongs(
+                  java.util.Collections.singletonList(FixtureProvider.file("audio"))));
+      await(
+          () -> !session.importing && session.songs.size() == 4, "Controller audio import failed");
+      Song loopSong =
+          session.songs.stream().filter(SessionController::isAudio).findFirst().orElseThrow();
       runOnMainSync(
           () -> {
             session.reserve(song, "First");
@@ -137,15 +188,29 @@ public final class RuntimeChecks extends Instrumentation {
       await(() -> session.playing && session.position() > paused + 100, "Resume failed");
       runOnMainSync(session::stop);
       // Missing private data must leave the remaining singer's reservation recoverable.
+      runOnMainSync(
+          () -> {
+            session.remove(session.queue.peek().id);
+            session.chooseIntermission(loopSong);
+            session.toggleIntermission();
+          });
+      await(() -> session.party.loopPlaying(), "Idle intermission did not start");
+      runOnMainSync(() -> session.assignPad(6, loopSong));
+      await(() -> !session.assigningPad, "Custom pad decode never acknowledged");
+      check(
+          state(() -> session.customPads[6].equals(loopSong.id)),
+          "Custom pad preference did not commit");
+      runOnMainSync(() -> session.resetPad(6));
+      check(state(() -> session.customPads[6].isEmpty()), "Custom pad reset failed");
       Song missing =
           new Song("missing-runtime-fixture", "Missing fixture", "", "999", "missing.mid", false);
       runOnMainSync(
           () -> {
-            session.remove(session.queue.peek().id);
             session.reserve(missing, "Retry");
             session.next();
           });
       await(() -> !session.loading, "Failed media preparation never completed");
+      check(!state(() -> session.party.loopPlaying()), "Intermission overlapped a reservation");
       check(
           state(
               () ->
@@ -156,6 +221,7 @@ public final class RuntimeChecks extends Instrumentation {
       runOnMainSync(
           () -> {
             session.remove(session.queue.peek().id);
+            session.stopParty();
             activity.finish();
           });
       result.putString(
