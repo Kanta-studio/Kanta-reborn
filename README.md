@@ -31,7 +31,7 @@ GitHub sign-in is required. Bundles last 30 days from October 16, 2026 and prese
 | Download packaging [38837064251](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38837064251) | Five contracts and original artifact/source/checksum verification |
 | Original website checkpoint [38813213292](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38813213292) | Ten-page routes/anchors, metadata, CSP, preserved reader, download provenance and JavaScript syntax |
 
-The original browser reader remains unchanged. The homepage/Android download and Songbook missing-file UI were inspected on desktop after the workspace recovered. The 0.5.0 website refresh has its own pending static/preview checks.
+The original browser reader remains unchanged. The homepage/Android download and Songbook missing-file UI were inspected on desktop after the workspace recovered. The 0.5.0 website refresh passed static run 38837349896 and all 15 public preview responses. A synthetic private Songbook unlocked in the real browser; matching/no-match search, CSV export and Lock passed. Browser CSV text matches the native fixture with its expected spreadsheet BOM.
 
 Android microphone monitoring/scoring/DSP, secure companion networking and official YouTube playback remain unfinished. Camera is preview-only, explicitly enabled, and disabled on backgrounding. Physical camera orientation/quality, audio latency, external display and production signing remain separate acceptance gates.
 
