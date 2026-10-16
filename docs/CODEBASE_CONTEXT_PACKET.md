@@ -4,7 +4,7 @@ Current snapshot: merged Android stage/party and iOS runtime work, verified down
 
 ## Current accepted state
 
-Android 0.7.0 source `1ddee2416b6efe56562f5826ad479a6373ecf86c` passed run 38842165486 with 268 domain assertions, 90 actual API 35 checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and the permission/runtime-notice gate. Private photo/video storage, stable stage/navigation, opt-in lifecycle-bound front-camera preview and dry microphone input level/pitch are merged. The generated runtime notices preserve dependency identities and exact embedded license text.
+Android 0.8.0 source `57dc0611cb54435802a4bd7d226e00983dd3c8f6` passed run 38845590252 with 328 domain assertions, 110 actual API 35 checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and the permission/runtime-notice gate. Private media, front-camera preview, dry input, experimental monitoring/effects and optional pitch-following scores are merged. Physical timing/scoring accuracy and wired/USB output quality remain unverified.
 
 iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed all three UI walkthroughs on both iPhone and iPad plus unsigned device packaging in run 38806377805; its package source passed 158 tests. No Apple source change is included in the Android follow-ups.
 
@@ -134,3 +134,6 @@ Candidate source now passes 328 domain checks (including melody evidence/rejecti
 
 
 Accepted Android 0.8 source `57dc0611cb54435802a4bd7d226e00983dd3c8f6` passed run [38845590252](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38845590252): APK/instrumentation assembly, lint, native sanitizers, all 328 domain assertions, browser interoperability, permission/notices gate and 110 actual API 35 emulator checks. PR #21 merged as `5e6d5dc09f4bbfed25566d6dc17dfc20fe0cf25b`. No prior assertions were removed. Physical timing/scoring accuracy remains unverified; verified download packaging is separate. See ANDROID_SCORING_CHECKPOINT.md.
+
+
+Android 0.8 packaging run 38846121392 preserves the accepted 26,956,746-byte APK and unchanged unsigned IPA. Website source 941e9500 passed static run 38846304650 and READY preview dpl_6jPfDy2dTb6bN6h75zsJefxGoL3z. All 15 responses match source with CSP; browser download/guide navigation was inspected. See WEBSITE_08_CHECKPOINT.md. Production publication follows this preview; physical acceptance, pitch correction, secure companion and official YouTube remain open.
