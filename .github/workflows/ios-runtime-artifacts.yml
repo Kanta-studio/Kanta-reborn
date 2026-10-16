@@ -1,8 +1,25 @@
 name: Owner-approved iOS runtime and unsigned artifacts
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Focused screenshots or release acceptance
+        type: choice
+        required: true
+        default: focused
+        options: [focused, release]
+      record_video:
+        description: Record a short focused diagnostic walkthrough (release always records)
+        type: boolean
+        default: false
   pull_request:
-    types: [labeled]
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'apps/ios/Sources/App/RootView.swift'
+      - 'apps/ios/Sources/Features/Host/**'
+      - 'apps/ios/Tests/KantaUITests/**'
+      - 'tools/capture-ios-runtime.py'
+      - '.github/workflows/ios-runtime-artifacts.yml'
 permissions:
   contents: read
 concurrency:
@@ -10,11 +27,13 @@ concurrency:
   cancel-in-progress: false
 jobs:
   ios-runtime:
-    if: github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'owner-approved-ios-runtime')
+    if: github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || github.event.action != 'labeled' || contains(fromJSON('["owner-approved-ios-runtime","owner-approved-ios-visual"]'), github.event.label.name))
     runs-on: macos-15
     timeout-minutes: 55
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      VISUAL_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || (github.event.label.name == 'owner-approved-ios-runtime' && 'release' || 'focused') }}
+      RECORD_VIDEO: ${{ (github.event_name == 'workflow_dispatch' && (inputs.mode == 'release' || inputs.record_video)) || (github.event_name == 'pull_request' && github.event.label.name == 'owner-approved-ios-runtime') }}
     defaults:
       run:
         working-directory: apps/ios
@@ -32,7 +51,10 @@ jobs:
           set -o pipefail
           xcodebuild build-for-testing -project GeloKaraoke.xcodeproj -scheme GeloKaraoke -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO 2>&1 | tee runtime-test-build.log
       - name: Real iPhone walkthrough
-        run: python3 ../../tools/capture-ios-runtime.py --device iphone
+        run: |
+          options=(--device iphone --mode "$VISUAL_MODE")
+          if [ "$RECORD_VIDEO" = "true" ]; then options+=(--video); fi
+          python3 ../../tools/capture-ios-runtime.py "${options[@]}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
@@ -42,8 +64,12 @@ jobs:
           retention-days: 7
       - name: Real iPad walkthrough
         if: ${{ !cancelled() }}
-        run: python3 ../../tools/capture-ios-runtime.py --device ipad
+        run: |
+          options=(--device ipad --mode "$VISUAL_MODE")
+          if [ "$RECORD_VIDEO" = "true" ]; then options+=(--video); fi
+          python3 ../../tools/capture-ios-runtime.py "${options[@]}"
       - name: Build unsigned personal-signing device archive
+        if: env.VISUAL_MODE == 'release'
         run: |
           set -o pipefail
           xcodebuild archive -project GeloKaraoke.xcodeproj -scheme GeloKaraoke -configuration Release -destination 'generic/platform=iOS' -archivePath build/KANTA-personal.xcarchive -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO CODE_SIGN_ENTITLEMENTS='' SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) KANTA_PERSONAL_SIGNING' 2>&1 | tee unsigned-device-build.log
@@ -69,6 +95,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: env.VISUAL_MODE == 'release'
         with:
           name: KANTA-personal-unsigned
           path: |
