@@ -176,3 +176,7 @@ Accepted monitor source 1ddee2416b6efe56562f5826ad479a6373ecf86c passed run 3884
 ## Android 0.7 package and website preview accepted
 
 Packaging run 38842836405 passed five contracts and original artifact/source/checksum checks. Android bundle 12021832205 and unsigned iOS bundle 12022495243 preserve accepted app bytes and last 30 days with sign-in required. Web source f9286778 passed static run 38843086888; READY preview dpl_5fpZgodmFawvWrAKgyJPicvcMBqD passed all 15 page/asset content+CSP checks. Browser inspection confirmed current download identity, 268/90 counts and experimental monitor boundaries. Original private reader/styles/notices remain unchanged. Production publication follows verification; see WEBSITE_07_CHECKPOINT.md.
+
+## Production 0.7 website verified
+
+Deployment dpl_EXhw2bKNmFpj2U1nskumYDKZ8oYU is READY on https://kanta-public.vercel.app, source 79e7816af7421e951868b543c53caa78b9caa909. All ten public pages and five assets returned 200 and matched validated source exactly with CSP intact. Actual browser navigation confirmed the Android 0.7 download identity/counts and current voice setup guide. Website 0.7 and its accepted APK are live; iOS app bytes are unchanged and still require personal signing. Physical monitoring and calibrated scoring, pitch correction, secure companion and official YouTube remain open.

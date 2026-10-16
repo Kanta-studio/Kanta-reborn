@@ -8,4 +8,8 @@ Web source f9286778c4eb2bacbbe280ab1ad35c8753e24163 passed static run 3884308688
 
 Public text distinguishes separate microphone and monitor opt-ins, dry analysis versus local effects, terminal route loss/reconnect, Android 16 complete-route reporting versus older single-route reporting, no saved recordings and unverified physical output. Pitch correction, calibrated song scores, companion and YouTube remain unfinished. No native source or workflow changes are included in the download/site PR.
 
-Production publication follows this verified preview. This checkpoint changes Markdown only.
+This checkpoint changes Markdown only.
+
+## Production 0.7 website verified
+
+Deployment dpl_EXhw2bKNmFpj2U1nskumYDKZ8oYU is READY on https://kanta-public.vercel.app, source 79e7816af7421e951868b543c53caa78b9caa909. All ten public pages and five assets returned 200 and matched validated source exactly with CSP intact. Actual browser navigation confirmed the Android 0.7 download identity/counts and current voice setup guide. Website 0.7 and its accepted APK are live; iOS app bytes are unchanged and still require personal signing. Physical monitoring and calibrated scoring, pitch correction, secure companion and official YouTube remain open.
