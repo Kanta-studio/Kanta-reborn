@@ -8,7 +8,7 @@ Android 0.7.0 source `1ddee2416b6efe56562f5826ad479a6373ecf86c` passed run 38842
 
 iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed all three UI walkthroughs on both iPhone and iPad plus unsigned device packaging in run 38806377805; its package source passed 158 tests. No Apple source change is included in the Android follow-ups.
 
-The website still offers accepted 0.6.0 while 0.7.0 packaging is prepared. Packaging run 38840276706 passed five contract tests and original app identity/checksum verification. Android and unsigned iOS bundles last 30 days and require GitHub sign-in. The static website remains under apps/web; its private reader is byte-identical to evidence and CSP blocks network connections.
+Packaging run 38842836405 passed five contract tests and original app identity/checksum verification. Android and unsigned iOS bundles last 30 days and require GitHub sign-in. The static website remains under apps/web; its private reader is byte-identical to evidence and CSP blocks network connections.
 
 Control panels still rebuild on controller publication and search remains in-memory over normalized snapshots. These are source-review risks, not measured latency claims. Camera preview has no capture/analysis/recording output. Experimental monitored effects are implemented; physical output and calibrated scoring, secure companion and official YouTube remain unfinished. Physical quality/latency, external displays and signing remain open.
 
