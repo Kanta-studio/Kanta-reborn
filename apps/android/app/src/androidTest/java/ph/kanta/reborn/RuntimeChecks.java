@@ -284,6 +284,72 @@ public final class RuntimeChecks extends Instrumentation {
           state(() -> !session.cameraPreviewEnabled && !activity.cameraStreaming()),
           "Foregrounding KANTA re-enabled camera without opt-in");
 
+      check(
+          state(
+              () ->
+                  !session.microphone.enabled()
+                      && !session.microphone.capturing()
+                      && session.microphone.reading() == null),
+          "Microphone enabled without opt-in");
+      check(
+          getTargetContext().checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+              != android.content.pm.PackageManager.PERMISSION_GRANTED,
+          "Fresh install unexpectedly had microphone permission");
+      runOnMainSync(session::startMicrophone);
+      check(state(() -> !session.microphone.enabled()), "Capture bypassed microphone permission");
+      shell("pm grant ph.kanta.reborn android.permission.RECORD_AUDIO");
+      runOnMainSync(activity::toggleMicrophone);
+      await(
+          () -> session.microphone.capturing() && session.microphone.reading() != null,
+          "Opt-in AudioRecord did not produce input frames: " + session.message);
+      check(
+          state(() -> session.microphone.reading().pitch == null),
+          "Silent emulator produced a vocal pitch");
+      runOnMainSync(activity::toggleMicrophone);
+      await(() -> session.microphone.resourcesReleased(), "AudioRecord did not release after stop");
+      check(
+          state(() -> !session.microphone.enabled() && session.microphone.reading() == null),
+          "Explicit microphone stop retained measurements");
+      runOnMainSync(activity::toggleMicrophone);
+      await(
+          () -> session.microphone.capturing(), "Microphone did not reopen after explicit opt-in");
+      shell("input keyevent KEYCODE_HOME");
+      await(() -> !session.foreground, "Home did not background microphone host");
+      await(
+          () -> session.microphone.resourcesReleased(),
+          "Background retained AudioRecord resources");
+      check(
+          state(
+              () ->
+                  !session.microphone.enabled()
+                      && !session.microphone.capturing()
+                      && session.microphone.reading() == null),
+          "Background retained capture or dry readings");
+      shell("am start -n ph.kanta.reborn/.MainActivity --activity-reorder-to-front");
+      await(() -> session.foreground, "Microphone host did not foreground");
+      check(
+          state(() -> !session.microphone.enabled()), "Returning automatically enabled microphone");
+      runOnMainSync(
+          () -> {
+            session.hostVisible(false);
+            session.startMicrophone();
+            activity.onRequestPermissionsResult(
+                17, new String[] {android.Manifest.permission.RECORD_AUDIO}, new int[] {0});
+          });
+      check(state(() -> !session.microphone.enabled()), "Late grant/background bypassed opt-in");
+      runOnMainSync(() -> session.hostVisible(true));
+      runOnMainSync(
+          () -> {
+            activity.toggleMicrophone();
+            activity.toggleMicrophone();
+            activity.toggleMicrophone();
+          });
+      await(() -> session.microphone.capturing(), "Rapid microphone replacement failed");
+      runOnMainSync(activity::toggleMicrophone);
+      check(
+          state(() -> session.queue.snapshot().isEmpty() && session.current == null),
+          "Microphone changed karaoke ownership");
+
       runOnMainSync(
           () -> {
             session.reserve(song, "First");
@@ -339,6 +405,13 @@ public final class RuntimeChecks extends Instrumentation {
       await(
           () -> session.playing && session.position() > cameraPosition + 200,
           "Camera preview interrupted the audible karaoke clock");
+      runOnMainSync(activity::toggleMicrophone);
+      await(() -> session.microphone.capturing(), "Camera/MIDI/microphone concurrency failed");
+      long microphonePosition = position();
+      await(
+          () -> session.playing && session.position() > microphonePosition + 200,
+          "Microphone capture interrupted karaoke time");
+      runOnMainSync(activity::toggleMicrophone);
       capture("runtime-camera.png");
       runOnMainSync(activity::toggleCamera);
 

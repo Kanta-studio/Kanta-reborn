@@ -51,6 +51,7 @@ final class SessionController {
   float lyricScale = 1;
   boolean realm;
   final PartyAudio party;
+  final MicrophoneInput microphone;
   private final android.content.SharedPreferences options;
   boolean foreground, loopEnabled, auxiliaryInterrupted, assigningPad;
   String loopSongId = "";
@@ -63,6 +64,7 @@ final class SessionController {
 
   SessionController(Context context) {
     this.context = context;
+    microphone = new MicrophoneInput(context, this::publish, notice -> message = notice);
     options = context.getSharedPreferences("stage-options-v1", Context.MODE_PRIVATE);
     lyricScale = Math.max(.75f, Math.min(1.5f, options.getFloat("lyricScale", 1)));
     loopSongId = options.getString("loopSong", "");
@@ -90,7 +92,9 @@ final class SessionController {
                     auxiliaryInterrupted = true;
                     loopEnabled = false;
                     party.stopAll();
+                    microphone.stop();
                     pause();
+                    publish();
                   }
                 },
                 main)
@@ -99,7 +103,9 @@ final class SessionController {
         new BroadcastReceiver() {
           @Override
           public void onReceive(Context c, Intent i) {
+            microphone.stop();
             pause();
+            publish();
           }
         };
     if (Build.VERSION.SDK_INT >= 33)
@@ -318,9 +324,28 @@ final class SessionController {
     return song.fileName.endsWith(".mp3") || song.fileName.endsWith(".wav");
   }
 
+  void startMicrophone() {
+    if (!foreground
+        || context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+            != android.content.pm.PackageManager.PERMISSION_GRANTED) return;
+    if (audio.requestAudioFocus(focus) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+      message = "Microphone input needs audio focus. Try again when other audio has stopped.";
+      publish();
+      return;
+    }
+    microphone.start();
+  }
+
+  void stopMicrophone() {
+    microphone.stop();
+    if (current == null && !loopEnabled) audio.abandonAudioFocusRequest(focus);
+    publish();
+  }
+
   void hostVisible(boolean visible) {
     foreground = visible;
     if (!visible) {
+      microphone.stop();
       party.stopAll();
       loopEnabled = false;
     }
@@ -692,7 +717,7 @@ final class SessionController {
     if (queue.peek() != null) next();
     else {
       message = "Set finished. Save your played songs in My Set.";
-      audio.abandonAudioFocusRequest(focus);
+      if (!microphone.enabled()) audio.abandonAudioFocusRequest(focus);
       publish();
     }
   }
@@ -742,7 +767,7 @@ final class SessionController {
     releaseCurrent();
     current = null;
     lyrics = Collections.emptyList();
-    audio.abandonAudioFocusRequest(focus);
+    if (!microphone.enabled()) audio.abandonAudioFocusRequest(focus);
     publish();
   }
 

@@ -23,7 +23,8 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
       FOLDER = 13,
       PHOTO = 14,
       VIDEO = 15,
-      CAMERA = 16;
+      CAMERA = 16,
+      MICROPHONE = 17;
   private static final int NAVY = 0xFF0B1023,
       PANEL = 0xFF19213E,
       CYAN = 0xFF6FE5E8,
@@ -31,12 +32,12 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   private SessionController session;
   private LinearLayout root, body, results;
   private StageSurface stage, fullscreenStage, externalStage;
-  private TextView nowPlaying;
+  private TextView nowPlaying, microphoneReading;
   private Button playButton, nextButton;
   private final Map<String, Button> navigationButtons = new HashMap<>();
   private Dialog fullscreen;
   private CameraStage camera;
-  private boolean cameraPermissionPending;
+  private boolean cameraPermissionPending, microphonePermissionPending;
   private Presentation presentation;
   private DisplayManager displays;
   private String tab = "Control", query = "", singer = "";
@@ -52,6 +53,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   private final Runnable tick =
       new Runnable() {
         public void run() {
+          refreshMicrophoneReading();
           if (stage != null) stage.refresh();
           if (fullscreenStage != null) fullscreenStage.refresh();
           if (externalStage != null) externalStage.refresh();
@@ -105,6 +107,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     handler.removeCallbacksAndMessages(null);
     displays.unregisterDisplayListener(displayListener);
     cameraPermissionPending = false;
+    microphonePermissionPending = false;
     camera.stop();
     session.listen(null);
     session.hostVisible(false);
@@ -285,6 +288,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   }
 
   private void renderPanel() {
+    microphoneReading = null;
     body.addView(text(session.message, 13, CYAN));
     switch (tab) {
       case "My Set":
@@ -305,6 +309,21 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   }
 
   private void control() {
+    body.addView(
+        button(
+            session.microphone.enabled() ? "Turn off microphone" : "Turn on microphone",
+            this::toggleMicrophone));
+    microphoneReading = text("", 14, CYAN);
+    microphoneReading.setTag("kanta.microphone.reading");
+    body.addView(microphoneReading);
+    refreshMicrophoneReading();
+    body.addView(
+        text(
+            "Input level and pitch only. No voice is played, saved or uploaded. "
+                + "Monitoring, effects and song scores are not available yet.",
+            12,
+            Color.WHITE));
+
     body.addView(text("Sound & pace", 18, GOLD));
     LinearLayout tuning = row();
     addWeighted(
@@ -596,6 +615,38 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
         .show();
   }
 
+  void toggleMicrophone() {
+    if (session.microphone.enabled()) {
+      session.stopMicrophone();
+      return;
+    }
+    if (!session.foreground || microphonePermissionPending) return;
+    if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+      microphonePermissionPending = true;
+      requestPermissions(new String[] {android.Manifest.permission.RECORD_AUDIO}, MICROPHONE);
+      return;
+    }
+    session.startMicrophone();
+  }
+
+  private void refreshMicrophoneReading() {
+    if (microphoneReading == null) return;
+    MicrophoneInput.Reading value = session.microphone.reading();
+    String label;
+    if (!session.microphone.enabled()) label = "Microphone off";
+    else if (!session.microphone.capturing()) label = "Starting microphone…";
+    else if (value == null) label = "Listening — waiting for input";
+    else {
+      double db = 20 * Math.log10(Math.max(.000001, value.rms));
+      label = String.format(java.util.Locale.ROOT, "Input %.0f dBFS", db);
+      if (value.pitch != null)
+        label += String.format(java.util.Locale.ROOT, " · Pitch %.1f Hz", value.pitch.frequencyHz);
+      else label += " · No stable pitch";
+    }
+    microphoneReading.setText(label);
+  }
+
   void toggleCamera() {
     if (camera.enabled()) {
       camera.stop();
@@ -620,6 +671,18 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   @Override
   public void onRequestPermissionsResult(int request, String[] permissions, int[] grants) {
     super.onRequestPermissionsResult(request, permissions, grants);
+    if (request == MICROPHONE) {
+      if (!microphonePermissionPending) return;
+      microphonePermissionPending = false;
+      if (session.foreground
+          && checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+              == android.content.pm.PackageManager.PERMISSION_GRANTED) session.startMicrophone();
+      else {
+        session.message = "Microphone permission was not granted. Local playback still works.";
+        session.publish();
+      }
+      return;
+    }
     if (request != CAMERA || !cameraPermissionPending) return;
     cameraPermissionPending = false;
     if (session.foreground
