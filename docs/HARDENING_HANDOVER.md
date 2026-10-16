@@ -152,3 +152,7 @@ Host Gradle could not download through the Java wrapper's network path; this is 
 PR #10 merged the 60-check camera source; PR #11 merged verified 0.5.0 packaging. Run 38837064251 passed, yielding Android bundle 12019382511, unsigned iOS bundle 12019507393 and provenance manifest 12019980230, expiring November 15 UTC. Original app bytes are unchanged.
 
 The website refresh points to those actual bundles and accurately describes personal media, opt-in camera, no microphone/network permission, and retained original/runtime software notices. It also repairs footer iPhone links and reconciles the current README/context packet. Static run 38837349896 passed. All 15 public preview pages/assets matched submitted source and CSP. Desktop Android download inspection and synthetic browser Songbook unlock/search/CSV/Lock passed; export text matches the native fixture with its expected UTF-8 BOM. Native source and original Songbook reader are unchanged. Production deployment follows this verified preview.
+
+## Production 0.5 website verified
+
+Deployment dpl_2QZNigGA5F8A4rpmpupxyqrzZXw7 is READY on kanta-public.vercel.app, source c5ae03eae522f9b1262ec44a7e23b37c809f35a2. All ten pages and five public assets match validated source with CSP intact. Current website downloads point to accepted Android 0.5.0 and unchanged unsigned iOS packages; sign-in and expiry are disclosed. Microphone monitoring/scoring/DSP, companion networking and official YouTube remain the next implementation work; physical-device/signing acceptance is still open.
