@@ -12,7 +12,7 @@ import zipfile
 
 REPO = "kanta-gelo/Kanta-reborn"
 BUILDS = {
-    "android": {"run": 38881735518, "artifact": 12038226827, "source": "4f48e051dcd815e878205eda43bf9331591e279d"},
+    "android": {"run": 38885716463, "artifact": 12039807731, "source": "d777334eec73996116fdf2c01d97ac73a3a53958"},
     "ios": {"run": 38806377805, "artifact": 12007058242, "source": "3c12a1fb962ac956250a8f238c01eace13f560d2"},
 }
 LIMIT = 128 * 1024 * 1024
