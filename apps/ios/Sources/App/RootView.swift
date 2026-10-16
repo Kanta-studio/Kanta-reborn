@@ -4,7 +4,8 @@ import SwiftUI
 struct RootView: View {
     @ObservedObject var services: AppServices
     @Environment(\.scenePhase) private var scenePhase
-    @State private var route: Route?
+    @State private var sheetRoute: Route = .menu
+    @State private var isSheetPresented = false
 
     private enum Route: String, Identifiable {
         case menu, library, remote, settings, legal, icloud, songbook
@@ -14,26 +15,28 @@ struct RootView: View {
     init(services: AppServices) {
         self.services = services
         let mode = ProcessInfo.processInfo.environment["GELO_SCREENSHOT_MODE"] ?? ""
-        _route = State(initialValue: Route(rawValue: mode))
+        let initialRoute = Route(rawValue: mode)
+        _sheetRoute = State(initialValue: initialRoute ?? .menu)
+        _isSheetPresented = State(initialValue: initialRoute != nil)
     }
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, onOpenNavigation: { route = .menu })
+            HostView(services: services, onOpenNavigation: {
+                sheetRoute = .menu
+                isSheetPresented = true
+            })
                 .toolbar(.hidden, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
         .tint(GeloVisualStyle.accent)
         // Navigation stays presented while the playing song updates the host view.
-        .sheet(isPresented: Binding(
-            get: { route != nil },
-            set: { if !$0 { route = nil } }
-        )) {
+        .sheet(isPresented: $isSheetPresented, onDismiss: { sheetRoute = .menu }) {
             NavigationStack {
-                destination(route ?? .menu)
+                destination(sheetRoute)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { route = nil }
+                            Button("Done") { isSheetPresented = false }
                         }
                     }
             }
@@ -56,14 +59,14 @@ struct RootView: View {
         case .menu:
             List {
                 Section("KANTA") {
-                    Button("Song Library") { self.route = .library }
-                    Button("KANTA Songbook") { self.route = .songbook }
-                    Button("Settings") { self.route = .settings }
-                    Button("Companion Remote") { self.route = .remote }
+                    Button("Song Library") { sheetRoute = .library }
+                    Button("KANTA Songbook") { sheetRoute = .songbook }
+                    Button("Settings") { sheetRoute = .settings }
+                    Button("Companion Remote") { sheetRoute = .remote }
                     #if !KANTA_PERSONAL_SIGNING
-                    Button("iCloud Save") { self.route = .icloud }
+                    Button("iCloud Save") { sheetRoute = .icloud }
                     #endif
-                    Button("Legal & Privacy") { self.route = .legal }
+                    Button("Legal & Privacy") { sheetRoute = .legal }
                 }
             }
             .navigationTitle("More")
