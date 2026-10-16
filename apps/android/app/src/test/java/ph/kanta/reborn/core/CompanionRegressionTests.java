@@ -116,6 +116,11 @@ public final class CompanionRegressionTests {
     check(replay.full(),"Replay bound absent");
     rejects(()->replay.remember(UUID.randomUUID(),new byte[]{1}),"Replay cache evicted an executable identity");
     check(replay.get(id)[0]==1,"Original identity evicted at capacity");
+    check(CompanionProtocol.jsonText("{\"x\":\"[{\\\"}\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8)).contains("x"),"JSON string bracket handling");
+    rejects(()->CompanionProtocol.jsonText("[".repeat(9).concat("]".repeat(9)).getBytes(java.nio.charset.StandardCharsets.UTF_8)),"Recursive peer JSON accepted");
+    rejects(()->CompanionProtocol.jsonText(new byte[]{(byte)0xc3,0x28}),"Invalid peer UTF-8 accepted");
+    rejects(()->CompanionProtocol.jsonText("{".getBytes(java.nio.charset.StandardCharsets.UTF_8)),"Truncated peer JSON accepted");
+    rejects(()->CompanionProtocol.jsonText("}".getBytes(java.nio.charset.StandardCharsets.UTF_8)),"Unbalanced peer JSON accepted");
     return checks;
   }
 }

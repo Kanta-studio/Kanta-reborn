@@ -187,7 +187,7 @@ final class CompanionControl {
     worker.execute(()->{
       try {
         run.channel.send(request.encode());
-        JSONObject response=new JSONObject(new String(run.channel.receive(),StandardCharsets.UTF_8));
+        JSONObject response=new JSONObject(CompanionProtocol.jsonText(run.channel.receive()));
         if(!request.id.toString().equals(response.getString("request")))throw new IOException("Mismatched response");
         session.main.post(()->{if(active==run&&run.valid()&&generation==requestGeneration){if(!action.equals("search")&&remote!=null)try{response.put("songs",remote.optJSONArray("songs"));}catch(JSONException ignored){} remote=response;status="Connected · Android companion";notifyChanged();}});
       }catch(Exception e){fail(run,"Companion disconnected. Pair again to reconnect.");}

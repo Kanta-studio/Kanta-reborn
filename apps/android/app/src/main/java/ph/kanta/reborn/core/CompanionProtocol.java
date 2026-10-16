@@ -141,6 +141,25 @@ public final class CompanionProtocol {
     return bytes;
   }
 
+  /** Reject hostile nesting before handing authenticated peer metadata to a recursive JSON parser. */
+  public static String jsonText(byte[] bytes) throws IOException {
+    if(bytes.length>MAX_RECORD-16)throw new IOException("Response limit");
+    int depth=0; boolean quoted=false, escaped=false;
+    for(byte value:bytes){
+      int c=value&255;
+      if(quoted){
+        if(escaped)escaped=false;
+        else if(c=='\\')escaped=true;
+        else if(c=='"')quoted=false;
+      }else if(c=='"')quoted=true;
+      else if(c=='{'||c=='['){if(++depth>8)throw new IOException("Response nesting limit");}
+      else if(c=='}'||c==']'){if(--depth<0)throw new IOException("Invalid response structure");}
+    }
+    if(quoted||depth!=0)throw new IOException("Incomplete response structure");
+    try{return StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(bytes)).toString();}
+    catch(java.nio.charset.CharacterCodingException e){throw new IOException("Invalid response text",e);}
+  }
+
   public static final class Request {
     public final UUID id;
     public final String action, argument, singer;
