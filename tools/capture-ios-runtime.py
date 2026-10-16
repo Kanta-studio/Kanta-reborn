@@ -20,11 +20,11 @@ EXPECTED_TESTS = frozenset({
     "testDemoKeypadCancelAndRepeatedIntentionalReservations",
 })
 TEST_SUCCESS = re.compile(
-    r"^Test Case '-\\[KantaUITests\\.KantaVisualWalkthroughUITests (test\\w+)\\]' passed "
+    r"^Test Case '-\[KantaUITests\.KantaVisualWalkthroughUITests (test\w+)\]' passed "
 )
 TEST_FAILURE = re.compile(
-    r"(?:^Test Case .* failed \\(|:\\d+: error:|^Testing failed:|"
-    r"\\*\\* TEST FAILED \\*\\*|Restarting after unexpected exit)"
+    r"(?:^Test Case .* failed \(|:\d+: error:|^Testing failed:|"
+    r"\*\* TEST FAILED \*\*|Restarting after unexpected exit)"
 )
 
 def inspect_test_log(path: Path) -> tuple[set[str], list[str]]:
