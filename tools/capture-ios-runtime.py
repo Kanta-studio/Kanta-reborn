@@ -3,12 +3,15 @@
 from __future__ import annotations
 import json
 import argparse
+from collections import deque
 import os
 from pathlib import Path
 import signal
 import subprocess
 
 OUT = Path("runtime-captures")
+# Four full UI walkthroughs can exceed the combined XCTest per-case limit.
+SUITE_TIMEOUT_SECONDS = 1080
 
 def run(*args: str, **kwargs):
     print("+", " ".join(args), flush=True)
@@ -35,13 +38,14 @@ def main() -> int:
         label, udid = device["label"], device["udid"]
         recorder = None
         passed = False
+        test_log = OUT / f"{label}-tests.log"
         try:
             subprocess.run(["xcrun", "simctl", "boot", udid], check=False)
             run("xcrun", "simctl", "bootstatus", udid, "-b", timeout=180)
             with (OUT / f"{label}-recording.log").open("w") as recording_log:
                 recorder = subprocess.Popen(["xcrun", "simctl", "io", udid, "recordVideo", "--codec=h264",
                     str(OUT / f"{label}-walkthrough.mp4")], stdout=recording_log, stderr=subprocess.STDOUT)
-                with (OUT / f"{label}-tests.log").open("w") as log:
+                with test_log.open("w") as log:
                     run("xcodebuild", "test-without-building", "-project", "GeloKaraoke.xcodeproj",
                         "-scheme", "GeloKaraoke", "-configuration", "Release", "-destination",
                         f"platform=iOS Simulator,id={udid}", "-derivedDataPath", "build/DerivedData",
@@ -49,10 +53,16 @@ def main() -> int:
                         "-test-timeouts-enabled", "YES", "-default-test-execution-time-allowance", "120",
                         "-maximum-test-execution-time-allowance", "180",
                         "-only-testing:KantaUITests/KantaVisualWalkthroughUITests", "CODE_SIGNING_ALLOWED=NO",
-                        stdout=log, stderr=subprocess.STDOUT, timeout=660)
+                        stdout=log, stderr=subprocess.STDOUT, timeout=SUITE_TIMEOUT_SECONDS)
                 passed = True
         except (OSError, subprocess.SubprocessError) as error:
             print(f"{label}: {error}", flush=True)
+            if test_log.is_file():
+                print(f"--- {label} XCTest log tail ---", flush=True)
+                with test_log.open(errors="replace") as log:
+                    for line in deque(log, maxlen=100):
+                        print(line.rstrip(), flush=True)
+                print(f"--- end {label} XCTest log tail ---", flush=True)
         finally:
             if recorder is not None:
                 if recorder.poll() is None: recorder.send_signal(signal.SIGINT)
@@ -61,7 +71,7 @@ def main() -> int:
                     recorder.kill()
                     recorder.wait()
             result = OUT / f"{label}.xcresult"
-            if result.exists():
+            if (result / "Info.plist").is_file():
                 subprocess.run(["xcrun", "xcresulttool", "export", "attachments", "--path", str(result),
                     "--output-path", str(OUT / f"{label}-screenshots")], check=False, timeout=90)
             subprocess.run(["xcrun", "simctl", "shutdown", udid], check=False, timeout=30)
