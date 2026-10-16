@@ -12,3 +12,9 @@ Desktop browser inspection confirmed current 0.5.0 download links and platform w
 Download run [38837064251](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38837064251) passed five packaging contracts and original artifact checks. Android bundle 12019382511 and unchanged unsigned iOS bundle 12019507393 last until November 15 UTC and require GitHub sign-in. Native Android source remains the 201-domain/60-emulator accepted source 4da765035dd3cbeec6e69f38581138225b706e6d; iOS source remains unchanged.
 
 Only Markdown reconciliation follows the validated website source. Production deployment has not yet been claimed here; the prior deployment dpl_2ar7Pidc2z7m29vGRDJGGRdjkaJb is retained for rollback.
+
+## Production result
+
+Production deployment `dpl_2QZNigGA5F8A4rpmpupxyqrzZXw7` is READY with target production and alias https://kanta-public.vercel.app. Source metadata is merged main `c5ae03eae522f9b1262ec44a7e23b37c809f35a2`.
+
+All ten public pages and five public assets returned HTTP 200 through that alias, exactly matching the validated source with the security headers present. The production homepage has no appended preview toolbar. The previous production deployment remains available for rollback. Native source, app bytes and signing status did not change during website publication.
