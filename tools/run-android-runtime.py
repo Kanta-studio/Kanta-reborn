@@ -43,9 +43,14 @@ def instrument(adb: Path, mode: str, video: bool) -> None:
             raise RuntimeError(mode + " runtime instrumentation did not pass")
     finally:
         if recording is not None:
-            subprocess.run([str(adb), "shell", "sh", "-c",
-                            "kill -2 $(pidof screenrecord) 2>/dev/null || true"],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+            pids = subprocess.run([str(adb), "shell", "pidof", "screenrecord"],
+                                  capture_output=True, text=True, timeout=10)
+            if pids.returncode == 0:
+                for pid in pids.stdout.split():
+                    if pid.isdecimal():
+                        subprocess.run([str(adb), "shell", "kill", "-2", pid],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                       timeout=10, check=False)
             try:
                 recording.wait(timeout=15)
             except subprocess.TimeoutExpired:
