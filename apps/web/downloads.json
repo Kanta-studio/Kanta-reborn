@@ -1,20 +1,21 @@
 {
   "repository": "kanta-gelo/Kanta-reborn",
-  "packagingRun": 38812761100,
-  "verifiedAt": "2026-10-15",
+  "packagingRun": 38837064251,
+  "verifiedAt": "2026-10-16",
   "retentionDays": 30,
   "signInRequired": true,
   "android": {
-    "source": "b3a6cd7c795e2aaea4e48254ede290b4f616d671",
-    "run": 38807243721,
-    "artifact": 12008224871,
+    "source": "4da765035dd3cbeec6e69f38581138225b706e6d",
+    "run": 38826875086,
+    "artifact": 12019382511,
     "signed": "debug",
-    "applicationBytes": 22442759
+    "version": "0.5.0-reconstruction",
+    "runtimeChecks": 60
   },
   "ios": {
     "source": "3c12a1fb962ac956250a8f238c01eace13f560d2",
     "run": 38806377805,
-    "artifact": 12008259804,
+    "artifact": 12019507393,
     "signed": false,
     "personalSigningRequired": true,
     "icloudAvailable": false,

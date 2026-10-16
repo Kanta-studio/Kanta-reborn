@@ -4,13 +4,13 @@ Current snapshot: merged Android stage/party and iOS runtime work, verified down
 
 ## Current accepted state
 
-Android source `b3a6cd7c795e2aaea4e48254ede290b4f616d671` passed 201 domain assertions and 28 actual API 35 emulator checks in run 38807243721, plus build/lint/native/browser checks. iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed all three UI walkthroughs on both iPhone and iPad simulators and unsigned device archive/IPA packaging in run 38806377805; package source previously passed 158 tests.
+Android 0.5.0 source `4da765035dd3cbeec6e69f38581138225b706e6d` passed run 38826875086 with 201 domain assertions, 60 actual API 35 checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and the permission/runtime-notice gate. Private photo/video storage, stable stage/navigation and opt-in lifecycle-bound front-camera preview are merged. The generated runtime notices preserve dependency identities and exact embedded license text.
 
-The static website is now maintained under `apps/web`, with verified 30-day GitHub Actions download bundles. Packaging and website checks passed in runs 38812761100 and 38813213292. The browser Songbook script/stylesheet remain byte-identical to recovery evidence, with network access blocked by CSP.
+iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed all three UI walkthroughs on both iPhone and iPad plus unsigned device packaging in run 38806377805; its package source passed 158 tests. No Apple source change is included in the Android follow-ups.
 
-The current Android UI rebuilds views on frequent publication and can clip the final navigation tab on narrow screens. A stable-stage subtree/navigation repair and private photo/video background implementation exist only as an unmerged local draft; API 36 source compilation was checked before the workspace went offline, but no cloud build, runtime acceptance or publication is claimed. Do not infer this draft is in main or in the downloads.
+Packaging run 38837064251 passed five contract tests and original app identity/checksum verification. Android and unsigned iOS bundles last 30 days and require GitHub sign-in. The static website remains under apps/web; its private reader is byte-identical to evidence and CSP blocks network connections.
 
-Camera, microphone processing, secure companion networking and official YouTube remain separate Android work. Hardware quality, latency, long-session behavior and final distribution remain open across platforms. Historical work notes below retain their original chronology; current checkpoints supersede earlier pending statements.
+Control panels still rebuild on controller publication and search remains in-memory over normalized snapshots. These are source-review risks, not measured latency claims. Camera preview has no capture/analysis/recording output. Android microphone processing, secure companion and official YouTube are unfinished. Physical quality/latency, external displays and signing remain open.
 
 ## Android stack
 
