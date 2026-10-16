@@ -35,7 +35,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   private TextView nowPlaying, microphoneReading, monitorReading, scoreReading;
   private Button playButton, nextButton;
   private final Map<String, Button> navigationButtons = new HashMap<>();
-  private Dialog fullscreen;
+  private Dialog fullscreen, companionDialog;
   private CameraStage camera;
   private boolean cameraPermissionPending, microphonePermissionPending, voiceExpanded;
   private Presentation presentation;
@@ -107,6 +107,8 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   @Override
   protected void onStop() {
     handler.removeCallbacksAndMessages(null);
+    if (companionDialog != null) companionDialog.dismiss();
+    companionDialog = null;
     displays.unregisterDisplayListener(displayListener);
     cameraPermissionPending = false;
     microphonePermissionPending = false;
@@ -463,6 +465,9 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   }
 
   private void control() {
+    Button companion = button("Companion control", () -> companionDialog = CompanionDialog.show(this, session));
+    companion.setTag("kanta.companion.settings");
+    body.addView(companion);
     Button voiceSettings =
         button(
             session.microphone.enabled()
@@ -1323,7 +1328,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
                 + "SoundFonts can be added in My Set. Loop has party sounds and between-song music."
                 + " Voice settings in Control offer microphone input, experimental wired/USB"
                 + " effects and optional MIDI pitch-following scores. Check input timing on your"
-                + " device. Pitch correction and companion pairing are still being restored. Use"
+                + " device. Experimental pitch correction is available after verified monitoring. Android companion pairing is in Control; share the full code only with a trusted person on the same Wi-Fi. Use"
                 + " music you have permission to use.")
         .setPositiveButton("Done", null)
         .show();

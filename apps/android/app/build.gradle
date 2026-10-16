@@ -9,8 +9,8 @@ android {
         minSdk 26
         targetSdk 36
         ndk { abiFilters "arm64-v8a", "armeabi-v7a", "x86_64" }
-        versionCode 9
-        versionName '0.9.0-reconstruction'
+        versionCode 10
+        versionName '0.10.0-reconstruction'
         testInstrumentationRunner 'ph.kanta.reborn.RuntimeChecks'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
@@ -21,7 +21,7 @@ android {
 def coreClasses = layout.buildDirectory.dir('core-regression-classes')
 tasks.register('compileCoreRegression', JavaCompile) {
     source = fileTree('src/main/java') { include 'ph/kanta/reborn/core/**/*.java' }
-    source += files('src/test/java/ph/kanta/reborn/core/CoreRegressionTests.java')
+    source += fileTree('src/test/java') { include 'ph/kanta/reborn/core/**/*.java' }
     classpath = files()
     destinationDirectory = coreClasses
     options.release = 17
