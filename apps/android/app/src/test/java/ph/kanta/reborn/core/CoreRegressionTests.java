@@ -412,6 +412,25 @@ public final class CoreRegressionTests {
     check(
         boundary.estimate().matchedSlots == 1 && boundary.estimate().pitchAccuracy > 99.99,
         "Adjacent half-open notes counted a boundary twice or used the preceding pitch");
+    MidiLyrics.Document oversizedLabel =
+        midiTracks(
+            new MidiFixture()
+                .text(3, "x".repeat(65537))
+                .event(0, 144, 69, 100)
+                .event(480, 128, 69, 0)
+                .end());
+    check(
+        oversizedLabel.messages.size() == 2 && !MelodyTarget.extract(oversizedLabel).available(),
+        "Oversized optional track label broke playback or invented melody evidence");
+    MelodyTarget truncatedName =
+        MelodyTarget.extract(
+            midiTracks(
+                new MidiFixture()
+                    .text(3, "Melody" + " ".repeat(300) + "Accompaniment")
+                    .event(0, 144, 69, 100)
+                    .event(480, 128, 69, 0)
+                    .end()));
+    check(!truncatedName.available(), "Truncated label manufactured an explicit melody name");
     MelodyTarget target = flatTarget(3840);
     UUID id = UUID.randomUUID();
     MelodyScoreSession perfect = new MelodyScoreSession(id, target, 0, 1);

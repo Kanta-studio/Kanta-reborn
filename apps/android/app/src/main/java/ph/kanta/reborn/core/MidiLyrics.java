@@ -212,10 +212,14 @@ public final class MidiLyrics {
                 trackLyrics = true;
             }
           } else if (type == 3 || type == 4) {
-            String name = t.text((int) n).trim();
-            if (name.length() > 256) name = name.substring(0, 256);
-            if (type == 3 && trackName.isEmpty()) trackName = name;
-            if (type == 4 && instrumentName.isEmpty()) instrumentName = name;
+            // Oversized optional labels must not break otherwise playable MIDI.
+            if (n > 1024) t.skip(n);
+            else {
+              String name = t.text((int) n).trim();
+              if (name.length() > 256) name = "";
+              if (type == 3 && trackName.isEmpty()) trackName = name;
+              if (type == 4 && instrumentName.isEmpty()) instrumentName = name;
+            }
           } else t.skip(n);
           if (type == 0x2f) {
             events.add(new Event(tick, 0, type, null, seq++, track));
