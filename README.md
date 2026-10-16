@@ -1,39 +1,38 @@
 # KANTA Reborn
 
-Native Android and iPhone/iPad karaoke apps in one repository, with distinct platform code and a restored public website.
+Separate native Android and iPhone/iPad karaoke applications, together with their restored public website.
 
-**Current status:** reconstructed testing builds pass the checks below. Feature parity, physical-device acceptance and production app signing remain incomplete. iOS combines recovered original modules with reconstructed infrastructure; the original Android source was unavailable, so Android is a new native implementation.
+**Testing reconstruction:** Android 0.5.0 includes private photo/video stages and opt-in front-camera preview. iOS combines recovered original modules with reconstructed infrastructure. Physical-device quality and production app signing remain incomplete.
 
 | Location | Purpose |
 | --- | --- |
-| `apps/android/` | Native Java/Gradle Android app |
-| `apps/ios/` | Reconciled Swift app and infrastructure |
-| `apps/web/` | Restored static website and private Songbook reader |
-| `recovery/ios/` | Preserved historical snapshots and missing-path records |
+| `apps/android/` | Native Java/Views app with independent Gradle build |
+| `apps/ios/` | Reconciled Swift app and independent Apple build |
+| `apps/web/` | Static website and private browser Songbook |
+| `recovery/ios/` | Preserved historical source snapshots |
 | `docs/evidence/website/2026-10-15/` | Immutable original website evidence |
-| `docs/CODEBASE_CONTEXT_PACKET.md` | Stack, storage, playback, networking and bottlenecks |
-| `docs/ARCHITECTURE.md` | Platform boundaries and ownership contracts |
+| `docs/CODEBASE_CONTEXT_PACKET.md` | Actual stack, storage, playback, networking and performance risks |
 
-## Try the verified builds
+## Verified downloads
 
-- [Android preview bundle](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38812761100/artifacts/12008224871): debug-signed APK, checksum and build record.
-- [iPhone/iPad unsigned bundle](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38812761100/artifacts/12008259804): unsigned IPA, checksum and build record. Separate personal signing is required; iCloud Save is unavailable.
-- [Live website](https://kanta-public.vercel.app): platform availability, download help and private browser Songbook.
+- [Android 0.5.0 bundle](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38837064251/artifacts/12019382511): debug APK, checksum and build record.
+- [iPhone/iPad unsigned bundle](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38837064251/artifacts/12019507393): requires separate trusted personal signing; iCloud Save unavailable.
+- [Public website](https://kanta-public.vercel.app): platform availability, instructions and private browser Songbook.
 
-GitHub sign-in is required for Actions downloads. These bundles are retained for 30 days from October 15, 2026. They preserve the original accepted application bytes and are not store releases.
+GitHub sign-in is required. Bundles last 30 days from October 16, 2026 and preserve original accepted app bytes. Separate CI runs can use different Android debug certificates; uninstalling to change builds removes private app state. Keep original media and explicit exports backed up. These are not store releases.
 
 ## Accepted checks
 
 | Scope | Result |
 | --- | --- |
-| Android [38807243721](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38807243721) | 201 domain assertions, 28 API 35 emulator checks, native sanitizer checks, APK/instrumentation build, lint and browser interoperability |
+| Android [38826875086](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38826875086) | 201 domain assertions, 60 API 35 emulator checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and merged-APK permission/notices gate |
 | iOS package [38802025283](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38802025283) | 158 Swift package tests and unsigned simulator compilation |
-| iPhone/iPad runtime [38806377805](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38806377805) | All three walkthroughs on each simulator, app/UI compilation and unsigned iPhoneOS archive/IPA |
-| Download packaging [38812761100](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38812761100) | Five contract tests and original APK/IPA identity/checksum checks |
-| Website [38813213292](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38813213292) | Ten-page route/anchor, metadata, CSP, preserved-reader, download-provenance and JavaScript syntax checks |
+| iPhone/iPad [38806377805](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38806377805) | All three walkthroughs on each simulator, app/UI compilation and unsigned iPhoneOS archive/IPA |
+| Download packaging [38837064251](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38837064251) | Five contracts and original artifact/source/checksum verification |
+| Original website checkpoint [38813213292](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38813213292) | Ten-page routes/anchors, metadata, CSP, preserved reader, download provenance and JavaScript syntax |
 
-The live website's ten pages and four public assets were also checked against the submitted source over HTTP. Browser visual inspection was blocked by an offline workspace; no visual pass is claimed.
+The original browser reader remains unchanged. The homepage/Android download and Songbook missing-file UI were inspected on desktop after the workspace recovered. The 0.5.0 website refresh passed static run 38837349896 and all 15 public preview responses. A synthetic private Songbook unlocked in the real browser; matching/no-match search, CSV export and Lock passed. Browser CSV text matches the native fixture with its expected spreadsheet BOM.
 
-Android personal photo/video stages are an unmerged local draft. Android camera, microphone processing, companion networking and official YouTube playback remain unfinished. No physical audio quality/latency, camera, HDMI/AirPlay or production-signing acceptance is implied.
+Android microphone monitoring/scoring/DSP, secure companion networking and official YouTube playback remain unfinished. Camera is preview-only, explicitly enabled, and disabled on backgrounding. Physical camera orientation/quality, audio latency, external display and production signing remain separate acceptance gates.
 
-See [reconstruction ledger](docs/RECONSTRUCTION.md), [testing contracts](docs/TESTING.md), [Android checkpoint](docs/ANDROID_STAGE_CHECKPOINT.md), [iOS checkpoint](docs/IOS_RUNTIME_CHECKPOINT.md), [website checkpoint](docs/WEBSITE_CHECKPOINT.md) and [handover](docs/HARDENING_HANDOVER.md). Historical documents describe dated attempts; current checkpoints take precedence.
+See [architecture](docs/ARCHITECTURE.md), [testing](docs/TESTING.md), [camera checkpoint](docs/ANDROID_CAMERA_CHECKPOINT.md), [personal-media checkpoint](docs/ANDROID_PERSONAL_MEDIA_CHECKPOINT.md), [iOS checkpoint](docs/IOS_RUNTIME_CHECKPOINT.md), [website checkpoint](docs/WEBSITE_CHECKPOINT.md) and [handover](docs/HARDENING_HANDOVER.md). Current checkpoints supersede dated recovery notes.
