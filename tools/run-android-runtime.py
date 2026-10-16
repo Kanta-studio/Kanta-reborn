@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run clean-install Android acceptance with bounded startup and retained diagnostics."""
 from __future__ import annotations
+import argparse
 import os
 from pathlib import Path
 import subprocess
@@ -13,7 +14,64 @@ def run(*args, **kwargs):
     print("+", " ".join(map(str, args)), flush=True)
     return subprocess.run(list(map(str, args)), check=True, **kwargs)
 
+def export_capture(adb: Path, name: str) -> None:
+    destination = ROOT / name
+    with destination.open("wb") as output:
+        run(adb, "exec-out", "run-as", "ph.kanta.reborn", "cat",
+            "files/" + name, stdout=output, timeout=20)
+    if destination.stat().st_size < 1024:
+        raise RuntimeError("Missing valid Android screenshot: " + name)
+
+
+def instrument(adb: Path, mode: str, video: bool) -> None:
+    recording = None
+    video_path = "/sdcard/kanta-walkthrough.mp4"
+    try:
+        if video:
+            recording = subprocess.Popen(
+                [str(adb), "shell", "screenrecord", "--time-limit", "120", video_path],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            time.sleep(2)
+        logfile = ROOT / ("android-runtime.log" if mode == "full" else "android-visual.log")
+        with logfile.open("wb") as output:
+            run(adb, "shell", "am", "instrument", "-w", "-e", "kanta.mode", mode,
+                "ph.kanta.reborn.test/ph.kanta.reborn.RuntimeChecks",
+                stdout=output, stderr=subprocess.STDOUT, timeout=240 if mode == "full" else 90)
+        result = logfile.read_text(errors="replace")
+        print(result, flush=True)
+        if "KANTA runtime:" not in result or "checks passed" not in result:
+            raise RuntimeError(mode + " runtime instrumentation did not pass")
+    finally:
+        if recording is not None:
+            subprocess.run([str(adb), "shell", "sh", "-c",
+                            "kill -2 $(pidof screenrecord) 2>/dev/null || true"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+            try:
+                recording.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                recording.terminate()
+                recording.wait(timeout=10)
+            run(adb, "pull", video_path, ROOT / "android-visual-walkthrough.mp4", timeout=35)
+            if (ROOT / "android-visual-walkthrough.mp4").stat().st_size < 1024:
+                raise RuntimeError("Missing Android walkthrough video")
+            subprocess.run([str(adb), "shell", "rm", video_path], timeout=15, check=False)
+
+    files = (["runtime-stage.png", "runtime-camera.png"] if mode == "full" else
+             ["runtime-ui-control.png", "runtime-ui-my-set.png",
+              "runtime-ui-scenic.png", "runtime-ui-realm.png",
+              "runtime-ui-loop.png"])
+    for filename in files:
+        export_capture(adb, filename)
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--mode", choices=("focused", "full", "release"), default="full")
+    parser.add_argument("--video", action="store_true",
+                        help="Record a short UI tour in release mode")
+    args = parser.parse_args()
+    if args.video and args.mode != "release":
+        parser.error("--video is supported only for release visual acceptance")
     sdk = Path(os.environ["ANDROID_HOME"])
     adb = sdk / "platform-tools/adb"
     env = dict(os.environ)
@@ -45,19 +103,12 @@ def main() -> int:
             run(adb, "shell", "input", "keyevent", "82", timeout=15)
             run(adb, "install", ROOT / "apps/android/app/build/outputs/apk/debug/app-debug.apk", timeout=60)
             run(adb, "install", ROOT / "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk", timeout=60)
-            with (ROOT / "android-runtime.log").open("wb") as output:
-                run(adb, "shell", "am", "instrument", "-w", "ph.kanta.reborn.test/ph.kanta.reborn.RuntimeChecks",
-                    stdout=output, stderr=subprocess.STDOUT, timeout=180)
-            result = (ROOT / "android-runtime.log").read_text(errors="replace")
-            print(result, flush=True)
-            if "KANTA runtime:" not in result or "checks passed" not in result:
-                raise RuntimeError("Runtime instrumentation did not report acceptance")
-            with (ROOT / "android-runtime-stage.png").open("wb") as output:
-                run(adb, "exec-out", "run-as", "ph.kanta.reborn", "cat", "files/runtime-stage.png", stdout=output, timeout=20)
-            if (ROOT / "android-runtime-stage.png").stat().st_size == 0: raise RuntimeError("Missing real stage capture")
-            with (ROOT / "android-runtime-camera.png").open("wb") as output:
-                run(adb, "exec-out", "run-as", "ph.kanta.reborn", "cat", "files/runtime-camera.png", stdout=output, timeout=20)
-            if (ROOT / "android-runtime-camera.png").stat().st_size == 0: raise RuntimeError("Missing real camera capture")
+            if args.mode == "release":
+                # The brief recorded UI tour precedes the exhaustive unrecorded runtime suite.
+                instrument(adb, "focused", args.video)
+                instrument(adb, "full", False)
+            else:
+                instrument(adb, args.mode, False)
         return 0
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
         print(f"Android runtime acceptance failed: {error}", flush=True)
