@@ -187,3 +187,10 @@ Based on main 023dfff, version 0.8.0 adds default-off dry pitch-following scores
 
 
 Accepted Android 0.8 source `57dc0611cb54435802a4bd7d226e00983dd3c8f6` passed run [38845590252](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38845590252): APK/instrumentation assembly, lint, native sanitizers, all 328 domain assertions, browser interoperability, permission/notices gate and 110 actual API 35 emulator checks. PR #21 merged as `5e6d5dc09f4bbfed25566d6dc17dfc20fe0cf25b`. No prior assertions were removed. Physical timing/scoring accuracy remains unverified; verified download packaging is separate. See ANDROID_SCORING_CHECKPOINT.md.
+
+
+## Android 0.8 packages and website preview accepted
+
+Scoring PR #21 and packaging PR #22 are merged. Run 38846121392 passed all five contracts and original source/run/artifact/checksum verification. Android bundle 12022594247 preserves the accepted 26,956,746-byte APK; unsigned iOS bundle 12023730003 preserves unchanged accepted bytes. Manifest artifact 12022649276 was downloaded and its archive digest verified. Sign-in and November 15 UTC expiry remain disclosed.
+
+Website source 941e95002b012024c3b385ca1c420469de4ec5f3 passed static run 38846304650. READY preview dpl_6jPfDy2dTb6bN6h75zsJefxGoL3z passed all 15 exact page/asset and CSP checks; actual browser inspection confirmed Android 0.8, source/download identity, 328/110 counts and scoring setup navigation. Public text distinguishes dry input, separate scoring/monitor opt-ins, supported references, insufficient-input rejection, natural-completion estimates and physical calibration/backing-music limits. Original private reader/styles/notices are unchanged. Production publication follows this accepted preview; see WEBSITE_08_CHECKPOINT.md. Remaining software: pitch correction, secure companion and official YouTube. Physical scoring/audio/camera/external-display and signing gates remain open.
