@@ -49,6 +49,7 @@ final class SingingModalPresenter: UIViewController {
     private var wantsPresentation = false
     private var makePlayer: (() -> UIViewController)?
     private var isTransitioning = false
+    private weak var ownedPlayer: UIViewController?
 
     override func loadView() {
         view = UIView(frame: .zero)
@@ -74,15 +75,23 @@ final class SingingModalPresenter: UIViewController {
         guard !isTransitioning, viewIfLoaded?.window != nil else { return }
 
         if wantsPresentation {
-            guard presentedViewController == nil, let makePlayer else { return }
+            guard ownedPlayer == nil, presentedViewController == nil, let makePlayer else { return }
+            let player = makePlayer()
+            ownedPlayer = player
             isTransitioning = true
-            present(makePlayer(), animated: false) { [weak self] in
+            present(player, animated: false) { [weak self] in
                 self?.isTransitioning = false
                 self?.updatePresentation()
             }
-        } else if presentedViewController != nil {
+        } else if let player = ownedPlayer {
+            guard player.presentingViewController != nil else {
+                ownedPlayer = nil
+                return
+            }
+            // UIKit can report an ancestor's modal here. Dismiss only the player we created.
             isTransitioning = true
-            dismiss(animated: false) { [weak self] in
+            player.dismiss(animated: false) { [weak self] in
+                self?.ownedPlayer = nil
                 self?.isTransitioning = false
             }
         }
