@@ -4,11 +4,10 @@ import SwiftUI
 struct RootView: View {
     @ObservedObject var services: AppServices
     @Environment(\.scenePhase) private var scenePhase
-    @State private var showingMenu = false
     @State private var route: Route?
 
     private enum Route: String, Identifiable {
-        case library, remote, settings, legal, icloud, songbook
+        case menu, library, remote, settings, legal, icloud, songbook
         var id: String { rawValue }
     }
 
@@ -20,28 +19,23 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, onOpenNavigation: { showingMenu = true })
+            HostView(services: services, onOpenNavigation: { route = .menu })
                 .toolbar(.hidden, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
         .tint(GeloVisualStyle.accent)
-        .confirmationDialog("KANTA", isPresented: $showingMenu, titleVisibility: .visible) {
-            Button("Song Library") { route = .library }
-            Button("KANTA Songbook") { route = .songbook }
-            Button("Settings") { route = .settings }
-            Button("Companion Remote") { route = .remote }
-            #if !KANTA_PERSONAL_SIGNING
-            Button("iCloud Save") { route = .icloud }
-            #endif
-            Button("Legal & Privacy") { route = .legal }
-            Button("Cancel", role: .cancel) {}
-        }
-        .sheet(item: $route) { selected in
+        // Navigation stays presented while the playing song updates the host view.
+        .sheet(isPresented: Binding(
+            get: { route != nil },
+            set: { if !$0 { route = nil } }
+        )) {
             NavigationStack {
-                destination(selected)
-                    .toolbar { ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { route = nil }
-                    } }
+                destination(route ?? .menu)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { route = nil }
+                        }
+                    }
             }
         }
         .task {
@@ -59,6 +53,20 @@ struct RootView: View {
 
     @ViewBuilder private func destination(_ route: Route) -> some View {
         switch route {
+        case .menu:
+            List {
+                Section("KANTA") {
+                    Button("Song Library") { self.route = .library }
+                    Button("KANTA Songbook") { self.route = .songbook }
+                    Button("Settings") { self.route = .settings }
+                    Button("Companion Remote") { self.route = .remote }
+                    #if !KANTA_PERSONAL_SIGNING
+                    Button("iCloud Save") { self.route = .icloud }
+                    #endif
+                    Button("Legal & Privacy") { self.route = .legal }
+                }
+            }
+            .navigationTitle("More")
         case .library: LibraryView(services: services)
         case .remote: RemoteView()
         case .settings: KantaSettingsView(services: services)
