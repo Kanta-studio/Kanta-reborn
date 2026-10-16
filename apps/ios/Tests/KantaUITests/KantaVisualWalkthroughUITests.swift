@@ -18,7 +18,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
         app.launch()
         capture("01-real-main-stage", app)
-        app.buttons["More"].tap()
+        openMenu(in: app, expecting: "Song Library")
         let library = app.buttons["Song Library"]
         waitForRendered(library, in: app)
         library.tap()
@@ -69,7 +69,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
                             "Companion Remote", "iCloud Save", "Legal & Privacy"] {
             app.launch()
             XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
-            app.buttons["More"].tap()
+            openMenu(in: app, expecting: destination)
             let button = app.buttons[destination].firstMatch
             XCTAssertTrue(button.waitForExistence(timeout: 5))
             waitForRendered(button, in: app)
@@ -85,7 +85,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
         app.launch()
         XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
-        app.buttons["More"].tap()
+        openMenu(in: app, expecting: "Companion Remote")
         let remote = app.buttons["Companion Remote"]
         waitForRendered(remote, in: app)
         remote.tap()
@@ -160,6 +160,21 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         XCTAssertTrue(app.buttons["stage.reserve"].isHittable)
         capture("demo-landscape-keypad", app)
         XCUIDevice.shared.orientation = .portrait
+    }
+
+    @MainActor
+    private func openMenu(in app: XCUIApplication, expecting destination: String) {
+        let more = app.buttons["More"].firstMatch
+        waitForRendered(more, in: app)
+        let item = app.buttons[destination].firstMatch
+        // Opening is idempotent; retry only while the stage remains visible and no menu appeared.
+        for _ in 0..<3 {
+            more.tap()
+            if item.waitForExistence(timeout: 3) { return }
+            guard more.exists && more.isHittable else { break }
+        }
+        capture("menu-did-not-present", app)
+        XCTAssertTrue(item.exists, "More did not present the requested menu item: " + destination)
     }
 
     @MainActor
