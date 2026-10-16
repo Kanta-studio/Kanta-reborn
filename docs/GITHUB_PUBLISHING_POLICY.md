@@ -14,3 +14,7 @@ Primary references reviewed 2026-10-15:
 - https://docs.github.com/en/site-policy/acceptable-use-policies/github-acceptable-use-policies
 - https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
 - https://docs.github.com/en/site-policy/acceptable-use-policies/github-appeal-and-reinstatement
+
+## CI recording and publication boundaries
+
+Routine implementation PRs run platform-matched compilation, lint, security and unit checks, without emulator screen recording. UI-related changes additionally receive short screenshot smoke tests. Full iPhone, iPad and Android walkthroughs and recordings are release/manual gates; a developer may enable short video on focused iOS diagnostic dispatch. Workflow permissions remain read-only and upload only first-party synthetic/demo test evidence. Keep screenshots free of private catalogs, pairing secrets and microphone recordings. Retain Actions captures for seven days; never publish or link newly built IPAs/APKs based solely on successful visual snapshots. Existing labels can still explicitly trigger deeper owner-approved validation, and full release checks are not silently bypassed.
