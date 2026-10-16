@@ -26,6 +26,7 @@ struct RemoteView: View {
         List {
             Section("Encrypted Android companion") {
                 NavigationLink("Control an Android host") { EncryptedCompanionView() }
+                    .accessibilityIdentifier("companion.open")
                     .simultaneousGesture(TapGesture().onEnded {
                         pendingCatalogSearch?.cancel()
                         client.disconnect()

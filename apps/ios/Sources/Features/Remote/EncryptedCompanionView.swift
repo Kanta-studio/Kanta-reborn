@@ -9,18 +9,23 @@ struct EncryptedCompanionView: View {
     @State private var code = ""
     @State private var query = ""
     @State private var singer = ""
+    @FocusState private var editingCode: Bool
 
     var body: some View {
         List {
             Section("Pair with Android") {
                 Text("On Android 0.10 or later, open Control → Companion control and start hosting. Keep both apps open on the same trusted Wi-Fi. Enter the address and full code shown there.")
                 TextField("Host IPv4 address", text: $address)
+                    .accessibilityIdentifier("companion.address")
                     .keyboardType(.decimalPad)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .disabled(client.paired || client.busy)
                 SecureField("32-character pairing code", text: $code)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .privacySensitive().disabled(client.paired || client.busy)
+                    .focused($editingCode).submitLabel(.done)
+                    .onSubmit { editingCode = false }
+                    .privacySensitive().accessibilityIdentifier("companion.code")
+                    .disabled(client.paired || client.busy)
                 if client.paired || client.busy {
                     Button("Disconnect", role: .destructive) { stop() }
                 } else {
@@ -29,6 +34,7 @@ struct EncryptedCompanionView: View {
                         client.connect(address: address, code: code)
                         code = ""
                     }
+                    .accessibilityIdentifier("companion.connect")
                     .disabled(address.isEmpty || code.isEmpty)
                 }
                 Text(client.status).font(.footnote)
@@ -86,6 +92,7 @@ struct EncryptedCompanionView: View {
             }
         }
         .navigationTitle("Encrypted companion")
+        .scrollDismissesKeyboard(.interactively)
         .onChange(of: scenePhase) {
             if scenePhase != .active { stop() }
         }

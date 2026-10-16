@@ -80,6 +80,39 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
     }
 
     @MainActor
+    func testEncryptedCompanionPairingScreenAndInputRejection() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        app.launch()
+        XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
+        app.buttons["More"].tap()
+        let remote = app.buttons["Companion Remote"]
+        waitForRendered(remote, in: app)
+        remote.tap()
+        let encrypted = app.buttons["companion.open"]
+        waitForRendered(encrypted, in: app)
+        encrypted.tap()
+        let address = app.textFields["companion.address"]
+        let code = app.secureTextFields["companion.code"]
+        let connect = app.buttons["companion.connect"]
+        XCTAssertTrue(address.waitForExistence(timeout: waitSeconds))
+        XCTAssertTrue(code.exists)
+        XCTAssertFalse(connect.isEnabled)
+        capture("companion-encrypted-pairing", app)
+        address.tap()
+        address.typeText("8.8.8.8")
+        code.tap()
+        code.typeText("000102030405060708090a0b0c0d0e0f\n")
+        if !connect.isHittable { app.swipeUp() }
+        waitForRendered(connect, in: app)
+        connect.tap()
+        XCTAssertTrue(app.staticTexts["Enter the host's private IPv4 address and full 32-character code."]
+            .waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Disconnect"].exists)
+        capture("companion-invalid-address-rejected", app)
+    }
+
+    @MainActor
     func testDemoKeypadCancelAndRepeatedIntentionalReservations() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "1"
