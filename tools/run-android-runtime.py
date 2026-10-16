@@ -15,7 +15,7 @@ def run(*args, **kwargs):
     return subprocess.run(list(map(str, args)), check=True, **kwargs)
 
 def export_capture(adb: Path, name: str) -> None:
-    destination = ROOT / name
+    destination = ROOT / ("android-" + name)
     with destination.open("wb") as output:
         run(adb, "exec-out", "run-as", "ph.kanta.reborn", "cat",
             "files/" + name, stdout=output, timeout=20)
