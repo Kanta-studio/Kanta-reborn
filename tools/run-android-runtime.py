@@ -30,7 +30,7 @@ def main() -> int:
         with (ROOT / "emulator.log").open("wb") as log:
             emulator = subprocess.Popen([str(sdk / "emulator/emulator"), "-avd", "kanta-test", "-no-window",
                 "-no-audio", "-no-snapshot", "-no-boot-anim", "-gpu", "swiftshader", "-accel", "on",
-                "-cores", "2", "-memory", "2048"], env=env, stdout=log, stderr=subprocess.STDOUT)
+                "-cores", "2", "-memory", "2048", "-camera-front", "emulated"], env=env, stdout=log, stderr=subprocess.STDOUT)
             deadline = time.monotonic() + 420
             booted = False
             while time.monotonic() < deadline:
@@ -55,6 +55,9 @@ def main() -> int:
             with (ROOT / "android-runtime-stage.png").open("wb") as output:
                 run(adb, "exec-out", "run-as", "ph.kanta.reborn", "cat", "files/runtime-stage.png", stdout=output, timeout=20)
             if (ROOT / "android-runtime-stage.png").stat().st_size == 0: raise RuntimeError("Missing real stage capture")
+            with (ROOT / "android-runtime-camera.png").open("wb") as output:
+                run(adb, "exec-out", "run-as", "ph.kanta.reborn", "cat", "files/runtime-camera.png", stdout=output, timeout=20)
+            if (ROOT / "android-runtime-camera.png").stat().st_size == 0: raise RuntimeError("Missing real camera capture")
         return 0
     except (OSError, RuntimeError, subprocess.SubprocessError) as error:
         print(f"Android runtime acceptance failed: {error}", flush=True)

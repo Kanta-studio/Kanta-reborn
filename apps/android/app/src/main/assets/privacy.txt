@@ -1,121 +1,15 @@
-THIS TESTING VERSION
+KANTA Android privacy — reconstruction preview
 
-KANTA keeps selected music copies and library metadata privately on this device. Optional voice search opens your chosen device speech provider, which may process speech online. Microphone monitoring, camera capture, companion networking and YouTube playback are not enabled in this version. No analytics or KANTA account is required. Android backup of this app is disabled.
+Your library stays under your control. Selected MIDI/KAR, MP3/WAV, SF2, photos and videos are copied into app-private storage without rewriting the originals. Copies retain their original metadata. Song titles, singer names, reservations, saved sets and visual selections are stored locally. Android backup is disabled for this preview.
 
-FULL KANTA POLICY REFERENCE
+The app has no KANTA account, advertising SDK or analytics service. Its manifest requests no internet, microphone or broad shared-storage permission. Normal local playback and library search work offline.
 
-Privacy Policy · KANTA
-Skip to content
-✦ KANTA
-iPhone / iPad
-Android
-How to Use
-Features
-My Songbook
-Help
-Privacy
-Music Rights
-Choose your device
-iPhone / iPad
-Android phone / tablet
-YOUR PRIVACY · KANTA
-Your songs stay yours.
-KANTA is designed for karaoke with music you add yourself. This policy explains what the apps and website use, what stays on your device, and the choices you have. Android-specific differences are described below.
-Effective:
-October 11, 2026. KANTA is in development and preparing for internal testing.
-At a glance
-Your library
-Microphone & voice
-Live camera background
-Private Songbook
-Connections & iCloud
-Website
-Your choices
-Android app
-Privacy at a glance
-No KANTA account needed
-to play your own local karaoke files.
-No sale of your app data
-and no advertising or tracking software in the current app.
-Your music is not uploaded to KANTA.
-You decide which folders, exports, backups, and sharing destinations to use.
-Optional features need your permission.
-Voice search, the microphone, local-network remote, and iCloud have their own choices and limitations explained below.
-Your songs and saved information
-When you pick a folder in Apple's Files app, KANTA reads the files it needs to show and play your library. It can save folder access, file names and details, song titles, codes, known artists, and your settings on your device. It may make temporary copies of a selected song for compatible playback. KANTA does not add a music catalog or take ownership of your songs.
-Three KANTA-original KAR demonstrations and a generated instrument tone are bundled in the app. On first use, KANTA installs private managed copies of the samples. If you remove one, KANTA remembers that choice locally and deletes only its managed copy; Restore retrieves the original bundled copy offline. Removing a starter does not delete your imported music, SoundFonts, or selected source folders.
-Saved Favorites, playlists, singer labels and your song-search list are stored in the app's local data. You can export a list of song titles or save a private Songbook, but those actions do not export the audio files themselves. Removing a library from KANTA does not delete your original folder. Some app recovery data or temporary files may remain until the app or operating system clears them.
-Optional front-camera background
-If you enable Live Camera Background in KANTA, iOS asks for camera permission. The app shows a live video-only preview from the front camera behind synchronized lyrics. KANTA does not record, transmit, upload or store this camera feed and does not capture microphone audio through the camera. You can turn it off from the Camera button or revoke access in iOS Settings. Capture stops when the app leaves the foreground or you leave the Host. This is an in-development feature pending device validation.
-Microphone, singing scores and voice search
-Microphone scoring and voice effects are optional. When enabled, they use microphone audio on your device to give scores or add sound effects. KANTA does not save those singing recordings or send them to KANTA's servers. Live microphone monitoring starts off and is intended for compatible wired or USB audio equipment.
-If you choose
-Filipino/Taglish Voice Search
-, you can download a language pack to your device. The download provider receives the usual information associated with a download, such as your network address. KANTA uses a short temporary recording to turn your spoken search into text on the device, then deletes the temporary clip. You can remove the downloaded pack in Settings.
-The separate
-English voice search
-option uses Apple's speech service and may send speech to Apple for recognition when on-device recognition is not available. The text you approve for a paired remote search travels over your local network. Voice search does not automatically reserve or play songs. These voice features are still subject to real-device testing.
-Your private website Songbook
-The public
-Songbook page
-does not contain your song list. To open your own Songbook, you select an encrypted file and enter the separate code shown in the app. The file is opened in your browser; KANTA does not upload the file, code, or your song searches to its servers. The reader does not put your song list into website cookies or browser storage.
-Keep the file and code private.
-Someone with both could open your Songbook. The code does not automatically expire, and KANTA cannot remotely revoke a copy you shared. A downloaded CSV or printed PDF is no longer encrypted, and your browser or device may keep downloaded files or print history.
-Sharing, companion remote and iCloud
-With the optional Companion Remote, paired devices on the same Wi-Fi or local network can share song titles, searches, singer labels, the queue and playback controls. Pairing uses a code, but
-the connection is not encrypted
-. Only use it on a private network you trust.
-If you turn on iCloud Save, KANTA can prepare selected app settings and files for your Apple iCloud account. Apple and any other Files providers manage their own transfers, account records, and backups. Uploads and deletions may take time to finish. Choosing
-Delete KANTA iCloud Backup
-removes KANTA's saved cloud copies and saved KANTA settings; it does not delete your original music folders or unrelated Apple/device backups.
-When you visit this website
-The website is hosted by Vercel. As with other websites, the hosting provider may receive your IP address, browser and request information to deliver and protect the site. The current KANTA pages do not include advertising, analytics tracking, or tracking cookies. Website hosting records are different from the files and microphone audio stored on your phone.
-If you voluntarily send feedback through Apple's TestFlight service, Apple may share your feedback and related test information with KANTA's developer. Please leave private songs, access codes, and passwords out of feedback.
-Optional support diagnostic reports
-From KANTA Settings, you may turn on
-Keep local diagnostic events
-. This is
-off by default
-. While enabled, KANTA keeps at most 200 event codes from the past seven days in backup-excluded, device-protected storage. Events can show app/Host sessions, scoring and microphone status, accepted wired/USB output routes and Soundcard engine selection. They contain no singing audio, song titles, lyrics, library paths, names, PINs, passwords, IP addresses or raw failure messages.
-You may deliberately prepare a technical report with the app/build version, iPhone versus iPad, iOS version, audio sample rate/buffer and general DSP/output state. The app does not automatically send this report to KANTA, Apple or another company.
-Review / Share report
-lets you choose a destination via the iOS share sheet; the recipient may retain a copy. Turning diagnostics off or choosing Erase removes local history and the prepared report, but cannot erase previously shared copies.
-An interrupted session marker does not prove an app crash. Any separate Apple system crash report may contain additional information and requires a separate choice to share it.
-Learn how to prepare a report
-.
-Your choices and privacy questions
-You can turn off scoring or voice search, remove a downloaded language pack, disconnect a Remote, delete local Favorites, and remove library entries in KANTA. You can change microphone, speech, and local-network permissions in iPhone or iPad Settings. You control exported Songbooks and files stored outside KANTA through the service where you saved them.
-For setup help or privacy questions, visit our
-Support page
-. Public support contact details are being finalized before wider availability. You may have additional rights under applicable privacy laws; nothing here takes those rights away.
-We will update this policy if the app or website changes how it handles information. The effective date at the top shows the latest version.
-For song ownership, public performances and third-party content, read
-Legal & Content Use
-.
-Optional on-device vocal processing
-The experimental Soundcard applies native Apple or permissively licensed SoundpipeAudioKit pitch correction locally to the microphone input. Processing runs locally and optional monitored audio goes to the connected sound output; KANTA does not record or upload singing audio for this feature. The separate scoring tap remains unprocessed. Read the
-visual setup guide
-and the
-third-party software notices
-.
-Android app privacy and differences
-KANTA Android is a separate, native app in development. It has no KANTA account requirement or in-app ad tracking SDK. User-selected MIDI/KAR, MP3/WAV and SF2 files are imported into app-private local copies without transcoding. The app keeps songs, Favorites, singer labels, reservations and saved-session metadata locally; deleting a KANTA-managed copy does not delete the original Android Files source. Android Songbook CSV is
-unencrypted metadata only
-. The updated Android test version also supports a separate, encrypted
-.kanta-book
-export with its own 32-character access code. Neither export includes audio files. Keep the encrypted file and its code separate, because anyone who has both can read your song titles.
-Android's optional front-camera preview and opt-in microphone scoring/monitoring run on device. The app does not save or upload camera video or singing recordings. Camera and microphone are permission-gated, and the app stops sensor activity when backgrounded. The user may revoke CAMERA and RECORD_AUDIO in Android Settings. Voice Search launches the device's selected Android speech-recognition service, which can process audio online under its own provider terms. KANTA does not independently upload recognized speech or reserve songs automatically.
-The Android test version includes optional companion control between Android phones on a private local network. Pairing uses a temporary invitation containing a secret and the Host certificate fingerprint; the connection is encrypted.
-Keep the invitation private
-because anyone holding it can control playback until Host stops. The invitation is not stored by KANTA. This has passed an emulator test but still needs two separate real-phone tests; the iPhone remote uses a different connection method and cannot connect to this Android remote. Offline Filipino/Taglish voice recognition is
-not yet available
-. The private Songbook is implemented, but exchange between real Android and iOS devices has not yet been verified. The Android external lyric stage and experimental sound processing remain unverified on physical hardware. Android installation, signing, legal disclosures and Google Play Data Safety review are pending. The
-Android download page
-offers a debug-signed APK for voluntary testing, not a Google Play production release.
-These Android-specific statements take precedence over iOS-only references to Apple's Files, iCloud, Apple's speech services, TestFlight or encrypted Songbook in the other sections of this cross-platform policy.
-KANTA · Your music. Your stage.
-Home
-·
-Support
-·
-Legal
+Front camera is optional. KANTA requests CAMERA permission only after you choose to turn on the front-camera stage. Only a live preview is bound: there is no capture, analysis or recording use case, and no camera frames are saved or uploaded. Leaving the foreground turns it off; returning does not turn it back on. You may revoke camera permission in Android Settings. The camera view can move between the primary and fullscreen stage; an external display uses a still background.
+
+Choosing a Scenic preset stops the personal visual but keeps your last private photo/video for reuse. Replacing a photo or video removes its previous same-kind private copy after the new selection commits. Clear KANTA's app storage or uninstall to remove the local library and visual copies; keep your original music and exports backed up elsewhere.
+
+Voice Search opens the device's selected speech-recognition provider. That provider may process audio online under its own terms. KANTA receives recognized search text and does not automatically reserve a song. No live microphone monitoring, vocal processing, singing score or companion networking is included in this build.
+
+CSV exports contain unencrypted song metadata and no audio. Private .kanta-book exports contain encrypted metadata and require their separate access code. Anyone with both file and code can read the titles; CSV/print copies are not encrypted. Sharing is an explicit action through the system picker. The website reader decrypts in the browser without uploading your file, code or searches.
+
+Hardware camera, audio quality/latency and external-display acceptance remain open. This is a testing build, not a store release. Software notices are available in My Set. Support: https://kanta-public.vercel.app/support
