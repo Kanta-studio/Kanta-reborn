@@ -16,12 +16,14 @@ import ph.kanta.reborn.core.*;
  */
 public final class RuntimeChecks extends Instrumentation {
   private int checks;
+  private boolean focusedVisual;
   private MainActivity activity;
   private SessionController session;
 
   @Override
   public void onCreate(Bundle arguments) {
     super.onCreate(arguments);
+    focusedVisual = arguments != null && "focused".equals(arguments.getString("kanta.mode"));
     start();
   }
 
@@ -75,6 +77,12 @@ public final class RuntimeChecks extends Instrumentation {
       check(
           state(() -> contains(activity.getWindow().getDecorView(), "KANTA")),
           "Native activity did not render");
+      if (focusedVisual) {
+        focusedVisualChecks();
+        result.putString("stream", "KANTA runtime: " + checks + " checks passed (focused visual UI)\n");
+        finish(Activity.RESULT_OK, result);
+        return;
+      }
       companionChecks();
       Song song = session.songs.get(0);
       LibraryRepository isolated =
@@ -692,6 +700,27 @@ public final class RuntimeChecks extends Instrumentation {
       result.putString("stream", android.util.Log.getStackTraceString(failure));
       finish(Activity.RESULT_CANCELED, result);
     }
+  }
+
+  private void focusedVisualChecks() throws Exception {
+    // Exercise native controls without running the long media, permissions and DSP suite.
+    String[] tabs = {"Control", "My Set", "Scenic", "Realm", "Loop"};
+    for (String name : tabs) {
+      await(() -> activity.getWindow().getDecorView()
+          .findViewWithTag("kanta.nav." + name) != null, "Missing navigation: " + name);
+      runOnMainSync(() -> {
+        View tab = activity.getWindow().getDecorView().findViewWithTag("kanta.nav." + name);
+        tab.performClick();
+      });
+      check(state(() -> {
+        View tab = activity.getWindow().getDecorView().findViewWithTag("kanta.nav." + name);
+        return tab != null && tab.isSelected();
+      }), "Navigation did not select " + name);
+      capture("runtime-ui-" + name.toLowerCase(java.util.Locale.ROOT).replace(' ', '-') + ".png");
+    }
+    // The authoritative queue remains empty after purely visual navigation.
+    check(state(() -> session.queue.snapshot().isEmpty()), "UI navigation changed the queue");
+    runOnMainSync(activity::finish);
   }
 
   private void companionChecks() throws Exception {
