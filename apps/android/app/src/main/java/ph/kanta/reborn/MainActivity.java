@@ -476,9 +476,11 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     new AlertDialog.Builder(this)
         .setTitle("Watch on YouTube")
         .setMessage(
-            "This opens the official YouTube app or browser outside KANTA. "
-                + "YouTube's normal ads, controls and policies apply. "
-                + "It does not download a video or add a song to the karaoke queue.")
+            "YouTube may show ads before or during videos, interrupting your karaoke. "
+                + "YouTube Premium can provide ad-free playback when supported and signed in. "
+                + "Ads and Premium benefits are controlled by YouTube, not KANTA. "
+                + "This opens the official YouTube app or browser; it does not download a "
+                + "video or add a song to the karaoke queue.")
         .setView(input)
         .setNegativeButton("Cancel", null)
         .setPositiveButton("Open YouTube", (dialog, which) -> {
