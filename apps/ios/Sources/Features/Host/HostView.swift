@@ -249,6 +249,18 @@ struct HostView: View {
                 Text(controlFooterText)
             }
 
+            Section("YouTube (online)") {
+                NavigationLink {
+                    KantaYouTubeLinkView()
+                } label: {
+                    Label("Watch on YouTube", systemImage: "play.rectangle")
+                }
+                .accessibilityIdentifier("youtube.openScreen")
+                Text("YouTube may play ads before or during videos. Premium ad-free playback depends on your YouTube account and eligibility.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Stage Display · External TV") {
                 LabeledContent(
                     "External stage",
