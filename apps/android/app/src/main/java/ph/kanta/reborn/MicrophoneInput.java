@@ -18,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import ph.kanta.reborn.core.DryPitchDetector;
 
-/** Ephemeral dry input only. This service owns neither a player nor persistent audio. */
+/** Ephemeral dry capture; the independent optional output receives a copy of each PCM block. */
 final class MicrophoneInput {
   static final class Reading {
     final double rms;
@@ -46,6 +46,12 @@ final class MicrophoneInput {
   private final ExecutorService analysis = Executors.newSingleThreadExecutor();
   private final Consumer<String> notice;
   private final Runnable changed;
+
+  interface DrySink {
+    void offer(short[] input, int count);
+  }
+
+  private final DrySink sink;
   private volatile Run active, captureOwner;
   private final AtomicBoolean analysisBusy = new AtomicBoolean();
   private final DryPitchDetector detector = new DryPitchDetector();
@@ -57,10 +63,11 @@ final class MicrophoneInput {
     final float[] analysisFrame = new float[DryPitchDetector.FRAME_SIZE];
   }
 
-  MicrophoneInput(Context context, Runnable changed, Consumer<String> notice) {
+  MicrophoneInput(Context context, Runnable changed, Consumer<String> notice, DrySink sink) {
     this.context = context;
     this.changed = changed;
     this.notice = notice;
+    this.sink = sink;
   }
 
   boolean enabled() {
@@ -170,6 +177,7 @@ final class MicrophoneInput {
         lastData = now;
         if (!current(run)) break;
         run.capturing = true;
+        sink.offer(block, count);
         for (int i = 0; i < count; i++) {
           frame[filled++] = block[i] / 32768f;
           if (filled == frame.length) {

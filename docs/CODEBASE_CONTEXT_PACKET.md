@@ -4,13 +4,13 @@ Current snapshot: merged Android stage/party and iOS runtime work, verified down
 
 ## Current accepted state
 
-Android 0.6.0 source `c961cb3bbe76ef77bea8052529cb93a552d15a53` passed run 38839639544 with 233 domain assertions, 78 actual API 35 checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and the permission/runtime-notice gate. Private photo/video storage, stable stage/navigation, opt-in lifecycle-bound front-camera preview and dry microphone input level/pitch are merged. The generated runtime notices preserve dependency identities and exact embedded license text.
+Android 0.7.0 source `1ddee2416b6efe56562f5826ad479a6373ecf86c` passed run 38842165486 with 268 domain assertions, 90 actual API 35 checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and the permission/runtime-notice gate. Private photo/video storage, stable stage/navigation, opt-in lifecycle-bound front-camera preview and dry microphone input level/pitch are merged. The generated runtime notices preserve dependency identities and exact embedded license text.
 
 iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed all three UI walkthroughs on both iPhone and iPad plus unsigned device packaging in run 38806377805; its package source passed 158 tests. No Apple source change is included in the Android follow-ups.
 
-Packaging run 38840276706 passed five contract tests and original app identity/checksum verification. Android and unsigned iOS bundles last 30 days and require GitHub sign-in. The static website remains under apps/web; its private reader is byte-identical to evidence and CSP blocks network connections.
+The website still offers accepted 0.6.0 while 0.7.0 packaging is prepared. Packaging run 38840276706 passed five contract tests and original app identity/checksum verification. Android and unsigned iOS bundles last 30 days and require GitHub sign-in. The static website remains under apps/web; its private reader is byte-identical to evidence and CSP blocks network connections.
 
-Control panels still rebuild on controller publication and search remains in-memory over normalized snapshots. These are source-review risks, not measured latency claims. Camera preview has no capture/analysis/recording output. Android monitored effects/calibrated scoring, secure companion and official YouTube are unfinished. Physical quality/latency, external displays and signing remain open.
+Control panels still rebuild on controller publication and search remains in-memory over normalized snapshots. These are source-review risks, not measured latency claims. Camera preview has no capture/analysis/recording output. Experimental monitored effects are implemented; physical output and calibrated scoring, secure companion and official YouTube remain unfinished. Physical quality/latency, external displays and signing remain open.
 
 ## Android stack
 
@@ -109,3 +109,15 @@ AudioRecord reads nonblocking bounded PCM16 buffers on a dedicated capture worke
 Android references reviewed: AudioRecord, AudioRouting and Android's Sharing audio input guide. The first capture batch deliberately has no microphone output route. Source and instrumentation acceptance remain pending until the changed head is built and exercised.
 
 Accepted microphone input source c961cb3bbe76ef77bea8052529cb93a552d15a53 passed run 38839639544: APK/instrumentation build, lint, native sanitizers, 233 domain checks, browser interoperability, permission/notices gate and 78 actual API 35 emulator checks. No old assertions were removed. Only Markdown checkpoint reconciliation follows. No physical microphone acceptance, monitored output, effects or completed-song score is claimed. See ANDROID_MICROPHONE_CHECKPOINT.md.
+
+## Android monitored-output implementation context — October 16, 2026
+
+Starting from d4f9d84 (accepted 0.6 input and verified website). The Java/Views stack, storage, library search, AudioRecord dry path, CameraX and authoritative playback/FIFO remain unchanged. The next batch adds a separate opt-in AudioTrack monitor with no second input or song queue. Available-device enumeration is only a selection step; actual routed output must match that selection, with all API 36 routed outputs checked. Playback begins muted and route loss retires the activation. Speaker/Bluetooth routes are excluded.
+
+Capture/output clocks are independent even at nominal 48 kHz. A bounded interpolation ring will adjust consumption for small clock drift and retire stale audio on overflow/underrun. Monitor-only Dry/Room/Hall/Echo processing never modifies the dry pitch frame. No native autotune, melody scoring, recording, network, new dependency or physical latency claim is included in this batch. Acceptance will distinguish domain DSP/routing checks, emulator rejection of unsafe output, and unverified physical wired/USB playback. References: Android AudioTrack/AudioRouting and NDK Audio latency guidance.
+
+Candidate implementation now compiles all Android production and instrumentation Java against official API 36 and the exact 48 pinned runtime dependency coordinates from the accepted CameraX build. Local checks pass 268 domain assertions, browser export/wrong-code/tamper interoperability and test-layout wiring. Existing compatibility/deprecation/resource-analysis warnings remain; Android lint is still a separate hosted gate. Voice settings expand within Control to preserve search/reservation space. Physical output remains unverified.
+
+Pre-API-36 routing exposes one reported route; any additional unreported outputs cannot be verified. API 36 checks the complete routed-device list. Privacy and experimental voice settings disclose this boundary. No absolute acoustic-safety claim is made.
+
+Accepted monitor source 1ddee2416b6efe56562f5826ad479a6373ecf86c passed run 38842165486, all 268 domain and 90 actual API 35 checks plus APK/lint/native/browser/permission-notice gates. Only Markdown checkpoint reconciliation follows. Physical monitoring remains unverified; see ANDROID_MONITOR_CHECKPOINT.md.

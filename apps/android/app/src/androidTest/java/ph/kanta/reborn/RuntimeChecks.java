@@ -284,6 +284,29 @@ public final class RuntimeChecks extends Instrumentation {
           state(() -> !session.cameraPreviewEnabled && !activity.cameraStreaming()),
           "Foregrounding KANTA re-enabled camera without opt-in");
 
+      runOnMainSync(
+          () ->
+              activity
+                  .getWindow()
+                  .getDecorView()
+                  .findViewWithTag("kanta.voice.settings")
+                  .performClick());
+      check(
+          state(
+              () ->
+                  contains(activity.getWindow().getDecorView(), "Wired / USB monitoring")
+                      && contains(activity.getWindow().getDecorView(), "Turn on microphone")),
+          "Voice settings did not expand from Control");
+      runOnMainSync(
+          () ->
+              activity
+                  .getWindow()
+                  .getDecorView()
+                  .findViewWithTag("kanta.voice.settings")
+                  .performClick());
+      check(
+          state(() -> !contains(activity.getWindow().getDecorView(), "Wired / USB monitoring")),
+          "Collapsed voice settings still occupied Control");
       check(
           state(
               () ->
@@ -297,16 +320,66 @@ public final class RuntimeChecks extends Instrumentation {
           "Fresh install unexpectedly had microphone permission");
       runOnMainSync(session::startMicrophone);
       check(state(() -> !session.microphone.enabled()), "Capture bypassed microphone permission");
+      check(
+          state(
+              () ->
+                  !session.monitor.enabled()
+                      && !session.monitor.audible()
+                      && session.monitor.resourcesReleased()),
+          "Monitoring enabled without explicit opt-in");
+      android.media.AudioManager audio =
+          (android.media.AudioManager) getTargetContext().getSystemService(Context.AUDIO_SERVICE);
+      android.media.AudioDeviceInfo speaker = null;
+      for (android.media.AudioDeviceInfo device :
+          audio.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS))
+        if (device.getType() == android.media.AudioDeviceInfo.TYPE_BUILTIN_SPEAKER)
+          speaker = device;
+      check(
+          speaker != null && !MicrophoneMonitor.supported(speaker),
+          "Built-in speaker was an accepted monitor route");
+      final android.media.AudioDeviceInfo rejectedSpeaker = speaker;
+      check(
+          state(() -> session.monitor.outputs().isEmpty()),
+          "Clean emulator unexpectedly exposes wired/USB hardware");
       shell("pm grant ph.kanta.reborn android.permission.RECORD_AUDIO");
       runOnMainSync(activity::toggleMicrophone);
       await(
           () -> session.microphone.capturing() && session.microphone.reading() != null,
           "Opt-in AudioRecord did not produce input frames: " + session.message);
+      runOnMainSync(() -> session.startMonitor(rejectedSpeaker));
+      check(
+          state(
+              () ->
+                  !session.monitor.enabled()
+                      && !session.monitor.audible()
+                      && session.microphone.capturing()),
+          "Speaker rejection stopped input or produced monitor output");
+      runOnMainSync(activity::toggleMonitoring);
+      check(
+          state(() -> !session.monitor.enabled() && session.message.startsWith("Connect wired")),
+          "Monitoring with no supported hardware did not explain rejection");
+      runOnMainSync(
+          () -> {
+            session.monitor.mode(VocalMonitorEffects.Mode.HALL);
+            session.monitor.gain(.9f);
+          });
+      check(
+          state(() -> session.monitor.gain() == .35f && !session.monitor.enabled()),
+          "Effect/volume setting enabled output or bypassed gain bound");
+      runOnMainSync(() -> session.monitor.gain(Float.NaN));
+      check(state(() -> session.monitor.gain() == .35f), "Nonfinite monitor gain accepted");
+      runOnMainSync(() -> session.monitor.gain(-1));
+      check(
+          state(() -> session.monitor.gain() == 0 && !session.monitor.audible()),
+          "Negative monitor gain accepted");
       check(
           state(() -> session.microphone.reading().pitch == null),
           "Silent emulator produced a vocal pitch");
       runOnMainSync(activity::toggleMicrophone);
       await(() -> session.microphone.resourcesReleased(), "AudioRecord did not release after stop");
+      check(
+          state(() -> session.monitor.resourcesReleased() && !session.monitor.audible()),
+          "Stopping microphone retained monitor output");
       check(
           state(() -> !session.microphone.enabled() && session.microphone.reading() == null),
           "Explicit microphone stop retained measurements");
@@ -329,6 +402,9 @@ public final class RuntimeChecks extends Instrumentation {
       await(() -> session.foreground, "Microphone host did not foreground");
       check(
           state(() -> !session.microphone.enabled()), "Returning automatically enabled microphone");
+      check(
+          state(() -> !session.monitor.enabled() && session.monitor.resourcesReleased()),
+          "Foregrounding restored monitoring without opt-in");
       runOnMainSync(
           () -> {
             session.hostVisible(false);

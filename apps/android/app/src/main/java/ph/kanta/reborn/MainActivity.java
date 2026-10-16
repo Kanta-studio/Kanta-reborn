@@ -32,12 +32,12 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   private SessionController session;
   private LinearLayout root, body, results;
   private StageSurface stage, fullscreenStage, externalStage;
-  private TextView nowPlaying, microphoneReading;
+  private TextView nowPlaying, microphoneReading, monitorReading;
   private Button playButton, nextButton;
   private final Map<String, Button> navigationButtons = new HashMap<>();
   private Dialog fullscreen;
   private CameraStage camera;
-  private boolean cameraPermissionPending, microphonePermissionPending;
+  private boolean cameraPermissionPending, microphonePermissionPending, voiceExpanded;
   private Presentation presentation;
   private DisplayManager displays;
   private String tab = "Control", query = "", singer = "";
@@ -289,6 +289,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
 
   private void renderPanel() {
     microphoneReading = null;
+    monitorReading = null;
     body.addView(text(session.message, 13, CYAN));
     switch (tab) {
       case "My Set":
@@ -308,7 +309,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     }
   }
 
-  private void control() {
+  private void voiceControls() {
     body.addView(
         button(
             session.microphone.enabled() ? "Turn off microphone" : "Turn on microphone",
@@ -319,11 +320,77 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     refreshMicrophoneReading();
     body.addView(
         text(
-            "Input level and pitch only. No voice is played, saved or uploaded. "
-                + "Monitoring, effects and song scores are not available yet.",
+            "Effects apply only to voice output. Pitch estimates use the original input. No singing"
+                + " is saved or uploaded. Song scores and pitch correction are not available yet.",
             12,
             Color.WHITE));
 
+    body.addView(
+        button(
+            session.monitor.enabled() ? "Turn off monitoring" : "Wired / USB monitoring",
+            this::toggleMonitoring));
+    monitorReading = text("", 13, CYAN);
+    body.addView(monitorReading);
+    refreshMicrophoneReading();
+    body.addView(
+        text(
+            "Optional voice output for connected wired or USB equipment. Use headphones, start"
+                + " quietly and check your equipment volume. Speaker and Bluetooth monitoring are"
+                + " blocked when reported by Android. Older Android reports only one output. This"
+                + " experimental feature still needs device testing for sound and delay.",
+            12,
+            Color.WHITE));
+    LinearLayout effects = row();
+    for (VocalMonitorEffects.Mode value : VocalMonitorEffects.Mode.values()) {
+      String title =
+          value.name().substring(0, 1)
+              + value.name().substring(1).toLowerCase(java.util.Locale.ROOT);
+      Button option =
+          button(
+              title,
+              () -> {
+                session.monitor.mode(value);
+                session.publish();
+              });
+      option.setEnabled(session.monitor.enabled());
+      if (session.monitor.mode() == value) option.setTextColor(GOLD);
+      addWeighted(effects, option);
+    }
+    body.addView(effects);
+    body.addView(text("Voice output · maximum 35%", 13, Color.WHITE));
+    SeekBar voiceGain = new SeekBar(this);
+    voiceGain.setEnabled(session.monitor.enabled());
+    voiceGain.setContentDescription("Voice output volume, maximum 35 percent");
+    voiceGain.setMax(35);
+    voiceGain.setProgress(Math.round(session.monitor.gain() * 100));
+    voiceGain.setOnSeekBarChangeListener(
+        new SeekBar.OnSeekBarChangeListener() {
+          public void onStartTrackingTouch(SeekBar bar) {}
+
+          public void onStopTrackingTouch(SeekBar bar) {
+            session.publish();
+          }
+
+          public void onProgressChanged(SeekBar bar, int value, boolean user) {
+            if (user) session.monitor.gain(value / 100f);
+          }
+        });
+    body.addView(voiceGain);
+  }
+
+  private void control() {
+    Button voiceSettings =
+        button(
+            session.microphone.enabled()
+                ? "Microphone on · voice settings"
+                : "Microphone & voice settings",
+            () -> {
+              voiceExpanded = !voiceExpanded;
+              session.publish();
+            });
+    voiceSettings.setTag("kanta.voice.settings");
+    body.addView(voiceSettings);
+    if (voiceExpanded) voiceControls();
     body.addView(text("Sound & pace", 18, GOLD));
     LinearLayout tuning = row();
     addWeighted(
@@ -615,6 +682,38 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
         .show();
   }
 
+  void toggleMonitoring() {
+    if (session.monitor.enabled()) {
+      session.stopMonitor();
+      return;
+    }
+    if (!session.foreground || !session.microphone.capturing()) {
+      session.message = "Turn on microphone input before enabling monitoring.";
+      session.publish();
+      return;
+    }
+    List<android.media.AudioDeviceInfo> outputs = session.monitor.outputs();
+    if (outputs.isEmpty()) {
+      session.message =
+          "Connect wired or USB headphones or an audio interface. Speaker and Bluetooth monitoring"
+              + " are unavailable.";
+      session.publish();
+      return;
+    }
+    String[] labels = new String[outputs.size()];
+    for (int i = 0; i < labels.length; i++) {
+      String label =
+          outputs.get(i).getProductName().toString().replaceAll("[\\p{Cntrl}]", " ").trim();
+      labels[i] =
+          label.isEmpty() ? "Wired / USB output" : label.substring(0, Math.min(80, label.length()));
+    }
+    new AlertDialog.Builder(this)
+        .setTitle("Select wired / USB output")
+        .setItems(labels, (dialog, selected) -> session.startMonitor(outputs.get(selected)))
+        .setNegativeButton("Cancel", null)
+        .show();
+  }
+
   void toggleMicrophone() {
     if (session.microphone.enabled()) {
       session.stopMicrophone();
@@ -645,6 +744,15 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
       else label += " · No stable pitch";
     }
     microphoneReading.setText(label);
+    if (monitorReading != null) {
+      String output =
+          !session.monitor.enabled()
+              ? "Monitoring off"
+              : session.monitor.audible()
+                  ? "Monitoring on · " + Math.round(session.monitor.gain() * 100) + "%"
+                  : "Monitoring muted · checking connection or input";
+      monitorReading.setText(output);
+    }
   }
 
   void toggleCamera() {

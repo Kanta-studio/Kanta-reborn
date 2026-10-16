@@ -52,6 +52,7 @@ final class SessionController {
   boolean realm;
   final PartyAudio party;
   final MicrophoneInput microphone;
+  final MicrophoneMonitor monitor;
   private final android.content.SharedPreferences options;
   boolean foreground, loopEnabled, auxiliaryInterrupted, assigningPad;
   String loopSongId = "";
@@ -64,7 +65,9 @@ final class SessionController {
 
   SessionController(Context context) {
     this.context = context;
-    microphone = new MicrophoneInput(context, this::publish, notice -> message = notice);
+    monitor = new MicrophoneMonitor(context, this::publish, notice -> message = notice);
+    microphone =
+        new MicrophoneInput(context, this::publish, notice -> message = notice, monitor::offer);
     options = context.getSharedPreferences("stage-options-v1", Context.MODE_PRIVATE);
     lyricScale = Math.max(.75f, Math.min(1.5f, options.getFloat("lyricScale", 1)));
     loopSongId = options.getString("loopSong", "");
@@ -92,6 +95,7 @@ final class SessionController {
                     auxiliaryInterrupted = true;
                     loopEnabled = false;
                     party.stopAll();
+                    monitor.stop();
                     microphone.stop();
                     pause();
                     publish();
@@ -103,6 +107,7 @@ final class SessionController {
         new BroadcastReceiver() {
           @Override
           public void onReceive(Context c, Intent i) {
+            monitor.stop();
             microphone.stop();
             pause();
             publish();
@@ -155,6 +160,7 @@ final class SessionController {
   }
 
   void publish() {
+    if (!microphone.enabled()) monitor.stop();
     updateIntermission();
     if (listener != null) listener.changed();
   }
@@ -336,7 +342,27 @@ final class SessionController {
     microphone.start();
   }
 
+  void startMonitor(AudioDeviceInfo output) {
+    if (!foreground || !microphone.capturing()) {
+      message = "Turn on microphone input before enabling monitoring.";
+      publish();
+      return;
+    }
+    if (!monitor.start(output)) {
+      message =
+          "Connect wired or USB audio, then select that output again. Speaker and Bluetooth"
+              + " monitoring are unavailable.";
+      publish();
+    }
+  }
+
+  void stopMonitor() {
+    monitor.stop();
+    publish();
+  }
+
   void stopMicrophone() {
+    monitor.stop();
     microphone.stop();
     if (current == null && !loopEnabled) audio.abandonAudioFocusRequest(focus);
     publish();
@@ -345,6 +371,7 @@ final class SessionController {
   void hostVisible(boolean visible) {
     foreground = visible;
     if (!visible) {
+      monitor.stop();
       microphone.stop();
       party.stopAll();
       loopEnabled = false;
