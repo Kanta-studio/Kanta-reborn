@@ -58,3 +58,19 @@ Android runtime fixtures live in the test APK behind a signature permission decl
 
 
 Android emulator startup uses an explicit shared AVD directory for avdmanager and emulator. The helper detects early process exits, bounds boot/ADB/instrumentation, always collects diagnostics and retires the emulator. Use `owner-approved-android-validation` for Android-only repairs; `owner-approved-validation` still runs both native platforms. No source tests are skipped by the focused label.
+
+## Tiered native CI and visual evidence — candidate
+
+CI distinguishes build correctness from real UI/device acceptance, and it does not equate video capture with passing tests.
+
+| Tier | Trigger | Android | iPhone/iPad | Evidence |
+| --- | --- | --- | --- | --- |
+| Fast native | Every implementation PR affecting native source or shared tooling | APK + test APK compilation, lint, domain regression, native SoundFont sanitizer, permission/notices and browser interop | Entire Swift package/unit suite, tooling/source guards and unsigned simulator **build only** | Failure logs; no simulator, emulator or video |
+| Focused visual | UI-related PR changes, or explicit owner-approved visual label/dispatch | Clean-install API 35 emulator, five real tab interactions and screenshots | Focused XCTest launch/stage, Control sheet and Song Library screenshots on iPhone and iPad | Screenshots, assertion results and logs; **no video by default** |
+| Release visual | Manual dispatch with `mode=release`, or owner release-runtime label | Short recorded UI tour plus exhaustive JNI/AudioTrack/SAF/queue/camera/monitor runtime test and stage/camera images | All real iPhone/iPad walkthrough tests, screenshots, recorded video and unsigned personal-signing IPA only on successful acceptance | Release visual artifacts for seven days |
+| Failure investigation | Re-run focused visual with `record_video=true` for iOS; Android release capture as appropriate | Focused screenshots and logcat; release video opt-in | Focused screenshots and short video only when requested | Bounded diagnostic capture; no blanket recording |
+| Full visual regression | On-demand manual release dispatch (not scheduled) | Complete physical-emulator suite plus focused visual tour | Full iPhone+iPad UI suite | Green automated evidence does not replace physical device tests |
+
+The existing `reconstruction-validation.yml` remains an explicitly owner-authorized full engineering gate, including Android runtime and iOS packages. The new `fast-native-checks.yml` runs on qualifying native pull requests without emulator or video; `android-visual-acceptance.yml` handles visual Android runs; `ios-runtime-artifacts.yml` supports focused and release modes. Concurrency groups avoid duplicate active fast revisions. Owner-only guardrails and GitHub read-only workflow permissions remain in place.
+
+Video is opt-in for focused diagnostics; release acceptance records video. Full release runs do not publish updated app binaries until all required tests and separate packaging checks are green. No UI assertion or source regression test was removed to obtain faster CI. Runtime performance, platform-specific hardware behavior and real YouTube ad display still require device/browser verification.
