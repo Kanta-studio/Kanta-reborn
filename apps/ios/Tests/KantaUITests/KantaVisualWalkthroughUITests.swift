@@ -46,7 +46,9 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
             RunLoop.current.run(until: Date().addingTimeInterval(0.1))
         }
         capture("real-menu-stays-open-during-playback", app)
-        app.buttons["Cancel"].tap()
+        app.buttons["Song Library"].tap()
+        XCTAssertTrue(app.buttons["Done"].firstMatch.waitForExistence(timeout: 5))
+        app.buttons["Done"].firstMatch.tap()
         transport.tap()
         expectation(for: NSPredicate(format: "label == 'Play'"), evaluatedWith: transport)
         waitForExpectations(timeout: 5)

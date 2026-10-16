@@ -1169,3 +1169,6 @@ The monorepo root owns the active workflows. `ios-runtime-artifacts.yml` is owne
 ## Reconstructed encrypted Android controller — October 16, 2026
 
 The optional `EncryptedCompanionView`/`EncryptedCompanionClient` path uses system CryptoKit KCP1 and Network.framework to control Android 0.10 hosts. It is independent from recovered Bonjour/PIN control, which remains plaintext and explicitly legacy. There is no protocol fallback or secure iOS host in this batch. The remote sends bounded metadata commands only; Android's existing SessionController/FIFO owns reservations and playback. Foreground loss, screen closure, timeout and explicit disconnect revoke connection state. Root docs/ARCHITECTURE.md and docs/TESTING.md define framing, limits and the changed-source interoperability gates; simulator/package results do not establish physical Wi-Fi or signing acceptance.
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ValueError: substring not found
