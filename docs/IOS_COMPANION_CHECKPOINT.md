@@ -23,3 +23,9 @@ Encrypted iOS hosting is not implemented: recovered Bonjour/PIN iOS hosting is s
 ## Presentation diagnosis
 
 The failed starter-menu interaction also led to a production presentation audit. SingingModalPresenter previously called dismiss whenever presentedViewController was nonnil with fullscreen off. Apple's API may report an ancestor's modal, so this could dismiss an unrelated SwiftUI menu or sheet. It now tracks and dismisses only its own karaoke player. The actual-playback UI test checks menu persistence across redraws and enters/exits Library using the same route on iPhone and iPad. This is a source-confirmed ownership defect; the final runtime run must establish that the repair resolves observed behavior. No claim of a locally replayed iOS simulator is made.
+
+## Takeover checkpoint — October 16, 2026
+
+The last complete iOS runtime workflow attempt, [38895372779](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38895372779), finished red on a prior PR revision: iPhone UI tests failed, and iPad `xcodebuild test-without-building` exceeded the helper's 660-second outer deadline, leaving an incomplete `.xcresult` (the app/UI target had already compiled). Existing screenshots and recordings are diagnostic artifacts, not acceptance or a releasable IPA.
+
+The subsequent branch includes the owned-fullscreen-presenter repair, bounded idempotent More-menu checks, and a runner repair: 1,080-second complete-suite deadline, last-100-log-line failure output, and no attachment export for incomplete result bundles. All four walkthrough tests remain enabled with their original XCTest per-case deadlines. Root `docs/TESTING.md` records the limits. These changes are committed but **not validated by a final-head CI run**; final Swift/UI acceptance, unsigned device archive, checksum-verified download publication and physical pairing remain open. Do not merge or advertise an updated iOS binary on this evidence alone.
