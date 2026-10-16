@@ -25,6 +25,10 @@ final class SoundFontPlayback implements PlaybackBackend {
   private boolean playing, completed, pumpQueued;
   private volatile boolean disposed;
   private volatile long audiblePosition;
+  private final ph.kanta.reborn.core.AudibleControlFence controlFence =
+      new ph.kanta.reborn.core.AudibleControlFence();
+  private float requestedRate = 1;
+  private int requestedPitch;
 
   SoundFontPlayback(File file, MidiLyrics.Document document, Callback callback) {
     this.document = document;
@@ -108,12 +112,21 @@ final class SoundFontPlayback implements PlaybackBackend {
   }
 
   public void controls(float volume, float rate, int pitch) {
+    boolean changed = requestedRate != rate || requestedPitch != pitch;
+    requestedRate = rate;
+    requestedPitch = pitch;
+    long request = changed ? controlFence.request() : 0;
     enqueue(
         () -> {
           tempo = rate;
           if (output != null) output.setVolume(volume);
           if (bank != 0) NativeSoundFont.tune(bank, pitch);
+          if (changed) controlFence.rendered(request, framesRendered);
         });
+  }
+
+  public boolean controlsSettled() {
+    return controlFence.settled();
   }
 
   public long position() {
@@ -168,6 +181,7 @@ final class SoundFontPlayback implements PlaybackBackend {
     try {
       long head = Integer.toUnsignedLong(output.getPlaybackHeadPosition());
       audiblePosition = clock.position(head);
+      controlFence.heard(head);
       if (sourceTime >= document.durationMilliseconds + 800 && buffered == buffer.length) {
         if (head >= framesWritten && !completed) {
           completed = true;
