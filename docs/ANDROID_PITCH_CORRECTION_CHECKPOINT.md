@@ -25,3 +25,12 @@ Source `4f48e051dcd815e878205eda43bf9331591e279d` passed run [38881735518](https
 ## Verified Android 0.9 download packaging
 
 Run 38882359866 verified source/run/artifact identity, original application bytes and archive digests. Android bundle 12038451005 preserves source 4f48e051, APK SHA-256 85952b6db76dd2c418013a78895d6161cfa9310b14f57fe8b75095b4a2db1474 (26,957,042 bytes). iOS bundle 12037574662 preserves the unchanged unsigned IPA. Downloaded manifest artifact 12038027446 matched its archive digest. Website pages/manifest now select these packages with separate experimental-correction instructions; hosted website validation and production publication are pending. See WEBSITE_09_CHECKPOINT.md.
+
+
+## Production Android 0.9 verified
+
+Website source `95855ff18e9c1758e53a4315bf460b9f29ee876b` passed static run `38882633589` and READY preview `dpl_ESS6EucV9dVBs8x7y9tKzjGSqxK8`. All 15 preview pages/assets matched source with CSP, and real browser inspection confirmed Android 0.9, the 364/116 checks, source/download identity and setup navigation. PR #27 merged as `4c8e8066dc9f480de1922410628990eb788df4d5`. Production deployment `dpl_4xB8tKDdT61KhkSMnTRLx21HS4de` is READY on https://kanta-public.vercel.app; all 15 production pages/assets match validated bytes with CSP. The browser independently confirmed the public Android 0.9 page and bundle `12038451005` from packaging run `38882359866`. Original private reader/styles/notices and unsigned iOS application bytes are unchanged.
+
+Post-deploy verification caught a competing production deployment returning 404. The public alias was restored to the verified deployment, and the persistent Vercel project settings now explicitly use root `apps/web`, output `.`, no framework, and empty install/build commands. The corrected public alias and all 15 responses were verified after restoration. Deployment READY alone is insufficient: check the public alias, content and security headers before declaring completion.
+
+Pitch correction implementation, acceptance, verified packaging and website publication are complete. The next software task is secure companion control, followed by official YouTube playback. Physical voice quality/timbre/artifacts/feedback/latency, scoring calibration, camera/external-display acceptance and iOS production signing remain open. This checkpoint changes Markdown only and requires no additional native build.
