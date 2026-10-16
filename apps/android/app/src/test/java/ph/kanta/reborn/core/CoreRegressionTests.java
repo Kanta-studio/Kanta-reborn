@@ -82,8 +82,128 @@ public final class CoreRegressionTests {
         "Harmonic-rich input lost fundamental");
   }
 
+  private static void monitorChecks() {
+    MonitorRouteGuard guard = new MonitorRouteGuard(7, 100);
+    check(
+        guard.verify(new int[0], 101) == MonitorRouteGuard.Decision.WAIT,
+        "Unknown route was audible");
+    check(
+        guard.verify(new int[] {7}, 200) == MonitorRouteGuard.Decision.ALLOW,
+        "Selected route rejected");
+    check(
+        guard.verify(new int[0], 201) == MonitorRouteGuard.Decision.STOP,
+        "Lost route remained audible");
+    check(
+        guard.verify(new int[] {7}, 202) == MonitorRouteGuard.Decision.STOP,
+        "Reconnect reenabled monitoring");
+    check(
+        new MonitorRouteGuard(7, 100).verify(new int[] {8}, 101) == MonitorRouteGuard.Decision.STOP,
+        "Preferred route substituted for actual route");
+    check(
+        new MonitorRouteGuard(7, 100).verify(new int[] {7, 8}, 101)
+            == MonitorRouteGuard.Decision.STOP,
+        "Multiple simultaneous outputs accepted");
+    check(
+        new MonitorRouteGuard(7, 100).verify(new int[] {-1}, 101)
+            == MonitorRouteGuard.Decision.STOP,
+        "Unsafe route accepted");
+    check(
+        new MonitorRouteGuard(7, 100).verify(new int[0], 1600) == MonitorRouteGuard.Decision.STOP,
+        "Route readiness exceeded bound");
+    check(
+        new MonitorRouteGuard(7, 100).verify(new int[] {7}, 1600)
+            == MonitorRouteGuard.Decision.STOP,
+        "Late initial route bypassed readiness deadline");
+    check(
+        new MonitorRouteGuard(7, 100).verify(new int[] {7}, 99) == MonitorRouteGuard.Decision.STOP,
+        "Invalid monotonic time accepted");
+    MonitorRouteGuard fresh = new MonitorRouteGuard(7, 300);
+    check(
+        fresh.verify(new int[] {7}, 301) == MonitorRouteGuard.Decision.ALLOW,
+        "Explicit new activation inherited old rejection");
+    fresh.close();
+    check(
+        fresh.verify(new int[] {7}, 302) == MonitorRouteGuard.Decision.STOP,
+        "Closed route reopened");
+
+    MonitorBuffer buffer = new MonitorBuffer();
+    float[] output = new float[480];
+    check(!buffer.drain(output), "Empty monitor buffer produced audio");
+    short[] input = new short[480];
+    Arrays.fill(input, (short) 8192);
+    buffer.offer(input, input.length);
+    check(!buffer.drain(output), "Monitor bypassed warmup floor");
+    buffer.offer(input, input.length);
+    buffer.offer(input, input.length);
+    check(
+        buffer.drain(output) && Math.abs(output[100] - .25f) < .00001,
+        "Nominal monitor interpolation changed level");
+    check(input[100] == 8192, "Monitor modified dry capture bytes");
+    buffer.clear();
+    check(
+        !buffer.drain(output) && output[100] == 0 && buffer.bufferedFrames() == 0,
+        "Clearing monitor retained old voice");
+    long before = buffer.discontinuities();
+    for (int i = 0; i < 25; i++) buffer.offer(input, input.length);
+    check(
+        buffer.bufferedFrames() <= 8192 && buffer.discontinuities() > before,
+        "Monitor overrun was unbounded or undetected");
+    for (int ppm : new int[] {-2000, -500, 500, 2000}) {
+      MonitorBuffer drift = new MonitorBuffer();
+      drift.offer(new short[1440], 1440);
+      double produced = 0;
+      short[] incoming = new short[484];
+      int failures = 0, maximum = 0;
+      for (int block = 0; block < 10000; block++) {
+        produced += 480 * (1 + ppm / 1000000.0);
+        int count = (int) produced;
+        produced -= count;
+        drift.offer(incoming, count);
+        if (!drift.drain(output)) failures++;
+        maximum = Math.max(maximum, drift.bufferedFrames());
+      }
+      check(
+          failures == 0 && maximum < 3000 && drift.discontinuities() == 0,
+          "Independent audio clocks lost bounded continuity at " + ppm + " ppm");
+    }
+    boolean invalid = false;
+    try {
+      buffer.offer(input, 481);
+    } catch (IllegalArgumentException expected) {
+      invalid = true;
+    }
+    check(invalid, "Invalid dry block accepted");
+
+    for (VocalMonitorEffects.Mode mode : VocalMonitorEffects.Mode.values()) {
+      VocalMonitorEffects effects = new VocalMonitorEffects();
+      effects.mode(mode);
+      float[] impulse = new float[48000];
+      impulse[0] = .5f;
+      effects.process(impulse);
+      double tail = 0;
+      for (int i = 1; i < impulse.length; i++) tail += impulse[i] * impulse[i];
+      check(
+          mode == VocalMonitorEffects.Mode.DRY ? tail == 0 : tail > .00001,
+          "Monitor effect impulse contract: " + mode);
+      effects.reset();
+      float[] zero = new float[48000];
+      effects.process(zero);
+      boolean silent = true;
+      for (float value : zero) silent &= value == 0;
+      check(silent, "Stopped/reset effect retained a voice tail: " + mode);
+      Arrays.fill(impulse, 1000);
+      impulse[17] = Float.NaN;
+      impulse[18] = Float.POSITIVE_INFINITY;
+      effects.process(impulse);
+      boolean bounded = true;
+      for (float value : impulse) bounded &= Float.isFinite(value) && Math.abs(value) <= .9f;
+      check(bounded, "Monitor effect limiter/nonfinite contract: " + mode);
+    }
+  }
+
   public static void main(String[] args) throws Exception {
     microphonePitchChecks();
+    monitorChecks();
     ReservationQueue queue = new ReservationQueue();
     UUID request = UUID.randomUUID();
     ReservationQueue.Entry first = queue.reserve(request, song(), "Ana"),
