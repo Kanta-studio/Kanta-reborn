@@ -41,3 +41,9 @@ Use the official visible embedded YouTube player, with its normal ads, controls,
 This is a queued specification, not an implemented or released feature.
 
 DNS filtering was checked: AdGuard documents that DNS filtering cannot reliably distinguish YouTube video ads from content on shared domains. Do not change device DNS or promise that a DNS provider removes in-video ads. Reference: https://adguard-dns.io/en/blog/dns-content-blocking-at-scale.html
+
+## Implementation slice 1 — Android external-player handoff (candidate)
+
+A working Android Control entry now accepts a manually pasted, bounded HTTPS video URL and opens its canonical `www.youtube.com/watch?v=...` URL in the user's official YouTube app or browser. Validation accepts `watch?v=`, `youtu.be`, `shorts`, `live` and supported embed links only from exact YouTube hosts; it rejects host spoofing, malformed IDs, credentials, ports, duplicate IDs and non-HTTPS URLs. URL tracking and playlist query fields are discarded, and the Android application does not persist the link. Core regression coverage exercises both allowed and malicious URL cases. The native Activity pauses karaoke through its existing `onStop` handling when launching the external player.
+
+**Boundary:** This is a usable external handoff, not the official in-app IFrame player or integrated song queue. It adds no background playback, ad removal, caption extraction, storage, API key, media download, DNS workaround or new Android permission. iOS is untouched. The remaining acceptance checklist above is still open; do not advertise an in-app player or update release links based on this slice. Build and emulator validation are pending on the isolated feature branch.
