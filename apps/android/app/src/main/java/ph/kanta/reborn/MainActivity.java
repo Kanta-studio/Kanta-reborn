@@ -324,7 +324,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     body.addView(
         text(
             "Effects apply only to voice output. Pitch estimates use the original input. No singing"
-                + " is saved or uploaded. Pitch correction is not available yet.",
+                + " is saved or uploaded. Optional correction changes monitored output only.",
             12,
             Color.WHITE));
 
@@ -360,6 +360,23 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
       addWeighted(effects, option);
     }
     body.addView(effects);
+    Button correction =
+        button(
+            session.monitor.correctionEnabled()
+                ? "Turn off pitch correction"
+                : "Turn on pitch correction",
+            () -> session.monitor.correction(!session.monitor.correctionEnabled()));
+    correction.setTag("kanta.pitchcorrection.toggle");
+    correction.setEnabled(session.monitor.correctionAvailable());
+    body.addView(correction);
+    body.addView(
+        text(
+            "Experimental chromatic correction: enable wired/USB monitoring first. Stable voice"
+                + " follows the nearest semitone; uncertain input stays unshifted. This adds delay"
+                + " and can change voice tone or create artifacts. It does not follow the song's"
+                + " melody or change scoring. Leaving monitoring turns it off.",
+            12,
+            Color.WHITE));
     body.addView(text("Voice output · maximum 35%", 13, Color.WHITE));
     SeekBar voiceGain = new SeekBar(this);
     voiceGain.setEnabled(session.monitor.enabled());
@@ -817,7 +834,10 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
           !session.monitor.enabled()
               ? "Monitoring off"
               : session.monitor.audible()
-                  ? "Monitoring on · " + Math.round(session.monitor.gain() * 100) + "%"
+                  ? "Monitoring on · "
+                      + Math.round(session.monitor.gain() * 100)
+                      + "%"
+                      + (session.monitor.correctionEnabled() ? " · pitch correction" : "")
                   : "Monitoring muted · checking connection or input";
       monitorReading.setText(output);
     }

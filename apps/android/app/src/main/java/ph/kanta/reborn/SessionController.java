@@ -91,7 +91,9 @@ final class SessionController {
 
   SessionController(Context context) {
     this.context = context;
-    monitor = new MicrophoneMonitor(context, this::publish, notice -> message = notice);
+    monitor =
+        new MicrophoneMonitor(
+            context, this::publish, notice -> message = notice, this::inputReading);
     microphone =
         new MicrophoneInput(context, this::publish, notice -> message = notice, monitor::offer);
     options = context.getSharedPreferences("stage-options-v1", Context.MODE_PRIVATE);
@@ -350,6 +352,10 @@ final class SessionController {
                 });
           }
         });
+  }
+
+  private MicrophoneInput.Reading inputReading() {
+    return microphone.reading();
   }
 
   static boolean isAudio(Song song) {

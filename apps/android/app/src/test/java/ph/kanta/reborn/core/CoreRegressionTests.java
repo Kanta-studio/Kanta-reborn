@@ -259,6 +259,184 @@ public final class CoreRegressionTests {
                 .end()));
   }
 
+  private static double spectralPeak(float[] samples, double low, double high) {
+    double best = -1, frequency = 0;
+    // Independent sine projection, decimated below the synthetic fixtures' Nyquist limit.
+    for (double hz = low; hz <= high; hz += .1) {
+      double angle = 2 * Math.PI * hz / 12000, c = Math.cos(angle), v = Math.sin(angle);
+      double re = 0, im = 0, cosine = 1, sine = 0;
+      for (int i = samples.length - 96000; i < samples.length; i += 4) {
+        re += samples[i] * cosine;
+        im += samples[i] * sine;
+        double next = cosine * c - sine * v;
+        sine = sine * c + cosine * v;
+        cosine = next;
+      }
+      double power = re * re + im * im;
+      if (power > best) {
+        best = power;
+        frequency = hz;
+      }
+    }
+    return frequency;
+  }
+
+  private static void pitchCorrectionChecks() {
+    ChromaticPitchCorrector corrector = new ChromaticPitchCorrector();
+    check(!corrector.hasTarget() && corrector.targetRatio() == 1, "Fresh correction has a target");
+    for (double center : new double[] {73.41619198, 110, 440, 880}) {
+      double detuning = center == 440 || center < 100 ? .3 : -.4;
+      double input = center * Math.pow(2, detuning / 12);
+      corrector.reset();
+      DryPitchDetector.Pitch detected = new DryPitchDetector().detect(tone(input, .2), 48000);
+      check(detected != null, "Detuned voice fixture had no dry pitch estimate");
+      float[] output = new float[288000], block = new float[480];
+      double energy = 0;
+      float previous = 0, maximumStep = 0;
+      for (int start = 0; start < output.length; start += block.length) {
+        long now = start / 48;
+        corrector.update(detected.frequencyHz, detected.confidence, detected.rms, now, now);
+        for (int i = 0; i < block.length; i++)
+          block[i] = (float) (.2 * Math.sin(2 * Math.PI * input * (start + i) / 48000));
+        corrector.process(block);
+        System.arraycopy(block, 0, output, start, block.length);
+        for (float value : block) {
+          checkFinite(value);
+          if (start > 96000) {
+            energy += value * value;
+            maximumStep = Math.max(maximumStep, Math.abs(value - previous));
+          }
+          previous = value;
+        }
+      }
+      double actual = spectralPeak(output, center * .96, center * 1.04);
+      double cents = Math.abs(1200 * Math.log(actual / center) / Math.log(2));
+      check(cents < 8, "Corrected spectral pitch " + actual + " differs from target " + center);
+      System.out.printf(
+          java.util.Locale.ROOT,
+          "Chromatic correction: %.2f -> %.2f Hz (target %.2f, error %.2f cents)%n",
+          input,
+          actual,
+          center,
+          cents);
+      check(
+          energy > 200 && maximumStep < .2, "Correction dropped audio or created a discontinuity");
+    }
+    corrector.reset();
+    double oscillator = 0;
+    float last = 0, maximumTransition = 0;
+    float[] transition = new float[480];
+    for (int block = 0; block < 400; block++) {
+      double hz = 440 * Math.pow(2, (block / 25 % 2 == 0 ? -.4 : .4) / 12);
+      corrector.update(hz, .99, .1, block * 10, block * 10);
+      for (int i = 0; i < transition.length; i++) {
+        transition[i] = (float) (.2 * Math.sin(oscillator));
+        oscillator = (oscillator + 2 * Math.PI * hz / 48000) % (2 * Math.PI);
+      }
+      corrector.process(transition);
+      for (float value : transition) {
+        checkFinite(value);
+        maximumTransition = Math.max(maximumTransition, Math.abs(value - last));
+        last = value;
+      }
+    }
+    check(maximumTransition < .2, "Retuning introduced a large output discontinuity");
+    ChromaticPitchCorrector a = new ChromaticPitchCorrector(), b = new ChromaticPitchCorrector();
+    a.update(432, .99, .1, 0, 0);
+    b.update(432, .99, .1, 0, 0);
+    float[] signal = new float[30720],
+        whole = new float[signal.length],
+        combined = new float[signal.length];
+    for (int i = 0; i < signal.length; i++) signal[i] = (float) (.2 * Math.sin(i * .04));
+    float[] large = new float[960], small = new float[240];
+    for (int offset = 0; offset < signal.length; offset += large.length) {
+      System.arraycopy(signal, offset, large, 0, large.length);
+      a.process(large);
+      System.arraycopy(large, 0, whole, offset, large.length);
+    }
+    for (int offset = 0; offset < signal.length; offset += small.length) {
+      System.arraycopy(signal, offset, small, 0, small.length);
+      b.process(small);
+      System.arraycopy(small, 0, combined, offset, small.length);
+    }
+    check(
+        java.util.Arrays.equals(whole, combined), "Correction depended on output block partition");
+    double partitionEnergy = 0;
+    for (float value : whole) partitionEnergy += value * value;
+    check(partitionEnergy > 100, "Partition fixture did not exercise audible history");
+    corrector.reset();
+    corrector.update(440, .99, .1, 100, 100);
+    corrector.update(440 * Math.pow(2, .51 / 12), .99, .1, 110, 110);
+    check(corrector.targetRatio() < 1, "Semitone boundary jitter bypassed target hysteresis");
+    corrector.update(440 * Math.pow(2, .61 / 12), .99, .1, 120, 120);
+    check(corrector.targetRatio() > 1, "Stable next semitone did not replace the target");
+    for (double bad : new double[] {0, 40, 1200, Double.NaN, Double.POSITIVE_INFINITY}) {
+      corrector.update(bad, .99, .1, 1000, 1000);
+      check(
+          !corrector.hasTarget() && corrector.targetRatio() == 1, "Invalid pitch stayed corrected");
+    }
+    for (double bad : new double[] {.1, 1.1, Double.NaN, Double.POSITIVE_INFINITY}) {
+      corrector.update(440, bad, .1, 1000, 1000);
+      check(!corrector.hasTarget(), "Unreliable confidence selected a correction target");
+    }
+    corrector.update(440, .99, .001, 1000, 1000);
+    check(!corrector.hasTarget(), "Silence selected a correction target");
+    corrector.update(440, .99, Double.NaN, 1000, 1000);
+    check(!corrector.hasTarget(), "Nonfinite energy selected a correction target");
+    corrector.update(440, .99, .1, 1000, 1301);
+    check(!corrector.hasTarget(), "Stale pitch stayed corrected");
+    corrector.update(440, .99, .1, 1001, 1000);
+    check(!corrector.hasTarget(), "Future pitch stayed corrected");
+    corrector.update(440, .99, .1, 1, Long.MAX_VALUE);
+    check(!corrector.hasTarget(), "Extreme observation age overflowed");
+    corrector.reset();
+    float[] raw = new float[480], original = new float[6000];
+    for (int offset = 0; offset < original.length; offset += raw.length) {
+      for (int i = 0; i < raw.length && offset + i < original.length; i++)
+        original[offset + i] = raw[i] = (float) (.2 * Math.sin((offset + i) * .13));
+      corrector.process(raw);
+      for (int i = 0; i < raw.length && offset + i < original.length; i++) {
+        int source = offset + i - 2528;
+        float expected = source < 0 ? 0 : original[source];
+        if (raw[i] != expected)
+          throw new AssertionError("Uncertain correction altered unshifted input");
+      }
+    }
+    check(true, "Uncertain correction's fixed delay");
+    float[] hostile = new float[480];
+    java.util.Arrays.fill(hostile, Float.POSITIVE_INFINITY);
+    hostile[1] = Float.NaN;
+    hostile[2] = Float.MAX_VALUE;
+    hostile[3] = -Float.MAX_VALUE;
+    corrector.process(hostile);
+    for (int i = 0; i < 30; i++) {
+      float[] zeros = new float[480];
+      corrector.process(zeros);
+      for (float value : zeros) checkFinite(value);
+    }
+    check(true, "Correction sanitizes hostile input");
+    corrector.reset();
+    float[] silence = new float[480];
+    for (int i = 0; i < 30; i++) {
+      corrector.process(silence);
+      for (float value : silence)
+        if (value != 0) throw new AssertionError("Reset retained voice history");
+    }
+    check(!corrector.hasTarget(), "Correction reset retained a target");
+    boolean oversized = false;
+    try {
+      corrector.process(new float[1441]);
+    } catch (IllegalArgumentException expected) {
+      oversized = true;
+    }
+    check(oversized, "Unbounded correction block accepted");
+  }
+
+  private static void checkFinite(float value) {
+    if (!Float.isFinite(value) || Math.abs(value) > .9f)
+      throw new AssertionError("Correction emitted a nonfinite or unbounded sample");
+  }
+
   private static void scoringChecks(String starter) throws Exception {
     for (String name : new String[] {"morning-light", "sing-together", "starlight-echo"}) {
       MidiLyrics.Document document =
@@ -539,6 +717,7 @@ public final class CoreRegressionTests {
     microphonePitchChecks();
     monitorChecks();
     scoringChecks(args[0]);
+    pitchCorrectionChecks();
     ReservationQueue queue = new ReservationQueue();
     UUID request = UUID.randomUUID();
     ReservationQueue.Entry first = queue.reserve(request, song(), "Ana"),

@@ -67,6 +67,10 @@ public final class RuntimeChecks extends Instrumentation {
           state(
               () -> !session.scoringEnabled && session.score == null && session.lastScore == null),
           "Fresh session enabled scoring or restored a completion");
+      check(
+          state(
+              () -> !session.monitor.correctionEnabled() && !session.monitor.correctionAvailable()),
+          "Fresh session enabled pitch correction or exposed an unverified output");
       check(state(() -> session.songs.size() == 3), "Clean install starter catalog");
       check(
           state(() -> contains(activity.getWindow().getDecorView(), "KANTA")),
@@ -301,6 +305,19 @@ public final class RuntimeChecks extends Instrumentation {
                   contains(activity.getWindow().getDecorView(), "Wired / USB monitoring")
                       && contains(activity.getWindow().getDecorView(), "Turn on microphone")),
           "Voice settings did not expand from Control");
+      check(
+          state(
+              () -> {
+                View correction =
+                    activity
+                        .getWindow()
+                        .getDecorView()
+                        .findViewWithTag("kanta.pitchcorrection.toggle");
+                return correction != null
+                    && !correction.isEnabled()
+                    && contains(activity.getWindow().getDecorView(), "Turn on pitch correction");
+              }),
+          "Correction control was missing or enabled before verified monitoring");
       runOnMainSync(
           () ->
               activity
@@ -331,6 +348,13 @@ public final class RuntimeChecks extends Instrumentation {
                       && !session.monitor.audible()
                       && session.monitor.resourcesReleased()),
           "Monitoring enabled without explicit opt-in");
+      check(
+          state(
+              () ->
+                  !session.monitor.correction(true)
+                      && !session.monitor.enabled()
+                      && !session.microphone.enabled()),
+          "Correction selection activated output or microphone without monitoring");
       android.media.AudioManager audio =
           (android.media.AudioManager) getTargetContext().getSystemService(Context.AUDIO_SERVICE);
       android.media.AudioDeviceInfo speaker = null;
@@ -358,6 +382,13 @@ public final class RuntimeChecks extends Instrumentation {
                       && !session.monitor.audible()
                       && session.microphone.capturing()),
           "Speaker rejection stopped input or produced monitor output");
+      check(
+          state(
+              () ->
+                  !session.monitor.correction(true)
+                      && !session.monitor.correctionEnabled()
+                      && session.microphone.capturing()),
+          "Correction bypassed route rejection or stopped dry capture");
       runOnMainSync(activity::toggleMonitoring);
       check(
           state(() -> !session.monitor.enabled() && session.message.startsWith("Connect wired")),
@@ -385,6 +416,10 @@ public final class RuntimeChecks extends Instrumentation {
           state(() -> session.monitor.resourcesReleased() && !session.monitor.audible()),
           "Stopping microphone retained monitor output");
       check(
+          state(
+              () -> !session.monitor.correctionEnabled() && !session.monitor.correctionAvailable()),
+          "Stopping input retained correction activation");
+      check(
           state(() -> !session.microphone.enabled() && session.microphone.reading() == null),
           "Explicit microphone stop retained measurements");
       runOnMainSync(activity::toggleMicrophone);
@@ -409,6 +444,9 @@ public final class RuntimeChecks extends Instrumentation {
       check(
           state(() -> !session.monitor.enabled() && session.monitor.resourcesReleased()),
           "Foregrounding restored monitoring without opt-in");
+      check(
+          state(() -> !session.monitor.correctionEnabled() && !session.monitor.correction(true)),
+          "Returning restored pitch correction without verified monitoring");
       runOnMainSync(
           () -> {
             session.hostVisible(false);
