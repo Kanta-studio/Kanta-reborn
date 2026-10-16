@@ -156,3 +156,9 @@ The website refresh points to those actual bundles and accurately describes pers
 ## Production 0.5 website verified
 
 Deployment dpl_2QZNigGA5F8A4rpmpupxyqrzZXw7 is READY on kanta-public.vercel.app, source c5ae03eae522f9b1262ec44a7e23b37c809f35a2. All ten pages and five public assets match validated source with CSP intact. Current website downloads point to accepted Android 0.5.0 and unchanged unsigned iOS packages; sign-in and expiry are disclosed. Microphone monitoring/scoring/DSP, companion networking and official YouTube remain the next implementation work; physical-device/signing acceptance is still open.
+
+## Android microphone input batch (in progress)
+
+Based on accepted main a4bd5dd. Adds foreground opt-in AudioRecord input, dry input level/pitch, request fencing and asynchronous bounded cleanup. No speaker output, recording, effects, score, internet permission or Apple source change. Version 0.6.0 is not yet the site's accepted download. Local core checks and API compilation are being verified; changed-head hosted APK/lint/runtime acceptance is required before merge/download changes. All existing tests remain enabled; new runtime cases cover permission/default-off, real input frames, stop/release, Home/foreground, stale grant, rapid replacement and MIDI/camera coexistence.
+
+Accepted microphone input source c961cb3bbe76ef77bea8052529cb93a552d15a53 passed run 38839639544: APK/instrumentation build, lint, native sanitizers, 233 domain checks, browser interoperability, permission/notices gate and 78 actual API 35 emulator checks. No old assertions were removed. Only Markdown checkpoint reconciliation follows. No physical microphone acceptance, monitored output, effects or completed-song score is claimed. See ANDROID_MICROPHONE_CHECKPOINT.md.

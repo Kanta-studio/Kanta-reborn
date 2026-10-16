@@ -35,7 +35,55 @@ public final class CoreRegressionTests {
     return MidiLyrics.decode(bytes.toByteArray());
   }
 
+  private static float[] tone(double frequency, double amplitude) {
+    float[] samples = new float[DryPitchDetector.FRAME_SIZE];
+    for (int i = 0; i < samples.length; i++)
+      samples[i] = (float) (amplitude * Math.sin(2 * Math.PI * frequency * i / 48000));
+    return samples;
+  }
+
+  private static void microphonePitchChecks() {
+    DryPitchDetector detector = new DryPitchDetector();
+    for (double hz : new double[] {72, 82.41, 110, 220, 440, 523.25, 880, 990}) {
+      DryPitchDetector.Pitch pitch = detector.detect(tone(hz, .2), 48000);
+      check(
+          pitch != null && Math.abs(1200 * Math.log(pitch.frequencyHz / hz) / Math.log(2)) < 8,
+          "Dry pitch frequency: " + hz);
+      check(
+          pitch.confidence > .9 && Math.abs(pitch.rms - .2 / Math.sqrt(2)) < .01,
+          "Dry pitch confidence/energy: " + hz);
+    }
+    for (double hz : new double[] {40, 53, 1200, 1801.3, 2000, 4999})
+      check(
+          detector.detect(tone(hz, .2), 48000) == null,
+          "Out-of-range fundamental accepted as vocal pitch: " + hz);
+    check(detector.detect(new float[4096], 48000) == null, "Silent pitch accepted");
+    check(detector.detect(tone(440, .001), 48000) == null, "Subthreshold input accepted");
+    float[] invalid = tone(440, .2);
+    invalid[100] = Float.NaN;
+    check(detector.detect(invalid, 48000) == null, "Nonfinite input accepted");
+    invalid[100] = Float.POSITIVE_INFINITY;
+    check(detector.detect(invalid, 48000) == null, "Infinite input accepted");
+    check(detector.detect(null, 48000) == null, "Null pitch input accepted");
+    check(detector.detect(new float[100], 48000) == null, "Partial frame accepted");
+    check(detector.detect(tone(440, .2), 0) == null, "Invalid sample rate accepted");
+    float[] noise = new float[4096];
+    Random random = new Random(71);
+    for (int i = 0; i < noise.length; i++) noise[i] = random.nextFloat() * .4f - .2f;
+    check(detector.detect(noise, 48000) == null, "Aperiodic noise accepted as pitch");
+    Arrays.fill(noise, .5f);
+    check(detector.detect(noise, 48000) == null, "DC input accepted as pitch");
+    float[] harmonic = tone(220, .2);
+    for (int i = 0; i < harmonic.length; i++)
+      harmonic[i] += (float) (.1 * Math.sin(2 * Math.PI * 440 * i / 48000));
+    DryPitchDetector.Pitch pitch = detector.detect(harmonic, 48000);
+    check(
+        pitch != null && Math.abs(pitch.frequencyHz - 220) < 2,
+        "Harmonic-rich input lost fundamental");
+  }
+
   public static void main(String[] args) throws Exception {
+    microphonePitchChecks();
     ReservationQueue queue = new ReservationQueue();
     UUID request = UUID.randomUUID();
     ReservationQueue.Entry first = queue.reserve(request, song(), "Ana"),
