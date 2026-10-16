@@ -63,6 +63,10 @@ public final class RuntimeChecks extends Instrumentation {
       activity = (MainActivity) startActivitySync(launch);
       session = ((KantaApplication) activity.getApplication()).session;
       await(() -> session.ready, "Library did not open");
+      check(
+          state(
+              () -> !session.scoringEnabled && session.score == null && session.lastScore == null),
+          "Fresh session enabled scoring or restored a completion");
       check(state(() -> session.songs.size() == 3), "Clean install starter catalog");
       check(
           state(() -> contains(activity.getWindow().getDecorView(), "KANTA")),
@@ -475,6 +479,27 @@ public final class RuntimeChecks extends Instrumentation {
           state(() -> session.queue.snapshot().size() == 1 && session.singer.equals("First")),
           "Start acknowledgement violated FIFO");
       await(() -> session.position() >= 300, "AudioTrack audible clock did not advance");
+      runOnMainSync(() -> session.setScoring(true));
+      await(session::scoreReady, "Scoring target did not prepare alongside real MIDI playback");
+      check(
+          state(() -> !session.microphone.enabled() && !session.monitor.enabled()),
+          "Scoring opt-in implicitly enabled microphone or monitored output");
+      AtomicReference<MelodyScoreSession> priorScore = new AtomicReference<>();
+      runOnMainSync(() -> priorScore.set(session.score));
+      runOnMainSync(() -> session.scoreLatency(100));
+      await(
+          () -> session.scoreReady() && session.score != priorScore.get(),
+          "Latency change retained the old scoring accumulator");
+      check(
+          state(() -> session.score.estimate().matchedSlots == 0),
+          "Latency change retained observations");
+      runOnMainSync(() -> session.scoreLatency(Integer.MAX_VALUE));
+      check(state(() -> session.scoreLatency == 1500), "Positive calibration bound failed");
+      runOnMainSync(() -> session.scoreLatency(Integer.MIN_VALUE));
+      check(state(() -> session.scoreLatency == -500), "Negative calibration bound failed");
+      runOnMainSync(() -> session.scoreLatency(0));
+      await(session::scoreReady, "Latest calibration request did not retire stale preparation");
+
       runOnMainSync(activity::toggleCamera);
       await(activity::cameraStreaming, "Camera did not coexist with native MIDI playback");
       long cameraPosition = position();
@@ -491,7 +516,15 @@ public final class RuntimeChecks extends Instrumentation {
       capture("runtime-camera.png");
       runOnMainSync(activity::toggleCamera);
 
+      runOnMainSync(() -> priorScore.set(session.score));
       runOnMainSync(() -> session.controls(.7f, 1.5f, 3));
+      await(
+          () -> session.scoreReady() && session.score != priorScore.get(),
+          "Key/tempo scoring reset or audible control acknowledgement failed");
+      runOnMainSync(() -> priorScore.set(session.score));
+      runOnMainSync(() -> session.setVolume(.6f));
+      check(state(() -> session.score == priorScore.get()), "Volume-only change cleared scoring");
+      runOnMainSync(() -> session.setVolume(.7f));
       long before = position();
       await(() -> session.position() > before + 300, "Controlled playback stopped advancing");
       Bitmap capture = getUiAutomation().takeScreenshot();
@@ -510,10 +543,68 @@ public final class RuntimeChecks extends Instrumentation {
       runOnMainSync(session::toggle);
       await(() -> session.playing && session.position() > paused + 100, "Resume failed");
       runOnMainSync(session::stop);
-      // Missing private data must leave the remaining singer's reservation recoverable.
+      check(
+          state(
+              () ->
+                  session.lastScore == null
+                      && session.score == null
+                      && session.playbackIdentity == null),
+          "Manual stop fabricated a completion score");
+      runOnMainSync(() -> session.remove(session.queue.peek().id));
       runOnMainSync(
           () -> {
-            session.remove(session.queue.peek().id);
+            session.controls(.7f, 2, 0);
+            session.startMicrophone();
+            session.reserve(song, "Score A");
+            session.reserve(song, "Score B");
+            session.next();
+          });
+      await(
+          () ->
+              session.playing
+                  && session.singer.equals("Score A")
+                  && session.scoreReady()
+                  && session.microphone.capturing(),
+          "First natural-completion scoring playback did not start");
+      AtomicReference<java.util.UUID> scoreA = new AtomicReference<>(),
+          scoreB = new AtomicReference<>();
+      runOnMainSync(() -> scoreA.set(session.playbackIdentity));
+      await(
+          () ->
+              session.lastScore != null && session.lastScore.playbackIdentity.equals(scoreA.get()),
+          "First natural ending did not publish its completion identity");
+      check(
+          state(
+              () ->
+                  !session.lastScore.estimate.reportable
+                      && session.lastScore.estimate.matchedSlots == 0),
+          "Silent dry input produced a reportable song score");
+      await(
+          () -> session.playing && session.singer.equals("Score B") && session.scoreReady(),
+          "Scoring completion did not advance the existing FIFO");
+      runOnMainSync(() -> scoreB.set(session.playbackIdentity));
+      check(!scoreA.get().equals(scoreB.get()), "Repeated song reused scoring playback identity");
+      await(
+          () ->
+              session.lastScore != null
+                  && session.lastScore.playbackIdentity.equals(scoreB.get())
+                  && session.current == null
+                  && !session.playing,
+          "Second natural completion did not retain its own final result");
+      check(
+          state(() -> !session.lastScore.estimate.reportable && session.queue.snapshot().isEmpty()),
+          "Insufficient second input became a score or changed FIFO ownership");
+      check(
+          state(
+              () ->
+                  contains(
+                      activity.getWindow().getDecorView(),
+                      "Not enough stable voice input for a score")),
+          "Last-song UI displayed a fabricated score for silence");
+      runOnMainSync(
+          () -> {
+            session.stopMicrophone();
+            session.setScoring(false);
             session.chooseIntermission(loopSong);
             session.toggleIntermission();
           });
@@ -525,6 +616,7 @@ public final class RuntimeChecks extends Instrumentation {
           "Custom pad preference did not commit");
       runOnMainSync(() -> session.resetPad(6));
       check(state(() -> session.customPads[6].isEmpty()), "Custom pad reset failed");
+      // Missing private data must leave the reservation recoverable.
       Song missing =
           new Song("missing-runtime-fixture", "Missing fixture", "", "999", "missing.mid", false);
       runOnMainSync(
@@ -533,6 +625,9 @@ public final class RuntimeChecks extends Instrumentation {
             session.next();
           });
       await(() -> !session.loading, "Failed media preparation never completed");
+      check(
+          state(() -> session.lastScore.playbackIdentity.equals(scoreB.get())),
+          "Failed preparation overwrote a completed score");
       check(!state(() -> session.party.loopPlaying()), "Intermission overlapped a reservation");
       check(
           state(

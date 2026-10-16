@@ -42,6 +42,32 @@ final class SessionController {
   List<MidiLyrics.Cue> lyrics = Collections.emptyList();
   final ArrayList<Song> played = new ArrayList<>();
   Song current;
+  UUID playbackIdentity;
+  boolean scoringEnabled;
+  int scoreLatency;
+  MelodyScoreSession score;
+  private MelodyTarget currentTarget;
+  private long currentDuration;
+  private volatile long scoreRequest;
+  private long scoreFrameFloor, lastScoreReading = -1;
+  private boolean scoreWaitingForControls = true;
+
+  static final class CompletedScore {
+    final UUID playbackIdentity;
+    final String title, singer;
+    final MelodyScoreSession.Estimate estimate;
+
+    CompletedScore(
+        UUID identity, String title, String singer, MelodyScoreSession.Estimate estimate) {
+      playbackIdentity = identity;
+      this.title = title;
+      this.singer = singer;
+      this.estimate = estimate;
+    }
+  }
+
+  CompletedScore lastScore;
+
   String singer = "", message = "Opening your library…";
   boolean ready = false, loading = false, playing = false, importing = false;
   private Listener listener;
@@ -330,6 +356,121 @@ final class SessionController {
     return song.fileName.endsWith(".mp3") || song.fileName.endsWith(".wav");
   }
 
+  void setScoring(boolean enabled) {
+    if (scoringEnabled == enabled) return;
+    scoringEnabled = enabled;
+    resetScore();
+    publish();
+  }
+
+  void scoreLatency(int milliseconds) {
+    int value = Math.max(-500, Math.min(1500, milliseconds));
+    if (scoreLatency == value) return;
+    scoreLatency = value;
+    resetScore();
+    publish();
+  }
+
+  boolean scoreReady() {
+    return score != null && player != null && player.controlsSettled();
+  }
+
+  String scoreStatus() {
+    if (!scoringEnabled) return "Song scoring off";
+    if (current == null) return "Scoring ready for the next song";
+    if (currentTarget == null || !currentTarget.available())
+      return currentTarget == null ? "Melody reference unavailable" : currentTarget.unavailable;
+    if (!microphone.enabled()) return "Turn on microphone input for a pitch-following estimate";
+    if (!scoreReady()) return "Waiting for song playback…";
+    MelodyScoreSession.Estimate value = score.estimate();
+    return value.reportable
+        ? String.format(
+            java.util.Locale.ROOT,
+            "Live estimate %.0f · coverage %.0f%%",
+            value.overall,
+            value.coverage)
+        : "Listening for enough stable voice input";
+  }
+
+  private void resetScore() {
+    long request = ++scoreRequest;
+    if (score != null) score.cancel();
+    score = null;
+    lastScoreReading = -1;
+    scoreFrameFloor = SystemClock.elapsedRealtime();
+    scoreWaitingForControls = true;
+    if (!scoringEnabled
+        || playbackIdentity == null
+        || currentTarget == null
+        || !currentTarget.available()) return;
+    UUID identity = playbackIdentity;
+    MelodyTarget target = currentTarget;
+    int key = pitch;
+    float rate = tempo;
+    preparation.execute(
+        () -> {
+          if (request != scoreRequest) return;
+          MelodyScoreSession prepared = new MelodyScoreSession(identity, target, key, rate);
+          main.post(
+              () -> {
+                if (request != scoreRequest
+                    || !scoringEnabled
+                    || !identity.equals(playbackIdentity)) {
+                  prepared.cancel();
+                  return;
+                }
+                score = prepared;
+                scoreFrameFloor = SystemClock.elapsedRealtime();
+                publish();
+              });
+        });
+  }
+
+  void observeMicrophone() {
+    if (!foreground || !playing || !scoringEnabled || score == null || playbackIdentity == null)
+      return;
+    if (!player.controlsSettled()) {
+      scoreWaitingForControls = true;
+      scoreFrameFloor = SystemClock.elapsedRealtime();
+      return;
+    }
+    if (scoreWaitingForControls) {
+      scoreWaitingForControls = false;
+      scoreFrameFloor = SystemClock.elapsedRealtime();
+      return;
+    }
+    long sourcePosition = position();
+    if (sourcePosition >= currentDuration) return;
+    MicrophoneInput.Reading reading = microphone.reading();
+    if (reading == null || reading.measuredAt <= lastScoreReading) return;
+    lastScoreReading = reading.measuredAt;
+    // A complete dry frame must belong to this transport/calibration epoch.
+    long earliest = reading.measuredAt - 86 - Math.max(0, scoreLatency);
+    if (earliest < scoreFrameFloor || reading.pitch == null) return;
+    long aligned =
+        MelodyScoreSession.align(
+            reading.measuredAt - 43,
+            SystemClock.elapsedRealtime(),
+            sourcePosition,
+            tempo,
+            scoreLatency);
+    score.observe(
+        playbackIdentity,
+        aligned,
+        reading.pitch.frequencyHz,
+        reading.pitch.confidence,
+        reading.pitch.rms);
+  }
+
+  private void finishScore() {
+    if (!scoringEnabled || score == null || current == null || playbackIdentity == null) return;
+    observeMicrophone();
+    MelodyScoreSession.Completion completed = score.finish(playbackIdentity);
+    if (completed != null)
+      lastScore =
+          new CompletedScore(completed.playbackId, current.title, singer, completed.estimate);
+  }
+
   void startMicrophone() {
     if (!foreground
         || context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
@@ -369,6 +510,8 @@ final class SessionController {
   }
 
   void hostVisible(boolean visible) {
+    scoreWaitingForControls = true;
+    scoreFrameFloor = SystemClock.elapsedRealtime();
     foreground = visible;
     if (!visible) {
       monitor.stop();
@@ -598,6 +741,7 @@ final class SessionController {
                 entry.song.fileName.endsWith(".mid")
                     ? MidiLyrics.decode(java.nio.file.Files.readAllBytes(file.toPath()))
                     : null;
+            MelodyTarget melody = MelodyTarget.extract(midi);
             File bank = selectedBank;
             List<MidiLyrics.Cue> cues = midi == null ? Collections.emptyList() : midi.cues;
             main.post(
@@ -636,6 +780,8 @@ final class SessionController {
 
                         public void started(PlaybackBackend candidate) {
                           if (player == candidate) {
+                            scoreWaitingForControls = true;
+                            scoreFrameFloor = SystemClock.elapsedRealtime();
                             playing = true;
                             publish();
                             return;
@@ -656,6 +802,10 @@ final class SessionController {
                           pending = null;
                           queue.remove(entry.id);
                           current = entry.song;
+                          playbackIdentity = entry.id;
+                          currentTarget = melody;
+                          currentDuration = midi == null ? 0 : midi.durationMilliseconds;
+                          resetScore();
                           singer = entry.singer;
                           lyrics = cues;
                           playing = true;
@@ -667,6 +817,7 @@ final class SessionController {
 
                         public void completed(PlaybackBackend completed) {
                           if (player != completed) return;
+                          finishScore();
                           played.add(current);
                           if (played.size() > 10000) played.remove(0);
                           releaseCurrent();
@@ -729,9 +880,12 @@ final class SessionController {
 
   void controls(float volume, float tempo, int pitch) {
     if (!Float.isFinite(volume) || !Float.isFinite(tempo)) return;
+    float oldTempo = this.tempo;
+    int oldPitch = this.pitch;
     this.volume = Math.min(1, Math.max(0, volume));
     this.tempo = Math.min(2, Math.max(0.5f, tempo));
     this.pitch = Math.min(12, Math.max(-12, pitch));
+    if (oldTempo != this.tempo || oldPitch != this.pitch) resetScore();
     try {
       if (player != null) player.controls(this.volume, this.tempo, this.pitch);
     } catch (Exception e) {
@@ -767,6 +921,8 @@ final class SessionController {
   }
 
   void pause() {
+    scoreWaitingForControls = true;
+    scoreFrameFloor = SystemClock.elapsedRealtime();
     if (loading || pending != null) {
       ++generation; // Also retire work still parsing on IO, before a player exists.
       if (pending != null) pending.release();
@@ -799,6 +955,14 @@ final class SessionController {
   }
 
   private void releaseCurrent() {
+    ++scoreRequest;
+    if (score != null) score.cancel();
+    score = null;
+    playbackIdentity = null;
+    currentTarget = null;
+    currentDuration = 0;
+    lastScoreReading = -1;
+
     if (player != null) {
       player.release();
       player = null;

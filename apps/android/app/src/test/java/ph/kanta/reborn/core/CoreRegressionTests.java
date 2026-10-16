@@ -201,9 +201,325 @@ public final class CoreRegressionTests {
     }
   }
 
+  private static final class MidiFixture {
+    final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+
+    void vlq(int value) {
+      int buffer = value & 127;
+      while ((value >>>= 7) > 0) buffer = (buffer << 8) | 128 | (value & 127);
+      for (; ; ) {
+        bytes.write(buffer & 255);
+        if ((buffer & 128) == 0) break;
+        buffer >>>= 8;
+      }
+    }
+
+    MidiFixture event(int delta, int... event) {
+      vlq(delta);
+      for (int value : event) bytes.write(value);
+      return this;
+    }
+
+    MidiFixture text(int kind, String text) {
+      byte[] value = text.getBytes(StandardCharsets.UTF_8);
+      event(0, 255, kind);
+      vlq(value.length);
+      bytes.write(value, 0, value.length);
+      return this;
+    }
+
+    byte[] end() {
+      return event(0, 255, 47, 0).bytes.toByteArray();
+    }
+  }
+
+  private static MidiLyrics.Document midiTracks(byte[]... tracks) throws IOException {
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    DataOutputStream out = new DataOutputStream(bytes);
+    out.writeInt(0x4d546864);
+    out.writeInt(6);
+    out.writeShort(tracks.length == 1 ? 0 : 1);
+    out.writeShort(tracks.length);
+    out.writeShort(480);
+    for (byte[] track : tracks) {
+      out.writeInt(0x4d54726b);
+      out.writeInt(track.length);
+      out.write(track);
+    }
+    return MidiLyrics.decode(bytes.toByteArray());
+  }
+
+  private static MelodyTarget flatTarget(int ticks) throws IOException {
+    return MelodyTarget.extract(
+        midiTracks(
+            new MidiFixture()
+                .text(3, "Melody")
+                .event(0, 144, 69, 100)
+                .event(ticks, 128, 69, 0)
+                .end()));
+  }
+
+  private static void scoringChecks(String starter) throws Exception {
+    for (String name : new String[] {"morning-light", "sing-together", "starlight-echo"}) {
+      MidiLyrics.Document document =
+          MidiLyrics.decode(Files.readAllBytes(Paths.get(starter, name + ".kar")));
+      MelodyTarget target = MelodyTarget.extract(document);
+      check(
+          target.available()
+              && target.windows.size() == 16
+              && target.track == 0
+              && target.channel == 0,
+          "Original starter melody evidence lost: " + name);
+      check(
+          document.tracks.get(0).hasLyrics && !document.tracks.get(0).name.isEmpty(),
+          "MIDI track identity/lyric evidence lost: " + name);
+    }
+    check(!MelodyTarget.extract(null).available(), "Audio file received invented target");
+    byte[] named =
+        new MidiFixture()
+            .text(3, "GUIDE-VOCAL")
+            .event(0, 144, 69, 100)
+            .event(480, 128, 69, 0)
+            .end();
+    MelodyTarget namedTarget = MelodyTarget.extract(midiTracks(named));
+    check(
+        namedTarget.available() && namedTarget.windows.get(0).end == 500,
+        "Explicit melody name/timing failed");
+    check(
+        !MelodyTarget.extract(
+                midiTracks(new MidiFixture().event(0, 144, 90, 100).event(480, 128, 90, 0).end()))
+            .available(),
+        "Highest note guessed as melody");
+    check(
+        !MelodyTarget.extract(
+                midiTracks(
+                    named,
+                    new MidiFixture()
+                        .text(3, "Vocals")
+                        .event(0, 145, 67, 100)
+                        .event(480, 129, 67, 0)
+                        .end()))
+            .available(),
+        "Ambiguous melody accepted");
+    check(
+        !MelodyTarget.extract(
+                midiTracks(
+                    new MidiFixture()
+                        .text(3, "Melody")
+                        .event(0, 153, 60, 100)
+                        .event(480, 137, 60, 0)
+                        .end()))
+            .available(),
+        "Drum channel accepted as melody");
+    check(
+        !MelodyTarget.extract(
+                midiTracks(
+                    new MidiFixture()
+                        .text(3, "Melody")
+                        .event(0, 144, 60, 100)
+                        .event(240, 144, 64, 100)
+                        .event(240, 128, 60, 0)
+                        .event(0, 128, 64, 0)
+                        .end()))
+            .available(),
+        "Polyphonic target accepted");
+    check(
+        !MelodyTarget.extract(
+                midiTracks(
+                    new MidiFixture()
+                        .text(3, "Melody")
+                        .event(0, 144, 60, 100)
+                        .event(480, 128, 61, 0)
+                        .end()))
+            .available(),
+        "Unmatched note-off accepted");
+    check(
+        !MelodyTarget.extract(
+                midiTracks(new MidiFixture().text(3, "Melody").event(0, 144, 60, 100).end()))
+            .available(),
+        "Unclosed melody note accepted");
+    check(
+        !MelodyTarget.extract(
+                midiTracks(
+                    new MidiFixture()
+                        .text(3, "Melody")
+                        .event(0, 144, 60, 100)
+                        .event(0, 128, 60, 0)
+                        .end()))
+            .available(),
+        "Zero-duration melody accepted");
+    check(
+        !MelodyTarget.extract(midiTracks(named, new MidiFixture().event(0, 224, 1, 64).end()))
+            .available(),
+        "Cross-track instrument pitch bend ignored");
+    check(
+        MelodyTarget.extract(
+                midiTracks(
+                    new MidiFixture()
+                        .text(4, "voice")
+                        .event(0, 144, 69, 100)
+                        .event(480, 144, 69, 0)
+                        .end()))
+            .available(),
+        "Instrument-name/zero-velocity-off evidence failed");
+    check(
+        !MelodyTarget.extract(
+                midiTracks(
+                    new MidiFixture()
+                        .text(5, "@metadata")
+                        .event(0, 144, 60, 100)
+                        .event(480, 128, 60, 0)
+                        .end()))
+            .available(),
+        "Metadata mistaken for lyric evidence");
+    AudibleControlFence fence = new AudibleControlFence();
+    check(fence.settled(), "Unchanged audio controls were unstable");
+    long firstControl = fence.request();
+    fence.rendered(firstControl, 100);
+    fence.heard(99);
+    check(!fence.settled(), "Render-ahead control treated as audible");
+    fence.heard(100);
+    check(fence.settled(), "Audible frame fence never acknowledged");
+    long newerControl = fence.request();
+    fence.heard(1000);
+    check(!fence.settled(), "Old acknowledgement settled a newer control");
+    fence.rendered(newerControl, 2000);
+    fence.rendered(firstControl, 1);
+    fence.heard(1999);
+    check(!fence.settled(), "Stale rendered control replaced current fence");
+    fence.heard(2000);
+    check(fence.settled(), "Latest audible control remained unstable");
+    boolean badFence = false;
+    try {
+      fence.rendered(newerControl + 1, 3000);
+    } catch (IllegalArgumentException expected) {
+      badFence = true;
+    }
+    check(badFence, "Unknown control acknowledgement accepted");
+    MelodyTarget adjacent =
+        MelodyTarget.extract(
+            midiTracks(
+                new MidiFixture()
+                    .text(3, "Melody")
+                    .event(0, 144, 60, 100)
+                    .event(480, 128, 60, 0)
+                    .event(0, 144, 62, 100)
+                    .event(480, 128, 62, 0)
+                    .end()));
+    UUID adjacentId = UUID.randomUUID();
+    MelodyScoreSession boundary = new MelodyScoreSession(adjacentId, adjacent, 0, 1);
+    boundary.observe(adjacentId, 500, 440 * Math.pow(2, (62 - 69) / 12.0), .95, .1);
+    check(
+        boundary.estimate().matchedSlots == 1 && boundary.estimate().pitchAccuracy > 99.99,
+        "Adjacent half-open notes counted a boundary twice or used the preceding pitch");
+    MelodyTarget target = flatTarget(3840);
+    UUID id = UUID.randomUUID();
+    MelodyScoreSession perfect = new MelodyScoreSession(id, target, 0, 1);
+    for (int i = 0; i < 20; i++) perfect.observe(id, i * 200, 440, .95, .1);
+    MelodyScoreSession.Estimate estimate = perfect.estimate();
+    check(
+        estimate.reportable
+            && estimate.matchedSlots == 20
+            && Math.abs(estimate.overall - 100) < .0001,
+        "Complete on-target score failed");
+    check(perfect.finish(UUID.randomUUID()) == null, "Foreign completion accepted");
+    check(
+        perfect.finish(id) != null && perfect.finish(id) == null,
+        "Completion was not exactly once");
+    check(!perfect.observe(id, 3999, 440, .99, .1), "Completed score accepted later input");
+    MelodyScoreSession partial = new MelodyScoreSession(id, flatTarget(7680), 0, 1);
+    for (int i = 0; i < 20; i++) partial.observe(id, i * 200, 440, .95, .1);
+    check(
+        Math.abs(partial.estimate().coverage - 50) < .0001,
+        "Unheard ending removed from coverage denominator");
+    MelodyScoreSession burst = new MelodyScoreSession(id, target, 0, 1);
+    for (int i = 0; i < 100; i++) burst.observe(id, 50, 440, .9, .1);
+    check(
+        burst.estimate().matchedSlots == 1 && !burst.estimate().reportable,
+        "Burst impersonated sustained singing");
+    check(
+        burst.observe(id, 50, 466.1638, .99, .1) && burst.estimate().pitchAccuracy < .01,
+        "Higher-confidence slot replacement duplicated or favored pitch");
+    check(!burst.observe(id, 49, 440, 1, .1), "Out-of-order input accepted");
+    check(
+        !burst.observe(UUID.randomUUID(), 200, 440, .95, .1), "Another playback's input accepted");
+    check(!burst.observe(id, Long.MAX_VALUE, 440, .95, .1), "Extreme time poisoned score");
+    check(burst.observe(id, 200, 440, .95, .1), "Rejected extreme time changed valid ordering");
+    check(!burst.observe(id, 4000, 440, .95, .1), "Exclusive target ending counted");
+    check(
+        !new MelodyScoreSession(id, target, 0, 1).estimate().reportable,
+        "Silent score was reportable");
+    for (double invalid : new double[] {Double.NaN, Double.POSITIVE_INFINITY, -1, 0}) {
+      MelodyScoreSession session = new MelodyScoreSession(id, target, 0, 1);
+      check(
+          !session.observe(id, 100, invalid, .95, .1) && !session.estimate().reportable,
+          "Invalid frequency accepted");
+    }
+    MelodyScoreSession invalid = new MelodyScoreSession(id, target, 0, 1);
+    check(!invalid.observe(id, 100, 440, Double.NaN, .1), "Nonfinite confidence accepted");
+    check(!invalid.observe(id, 100, 440, .7, .1), "Unreliable confidence accepted");
+    check(!invalid.observe(id, 100, 440, .95, .001), "Silent input energy accepted");
+    check(!invalid.observe(id, 100, 440, .95, Double.NaN), "Nonfinite energy accepted");
+    invalid.cancel();
+    check(
+        invalid.finish(id) == null && !invalid.observe(id, 100, 440, .95, .1),
+        "Cancelled playback produced a score");
+    MelodyScoreSession transposed = new MelodyScoreSession(id, target, 2, 1);
+    for (int i = 0; i < 20; i++)
+      transposed.observe(id, i * 200, 440 * Math.pow(2, 2.0 / 12), .95, .1);
+    check(Math.abs(transposed.estimate().overall - 100) < .0001, "Transposed target ignored key");
+    MelodyScoreSession faster = new MelodyScoreSession(id, flatTarget(7680), 0, 2);
+    for (int i = 0; i < 20; i++) faster.observe(id, i * 400, 440, .95, .1);
+    check(
+        Math.abs(faster.estimate().overall - 100) < .0001,
+        "Observation coverage ignored source tempo");
+    check(MelodyScoreSession.align(1000, 1100, 2000, 1, 50) == 1850, "Input-delay alignment");
+    check(MelodyScoreSession.align(1000, 1100, 2000, 2, 50) == 1700, "Tempo alignment");
+    check(
+        MelodyScoreSession.align(1000, 1100, 2000, 1, -200) == 2100,
+        "Negative calibration alignment");
+    check(
+        MelodyScoreSession.align(1000, Long.MAX_VALUE, 2000, 1, 0) == -1,
+        "Extreme capture age overflowed");
+    check(MelodyScoreSession.align(1100, 1000, 2000, 1, 0) == -1, "Future observation accepted");
+    check(
+        MelodyScoreSession.align(1000, 1100, 2000, Double.NaN, 0) == -1,
+        "Nonfinite clock accepted");
+    MelodyScoreSession concurrent = new MelodyScoreSession(id, target, 0, 1);
+    java.util.concurrent.atomic.AtomicInteger completions =
+        new java.util.concurrent.atomic.AtomicInteger();
+    java.util.concurrent.CountDownLatch ready = new java.util.concurrent.CountDownLatch(1);
+    ArrayList<Thread> threads = new ArrayList<>();
+    for (int i = 0; i < 12; i++) {
+      Thread thread =
+          new Thread(
+              () -> {
+                try {
+                  ready.await();
+                } catch (InterruptedException e) {
+                  throw new AssertionError(e);
+                }
+                if (concurrent.finish(id) != null) completions.incrementAndGet();
+              });
+      thread.setDaemon(true);
+      threads.add(thread);
+      thread.start();
+    }
+    ready.countDown();
+    long joinDeadline = System.nanoTime() + 3000000000L;
+    boolean finished = true;
+    for (Thread thread : threads) {
+      thread.join(Math.max(1, (joinDeadline - System.nanoTime()) / 1000000));
+      finished &= !thread.isAlive();
+    }
+    check(finished, "Concurrent score completion deadlocked");
+    check(completions.get() == 1, "Concurrent completion emitted more than one result");
+  }
+
   public static void main(String[] args) throws Exception {
     microphonePitchChecks();
     monitorChecks();
+    scoringChecks(args[0]);
     ReservationQueue queue = new ReservationQueue();
     UUID request = UUID.randomUUID();
     ReservationQueue.Entry first = queue.reserve(request, song(), "Ana"),

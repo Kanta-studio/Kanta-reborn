@@ -19,5 +19,9 @@ interface PlaybackBackend {
 
   long position();
 
+  default boolean controlsSettled() {
+    return true;
+  }
+
   void controls(float volume, float tempo, int pitch);
 }

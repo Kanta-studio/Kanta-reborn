@@ -48,24 +48,41 @@ public final class MidiLyrics {
 
   public static final class Message {
     public final long milliseconds;
-    public final int status, a, b;
+    public final int status, a, b, track;
 
-    Message(long ms, int status, int a, int b) {
+    Message(long ms, int status, int a, int b, int track) {
       milliseconds = ms;
       this.status = status;
       this.a = a;
       this.b = b;
+      this.track = track;
+    }
+  }
+
+  public static final class Track {
+    public final int index, noteChannelMask;
+    public final String name, instrumentName;
+    public final boolean hasLyrics;
+
+    Track(int index, int mask, String name, String instrumentName, boolean hasLyrics) {
+      this.index = index;
+      noteChannelMask = mask;
+      this.name = name;
+      this.instrumentName = instrumentName;
+      this.hasLyrics = hasLyrics;
     }
   }
 
   public static final class Document {
     public final List<Cue> cues;
     public final List<Message> messages;
+    public final List<Track> tracks;
     public final long durationMilliseconds;
 
-    Document(List<Cue> cues, List<Message> messages, long duration) {
+    Document(List<Cue> cues, List<Message> messages, List<Track> tracks, long duration) {
       this.cues = Collections.unmodifiableList(cues);
       this.messages = Collections.unmodifiableList(messages);
+      this.tracks = Collections.unmodifiableList(new ArrayList<>(tracks));
       durationMilliseconds = duration;
     }
   }
@@ -74,14 +91,15 @@ public final class MidiLyrics {
     long tick;
     int tempo, type, status, a, b;
     String text;
-    int sequence;
+    int sequence, track;
 
-    Event(long t, int tempo, int type, String text, int seq) {
+    Event(long t, int tempo, int type, String text, int seq, int track) {
       tick = t;
       this.tempo = tempo;
       this.type = type;
       this.text = text;
       sequence = seq;
+      this.track = track;
     }
   }
 
@@ -155,6 +173,7 @@ public final class MidiLyrics {
     r.skip(header - 6);
     ArrayList<Event> events = new ArrayList<>();
     int seq = 0, total = 0;
+    ArrayList<Track> trackMetadata = new ArrayList<>();
     for (int track = 0; track < tracks; track++) {
       if (!r.magic("MTrk")) throw new IOException("Missing MIDI track");
       long length = r.u32();
@@ -162,7 +181,9 @@ public final class MidiLyrics {
       Reader t = new Reader(data, r.p, r.p + (int) length);
       r.skip(length);
       long tick = 0;
-      int running = 0;
+      int running = 0, channelMask = 0;
+      String trackName = "", instrumentName = "";
+      boolean trackLyrics = false;
       while (t.p < t.end) {
         if (++total > 250000) throw new IOException("Too many MIDI events");
         tick += t.vlq();
@@ -182,14 +203,22 @@ public final class MidiLyrics {
             if (n != 3) throw new IOException("Invalid tempo");
             int tempo = (t.u8() << 16) | (t.u8() << 8) | t.u8();
             if (tempo <= 0) throw new IOException("Invalid tempo");
-            events.add(new Event(tick, tempo, type, null, seq++));
+            events.add(new Event(tick, tempo, type, null, seq++, track));
           } else if (type == 1 || type == 5) {
             String text = t.text((int) n);
-            if (!text.startsWith("@") && !text.isEmpty())
-              events.add(new Event(tick, 0, type, text, seq++));
+            if (!text.startsWith("@") && !text.isEmpty()) {
+              events.add(new Event(tick, 0, type, text, seq++, track));
+              if (type == 5 && !text.replace('/', ' ').replace('\\', ' ').trim().isEmpty())
+                trackLyrics = true;
+            }
+          } else if (type == 3 || type == 4) {
+            String name = t.text((int) n).trim();
+            if (name.length() > 256) name = name.substring(0, 256);
+            if (type == 3 && trackName.isEmpty()) trackName = name;
+            if (type == 4 && instrumentName.isEmpty()) instrumentName = name;
           } else t.skip(n);
           if (type == 0x2f) {
-            events.add(new Event(tick, 0, type, null, seq++));
+            events.add(new Event(tick, 0, type, null, seq++, track));
             break;
           }
         } else if (status == 0xf0 || status == 0xf7) {
@@ -200,13 +229,15 @@ public final class MidiLyrics {
           int n = (status & 0xe0) == 0xc0 ? 1 : 2;
           int a = t.u8(), b = n == 2 ? t.u8() : 0;
           if (a > 127 || b > 127) throw new IOException("Invalid MIDI data");
-          Event message = new Event(tick, 0, 0, null, seq++);
+          Event message = new Event(tick, 0, 0, null, seq++, track);
           message.status = status;
           message.a = a;
           message.b = b;
+          if ((status & 0xf0) == 0x90 && b > 0) channelMask |= 1 << (status & 15);
           events.add(message);
         } else throw new IOException("Unsupported MIDI status");
       }
+      trackMetadata.add(new Track(track, channelMask, trackName, instrumentName, trackLyrics));
     }
     events.sort(Comparator.comparingLong((Event e) -> e.tick).thenComparingInt(e -> e.sequence));
     boolean lyrics = events.stream().anyMatch(e -> e.type == 5);
@@ -233,7 +264,7 @@ public final class MidiLyrics {
       last = e.tick;
       if (micros > 6L * 60 * 60 * 1000000) throw new IOException("MIDI exceeds six hours");
       if (e.status != 0) {
-        messages.add(new Message((long) (micros / 1000), e.status, e.a, e.b));
+        messages.add(new Message((long) (micros / 1000), e.status, e.a, e.b, e.track));
         continue;
       }
       if (e.tempo > 0) {
@@ -273,7 +304,7 @@ public final class MidiLyrics {
     }
     if (line.length() > 0 && !line.toString().trim().isEmpty())
       cues.add(new Cue(lineStart, line.toString(), fragments));
-    return new Document(cues, messages, (long) (micros / 1000));
+    return new Document(cues, messages, trackMetadata, (long) (micros / 1000));
   }
 
   public static int activeIndex(List<Cue> cues, long milliseconds) {

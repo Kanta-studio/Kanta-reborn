@@ -32,7 +32,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   private SessionController session;
   private LinearLayout root, body, results;
   private StageSurface stage, fullscreenStage, externalStage;
-  private TextView nowPlaying, microphoneReading, monitorReading;
+  private TextView nowPlaying, microphoneReading, monitorReading, scoreReading;
   private Button playButton, nextButton;
   private final Map<String, Button> navigationButtons = new HashMap<>();
   private Dialog fullscreen;
@@ -53,6 +53,8 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   private final Runnable tick =
       new Runnable() {
         public void run() {
+          session.observeMicrophone();
+          refreshScoreReading();
           refreshMicrophoneReading();
           if (stage != null) stage.refresh();
           if (fullscreenStage != null) fullscreenStage.refresh();
@@ -290,6 +292,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   private void renderPanel() {
     microphoneReading = null;
     monitorReading = null;
+    scoreReading = null;
     body.addView(text(session.message, 13, CYAN));
     switch (tab) {
       case "My Set":
@@ -321,7 +324,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     body.addView(
         text(
             "Effects apply only to voice output. Pitch estimates use the original input. No singing"
-                + " is saved or uploaded. Song scores and pitch correction are not available yet.",
+                + " is saved or uploaded. Pitch correction is not available yet.",
             12,
             Color.WHITE));
 
@@ -376,6 +379,70 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
           }
         });
     body.addView(voiceGain);
+    Button scoring =
+        button(
+            session.scoringEnabled ? "Turn off song scoring" : "Turn on song scoring",
+            () -> session.setScoring(!session.scoringEnabled));
+    scoring.setTag("kanta.score.toggle");
+    body.addView(scoring);
+    scoreReading = text("", 14, CYAN);
+    body.addView(scoreReading);
+    refreshScoreReading();
+    body.addView(
+        text(
+            "Optional pitch-following estimate for a single identified MIDI melody. Backing music"
+                + " can affect it. Silence or unreliable input does not produce a score. Check"
+                + " timing on your device; changing key, pace or timing clears the current"
+                + " estimate.",
+            12,
+            Color.WHITE));
+    TextView timing = text("Score timing offset: " + session.scoreLatency + " ms", 13, Color.WHITE);
+    body.addView(timing);
+    SeekBar scoreTiming = new SeekBar(this);
+    scoreTiming.setContentDescription("Score timing offset, minus 500 to 1500 milliseconds");
+    scoreTiming.setMax(200);
+    scoreTiming.setProgress((session.scoreLatency + 500) / 10);
+    scoreTiming.setOnSeekBarChangeListener(
+        new SeekBar.OnSeekBarChangeListener() {
+          public void onStartTrackingTouch(SeekBar bar) {}
+
+          public void onStopTrackingTouch(SeekBar bar) {
+            session.scoreLatency(bar.getProgress() * 10 - 500);
+          }
+
+          public void onProgressChanged(SeekBar bar, int value, boolean user) {
+            if (user) timing.setText("Score timing offset: " + (value * 10 - 500) + " ms");
+          }
+        });
+    body.addView(scoreTiming);
+  }
+
+  private void refreshScoreReading() {
+    if (scoreReading != null) scoreReading.setText(session.scoreStatus());
+  }
+
+  private void lastScore() {
+    SessionController.CompletedScore completed = session.lastScore;
+    if (completed == null || !session.scoringEnabled) return;
+    String result =
+        completed.estimate.reportable
+            ? String.format(
+                java.util.Locale.ROOT,
+                "Estimate %.0f/100 · coverage %.0f%%",
+                completed.estimate.overall,
+                completed.estimate.coverage)
+            : "Not enough stable voice input for a score";
+    TextView label =
+        text(
+            "Last song · "
+                + completed.title
+                + (completed.singer.isEmpty() ? "" : " · " + completed.singer)
+                + "\n"
+                + result,
+            15,
+            GOLD);
+    label.setTag("kanta.score.last");
+    body.addView(label);
   }
 
   private void control() {
@@ -390,6 +457,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
             });
     voiceSettings.setTag("kanta.voice.settings");
     body.addView(voiceSettings);
+    lastScore();
     if (voiceExpanded) voiceControls();
     body.addView(text("Sound & pace", 18, GOLD));
     LinearLayout tuning = row();
@@ -1233,9 +1301,10 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
                 + " fullscreen.\n\n"
                 + "4. Save playlists or the songs you finished in My Set.\n\n"
                 + "SoundFonts can be added in My Set. Loop has party sounds and between-song music."
-                + " This is a reconstruction preview; microphone effects and"
-                + " companion pairing are still being restored. They are not enabled in this"
-                + " version. Use music you have permission to use.")
+                + " Voice settings in Control offer microphone input, experimental wired/USB"
+                + " effects and optional MIDI pitch-following scores. Check input timing on your"
+                + " device. Pitch correction and companion pairing are still being restored. Use"
+                + " music you have permission to use.")
         .setPositiveButton("Done", null)
         .show();
   }
