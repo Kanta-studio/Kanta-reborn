@@ -2,7 +2,7 @@
 
 Separate native Android and iPhone/iPad karaoke applications, together with their restored public website.
 
-**Testing reconstruction:** Android 0.5.0 includes private photo/video stages and opt-in front-camera preview. iOS combines recovered original modules with reconstructed infrastructure. Physical-device quality and production app signing remain incomplete.
+**Testing reconstruction:** Android 0.6.0 includes private photo/video stages, opt-in front-camera preview and optional dry microphone input level/pitch. iOS combines recovered original modules with reconstructed infrastructure. Physical-device quality and production app signing remain incomplete.
 
 | Location | Purpose |
 | --- | --- |
@@ -15,8 +15,8 @@ Separate native Android and iPhone/iPad karaoke applications, together with thei
 
 ## Verified downloads
 
-- [Android 0.5.0 bundle](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38837064251/artifacts/12019382511): debug APK, checksum and build record.
-- [iPhone/iPad unsigned bundle](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38837064251/artifacts/12019507393): requires separate trusted personal signing; iCloud Save unavailable.
+- [Android 0.6.0 bundle](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38840276706/artifacts/12021485187): debug APK, checksum and build record.
+- [iPhone/iPad unsigned bundle](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38840276706/artifacts/12020562170): requires separate trusted personal signing; iCloud Save unavailable.
 - [Public website](https://kanta-public.vercel.app): platform availability, instructions and private browser Songbook.
 
 GitHub sign-in is required. Bundles last 30 days from October 16, 2026 and preserve original accepted app bytes. Separate CI runs can use different Android debug certificates; uninstalling to change builds removes private app state. Keep original media and explicit exports backed up. These are not store releases.
@@ -25,7 +25,7 @@ GitHub sign-in is required. Bundles last 30 days from October 16, 2026 and prese
 
 | Scope | Result |
 | --- | --- |
-| Android [38826875086](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38826875086) | 201 domain assertions, 60 API 35 emulator checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and merged-APK permission/notices gate |
+| Android [38839639544](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38839639544) | 233 domain assertions, 78 API 35 emulator checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and merged-APK permission/notices gate |
 | iOS package [38802025283](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38802025283) | 158 Swift package tests and unsigned simulator compilation |
 | iPhone/iPad [38806377805](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38806377805) | All three walkthroughs on each simulator, app/UI compilation and unsigned iPhoneOS archive/IPA |
 | Download packaging [38837064251](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38837064251) | Five contracts and original artifact/source/checksum verification |

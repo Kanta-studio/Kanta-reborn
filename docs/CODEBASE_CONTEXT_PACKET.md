@@ -4,13 +4,13 @@ Current snapshot: merged Android stage/party and iOS runtime work, verified down
 
 ## Current accepted state
 
-Android 0.5.0 source `4da765035dd3cbeec6e69f38581138225b706e6d` passed run 38826875086 with 201 domain assertions, 60 actual API 35 checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and the permission/runtime-notice gate. Private photo/video storage, stable stage/navigation and opt-in lifecycle-bound front-camera preview are merged. The generated runtime notices preserve dependency identities and exact embedded license text.
+Android 0.6.0 source `c961cb3bbe76ef77bea8052529cb93a552d15a53` passed run 38839639544 with 233 domain assertions, 78 actual API 35 checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and the permission/runtime-notice gate. Private photo/video storage, stable stage/navigation, opt-in lifecycle-bound front-camera preview and dry microphone input level/pitch are merged. The generated runtime notices preserve dependency identities and exact embedded license text.
 
 iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed all three UI walkthroughs on both iPhone and iPad plus unsigned device packaging in run 38806377805; its package source passed 158 tests. No Apple source change is included in the Android follow-ups.
 
-Packaging run 38837064251 passed five contract tests and original app identity/checksum verification. Android and unsigned iOS bundles last 30 days and require GitHub sign-in. The static website remains under apps/web; its private reader is byte-identical to evidence and CSP blocks network connections.
+Packaging run 38840276706 passed five contract tests and original app identity/checksum verification. Android and unsigned iOS bundles last 30 days and require GitHub sign-in. The static website remains under apps/web; its private reader is byte-identical to evidence and CSP blocks network connections.
 
-Control panels still rebuild on controller publication and search remains in-memory over normalized snapshots. These are source-review risks, not measured latency claims. Camera preview has no capture/analysis/recording output. Android microphone processing, secure companion and official YouTube are unfinished. Physical quality/latency, external displays and signing remain open.
+Control panels still rebuild on controller publication and search remains in-memory over normalized snapshots. These are source-review risks, not measured latency claims. Camera preview has no capture/analysis/recording output. Android monitored effects/calibrated scoring, secure companion and official YouTube are unfinished. Physical quality/latency, external displays and signing remain open.
 
 ## Android stack
 
