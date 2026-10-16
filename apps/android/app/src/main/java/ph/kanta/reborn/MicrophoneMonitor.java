@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import ph.kanta.reborn.core.ChromaticPitchCorrector;
 import ph.kanta.reborn.core.MonitorBuffer;
 import ph.kanta.reborn.core.MonitorRouteGuard;
 import ph.kanta.reborn.core.VocalMonitorEffects;
@@ -30,6 +31,7 @@ final class MicrophoneMonitor {
   private final Handler main = new Handler(Looper.getMainLooper());
   private final Consumer<String> notice;
   private final Runnable changed;
+  private final java.util.function.Supplier<MicrophoneInput.Reading> readings;
   private final ExecutorService worker =
       new ThreadPoolExecutor(
           1,
@@ -46,7 +48,8 @@ final class MicrophoneMonitor {
     final AudioDeviceInfo device;
     final MonitorBuffer buffer = new MonitorBuffer();
     final MonitorRouteGuard guard;
-    volatile boolean cancelled, audible;
+    volatile boolean cancelled, audible, ready;
+    volatile CorrectionChoice correction = CorrectionChoice.OFF;
     AudioTrack track;
 
     Run(AudioDeviceInfo device) {
@@ -55,10 +58,26 @@ final class MicrophoneMonitor {
     }
   }
 
-  MicrophoneMonitor(Context context, Runnable changed, Consumer<String> notice) {
+  private static final class CorrectionChoice {
+    static final CorrectionChoice OFF = new CorrectionChoice(false, 0);
+    final boolean enabled;
+    final long epoch;
+
+    CorrectionChoice(boolean enabled, long epoch) {
+      this.enabled = enabled;
+      this.epoch = epoch;
+    }
+  }
+
+  MicrophoneMonitor(
+      Context context,
+      Runnable changed,
+      Consumer<String> notice,
+      java.util.function.Supplier<MicrophoneInput.Reading> readings) {
     audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
     this.changed = changed;
     this.notice = notice;
+    this.readings = readings;
   }
 
   static boolean supported(AudioDeviceInfo device) {
@@ -93,6 +112,30 @@ final class MicrophoneMonitor {
 
   boolean resourcesReleased() {
     return active == null && outputOwner == null;
+  }
+
+  boolean correctionAvailable() {
+    Run run = active;
+    return current(run) && run.ready;
+  }
+
+  boolean correctionEnabled() {
+    Run run = active;
+    return current(run) && run.correction.enabled;
+  }
+
+  boolean correction(boolean enabled) {
+    Run run = active;
+    if (run == null) return false;
+    synchronized (run) {
+      if (!current(run) || enabled && !run.ready) return false;
+      run.correction =
+          enabled
+              ? new CorrectionChoice(true, SystemClock.elapsedRealtime())
+              : CorrectionChoice.OFF;
+    }
+    changed.run();
+    return true;
   }
 
   float gain() {
@@ -142,6 +185,8 @@ final class MicrophoneMonitor {
   private void retire(Run run) {
     run.cancelled = true;
     run.audible = false;
+    run.ready = false;
+    run.correction = CorrectionChoice.OFF;
     run.guard.close();
     synchronized (run) {
       if (run.track != null) {
@@ -184,6 +229,8 @@ final class MicrophoneMonitor {
     outputOwner = run;
     float[] block = new float[480];
     VocalMonitorEffects effects = new VocalMonitorEffects();
+    ChromaticPitchCorrector corrector = new ChromaticPitchCorrector();
+    CorrectionChoice priorChoice = CorrectionChoice.OFF;
     AudioDeviceCallback deviceChanges =
         new AudioDeviceCallback() {
           @Override
@@ -268,6 +315,12 @@ final class MicrophoneMonitor {
       }
       if (!ready || !current(run)) return;
       run.buffer.clear();
+      run.ready = true;
+      main.post(
+          () -> {
+            if (current(run)) changed.run();
+          });
+      long correctionFloor = SystemClock.elapsedRealtime();
       int offset = block.length;
       long lastWrite = SystemClock.elapsedRealtime(), discontinuity = run.buffer.discontinuities();
       boolean hasInput = false;
@@ -282,8 +335,29 @@ final class MicrophoneMonitor {
           if (offset == block.length) {
             hasInput = run.buffer.drain(block);
             long currentDiscontinuity = run.buffer.discontinuities();
-            if (!hasInput || currentDiscontinuity != discontinuity) effects.reset();
+            CorrectionChoice choice = run.correction;
+            if (!hasInput || currentDiscontinuity != discontinuity || choice != priorChoice) {
+              effects.reset();
+              corrector.reset();
+              correctionFloor = SystemClock.elapsedRealtime();
+            }
             discontinuity = currentDiscontinuity;
+            priorChoice = choice;
+            if (choice.enabled) {
+              MicrophoneInput.Reading reading = readings.get();
+              long now = SystemClock.elapsedRealtime();
+              if (reading != null
+                  && reading.pitch != null
+                  && reading.measuredAt - 86 >= Math.max(choice.epoch, correctionFloor))
+                corrector.update(
+                    reading.pitch.frequencyHz,
+                    reading.pitch.confidence,
+                    reading.pitch.rms,
+                    reading.measuredAt,
+                    now);
+              else corrector.update(0, 0, 0, 0, now);
+              corrector.process(block);
+            }
             effects.mode(mode);
             effects.process(block);
             offset = 0;
@@ -330,6 +404,7 @@ final class MicrophoneMonitor {
         }
       }
       effects.reset();
+      corrector.reset();
       java.util.Arrays.fill(block, 0);
       outputOwner = null;
     }
