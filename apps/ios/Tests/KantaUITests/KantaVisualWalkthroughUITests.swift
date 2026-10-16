@@ -112,14 +112,11 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         address.tap()
         address.typeText("8.8.8.8")
         code.tap()
-        code.typeText("000102030405060708090a0b0c0d0e0f\n")
-        if !connect.isHittable { app.swipeUp() }
-        waitForRendered(connect, in: app)
-        connect.tap()
-        XCTAssertTrue(app.staticTexts["Enter the host's private IPv4 address and full 32-character code."]
+        code.typeText("000102030405060708090a0b0c0d0e0f")
+        XCTAssertFalse(connect.isEnabled, "Public IPv4 addresses must be rejected before networking")
+        XCTAssertTrue(app.staticTexts["Enter the Android host's private IPv4 address and full 32-character hexadecimal pairing code."]
             .waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Disconnect"].exists)
-        XCTAssertFalse(connect.isEnabled)
         capture("companion-invalid-address-rejected", app)
     }
 
