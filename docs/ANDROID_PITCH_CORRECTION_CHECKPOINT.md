@@ -15,3 +15,8 @@ Fresh Java 17 compilation and all 364 domain assertions passed in this session. 
 The saved earlier API 36 production/instrumentation compilation log reports no errors and 14 compatibility/resource-analysis warnings; this is separate from a fresh hosted APK build and lint. Six added emulator assertions cover default-off, the disabled control before verified monitoring, missing/speaker-route rejection, preserved dry capture and lifecycle non-restart. A clean emulator has no supported physical output, so these do not prove corrected wired/USB sound.
 
 Changed-head hosted build, lint, native sanitizer, permission/notices and complete emulator acceptance are pending. Public downloads remain on accepted Android 0.8 until successful validation and checksum-verified packaging. Secure companion control and official YouTube playback remain queued.
+
+
+## Hosted Android 0.9 acceptance
+
+Source `4f48e051dcd815e878205eda43bf9331591e279d` passed run [38881735518](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38881735518): all 364 domain assertions and 116 actual API 35 emulator checks, APK/instrumentation assembly, lint, native ASan/UBSan checks, browser interoperability and merged permission/offline-notices checks. PR #25 merged as `2851a0b81f43698a99b036b8dd28aa25c0d495eb`. Existing assertions remain enabled. The accepted output is artifact `12038226827`; checksum-verified packaging must preserve these APK bytes before changing public downloads. Physical corrected voice quality, artifacts, feedback and total latency remain unverified. Secure companion and official YouTube remain queued. This entry supersedes candidate hosted-pending statements above.
