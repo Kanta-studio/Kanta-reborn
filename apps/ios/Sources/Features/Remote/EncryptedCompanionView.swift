@@ -91,6 +91,7 @@ struct EncryptedCompanionView: View {
                     .font(.footnote)
             }
         }
+        .buttonStyle(.bordered)
         .navigationTitle("Encrypted companion")
         .scrollDismissesKeyboard(.interactively)
         .onChange(of: scenePhase) {

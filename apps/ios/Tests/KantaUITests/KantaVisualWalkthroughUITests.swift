@@ -109,6 +109,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Enter the host's private IPv4 address and full 32-character code."]
             .waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["Disconnect"].exists)
+        XCTAssertFalse(connect.isEnabled)
         capture("companion-invalid-address-rejected", app)
     }
 
