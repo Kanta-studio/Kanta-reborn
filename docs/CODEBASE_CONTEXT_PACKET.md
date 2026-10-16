@@ -137,3 +137,10 @@ Accepted Android 0.8 source `57dc0611cb54435802a4bd7d226e00983dd3c8f6` passed ru
 
 
 Android 0.8 packaging run 38846121392 preserves the accepted 26,956,746-byte APK and unchanged unsigned IPA. Website source 941e9500 passed static run 38846304650 and READY preview dpl_6jPfDy2dTb6bN6h75zsJefxGoL3z. All 15 responses match source with CSP; browser download/guide navigation was inspected. See WEBSITE_08_CHECKPOINT.md. Production publication follows this preview; physical acceptance, pitch correction, secure companion and official YouTube remain open.
+
+
+## Production 0.8 website verified
+
+Deployment `dpl_HoVLX9W368oH6fgath4pbH6LHSDb` is READY on https://kanta-public.vercel.app, source `75ddb7b767bcbc2484c4732c7d13a37ac3fc620e`. All ten pages and five public assets returned 200, matched validated source byte-for-byte and retained CSP. Actual browser inspection confirmed Android 0.8 source 57dc0611, the accepted 328/110 counts and download bundle 12022594247 from packaging run 38846121392. Both platform pages use current accepted packages; iOS bytes remain unchanged and unsigned. The original private reader/styles and notices are unchanged.
+
+Scoring implementation, accepted packaging and website publication are complete. Remaining software work is Android pitch correction, secure companion networking and official visible YouTube playback under YOUTUBE_PLAYBACK_PLAN.md. Physical scoring calibration, singer/backing-music separation, wired/USB audio quality/feedback/latency, camera/external-display acceptance and production signing remain open. This checkpoint changes Markdown only after the verified deployment; it introduces no new app/site runtime, workflow or dependency change.
