@@ -75,6 +75,7 @@ public final class RuntimeChecks extends Instrumentation {
       check(
           state(() -> contains(activity.getWindow().getDecorView(), "KANTA")),
           "Native activity did not render");
+      companionChecks();
       Song song = session.songs.get(0);
       LibraryRepository isolated =
           new LibraryRepository(getTargetContext().createDeviceProtectedStorageContext());
@@ -691,6 +692,59 @@ public final class RuntimeChecks extends Instrumentation {
       result.putString("stream", android.util.Log.getStackTraceString(failure));
       finish(Activity.RESULT_CANCELED, result);
     }
+  }
+
+  private void companionChecks() throws Exception {
+    check(!state(() -> session.companion.enabled()), "Companion enabled without opt-in");
+    java.util.List<String> addresses = CompanionControl.addresses();
+    check(!addresses.isEmpty(), "Emulator has no private network interface");
+    String address = addresses.get(0);
+    runOnMainSync(() -> session.companion.startHost(address));
+    await(() -> !session.companion.pairing.isEmpty(), "Companion host did not bind");
+    AtomicReference<String> code = new AtomicReference<>();
+    runOnMainSync(() -> code.set(session.companion.pairing));
+    try (java.net.Socket socket = new java.net.Socket(address, CompanionControl.PORT)) {
+      socket.setSoTimeout(5000);
+      try (CompanionProtocol.Channel channel = CompanionProtocol.handshake(
+          socket.getInputStream(), socket.getOutputStream(), code.get(), false)) {
+        await(() -> session.companion.pairing.isEmpty(), "Connected host retained pairing code");
+        CompanionProtocol.Request search = new CompanionProtocol.Request(java.util.UUID.randomUUID(), "search", "Morning", "");
+        org.json.JSONObject found = companionRequest(channel, search);
+        check(found.getJSONArray("songs").length() == 1, "Encrypted host search failed");
+        check(!found.toString().contains("fileName"), "Companion exposed private media path");
+        String songId = found.getJSONArray("songs").getJSONObject(0).getString("id");
+        CompanionProtocol.Request reserve = new CompanionProtocol.Request(java.util.UUID.randomUUID(), "reserve", songId, "Companion test");
+        org.json.JSONObject reserved = companionRequest(channel, reserve);
+        check(reserved.getJSONArray("queue").length() == 1, "Companion did not reserve in authoritative FIFO");
+        org.json.JSONObject replayed = companionRequest(channel, reserve);
+        check(replayed.toString().equals(reserved.toString()), "Duplicate command did not return its original reply");
+        check(state(() -> session.queue.snapshot().size() == 1), "Duplicate companion command reserved twice");
+        companionRequest(channel, new CompanionProtocol.Request(java.util.UUID.randomUUID(), "reserve", songId, "Another turn"));
+        check(state(() -> session.queue.snapshot().size() == 2), "Intentional repeated song was suppressed");
+        String first = reserved.getJSONArray("queue").getJSONObject(0).getString("id");
+        org.json.JSONObject remaining = companionRequest(channel, new CompanionProtocol.Request(java.util.UUID.randomUUID(), "cancel", first, ""));
+        check(remaining.getJSONArray("queue").length() == 1, "Companion cancellation affected another turn");
+        companionRequest(channel, new CompanionProtocol.Request(java.util.UUID.randomUUID(), "cancel", remaining.getJSONArray("queue").getJSONObject(0).getString("id"), ""));
+        check(state(() -> session.queue.snapshot().isEmpty()), "Companion cancellation did not reach FIFO");
+        check(!state(() -> session.microphone.enabled() || session.cameraPreviewEnabled || session.scoringEnabled), "Companion activated a sensor or scoring");
+        runOnMainSync(() -> session.hostVisible(false));
+        check(!state(() -> session.companion.enabled()), "Backgrounding did not revoke companion");
+        boolean rejected = false;
+        try { companionRequest(channel, search); } catch (IOException expected) { rejected = true; }
+        check(rejected, "Revoked companion socket remained usable");
+        runOnMainSync(() -> session.hostVisible(true));
+        check(!state(() -> session.companion.enabled()), "Foregrounding restored companion automatically");
+      }
+    }
+    runOnMainSync(() -> session.companion.startHost("0.0.0.0"));
+    check(!state(() -> session.companion.enabled()), "Wildcard companion listener accepted");
+  }
+
+  private org.json.JSONObject companionRequest(CompanionProtocol.Channel channel, CompanionProtocol.Request request) throws Exception {
+    channel.send(request.encode());
+    org.json.JSONObject response = new org.json.JSONObject(new String(channel.receive(), java.nio.charset.StandardCharsets.UTF_8));
+    check(request.id.toString().equals(response.getString("request")), "Companion response identity mismatch");
+    return response;
   }
 
   private void capture(String name) throws IOException {

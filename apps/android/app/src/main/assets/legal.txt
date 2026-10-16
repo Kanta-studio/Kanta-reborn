@@ -72,3 +72,8 @@ Home
 Privacy
 ·
 Support
+
+Optional Android companion control
+Companion control is off by default. Control > Companion control can host or connect to one trusted Android device using an explicitly selected private IPv4 address on your Wi-Fi/Ethernet network. The app declares INTERNET for these local sockets; it has no companion cloud service, discovery broadcast, analytics or media upload. Target SDK 36 does not request a separate local-network runtime permission. Network access denied by the device is reported as a connection failure.
+The full random 32-character code grants song search, first-page queue metadata, singer reservations, cancellation and Play/Pause/Next. Treat it as a private credential. It is never saved by KANTA, expires after five minutes and disappears when one companion connects. Commands and song/singer metadata use authenticated AES-GCM records with per-session, per-direction keys and ordered counters. This experimental protocol has no forward secrecy or independent security audit. It is incompatible with the recovered plaintext iOS remote.
+A session lasts at most ten minutes or 512 distinct commands, with bounded idle time. Stop disconnects and revokes it immediately. Leaving the foreground stops hosting and remote control; returning does not reconnect. It cannot enable microphones, cameras, voice effects, scoring or file access. Music, media paths and recordings are not transmitted; only bounded search/queue metadata and control responses are exchanged. Physical two-device network and interoperability acceptance remain open.

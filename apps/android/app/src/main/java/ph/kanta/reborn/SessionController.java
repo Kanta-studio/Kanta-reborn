@@ -15,6 +15,7 @@ final class SessionController {
     void changed();
   }
 
+  final CompanionControl companion;
   final ReservationQueue queue = new ReservationQueue();
   final ExecutorService io = Executors.newSingleThreadExecutor();
   final ExecutorService preparation = Executors.newSingleThreadExecutor();
@@ -91,6 +92,7 @@ final class SessionController {
 
   SessionController(Context context) {
     this.context = context;
+    companion = new CompanionControl(this);
     monitor =
         new MicrophoneMonitor(
             context, this::publish, notice -> message = notice, this::inputReading);
@@ -520,6 +522,7 @@ final class SessionController {
     scoreFrameFloor = SystemClock.elapsedRealtime();
     foreground = visible;
     if (!visible) {
+      companion.stop();
       monitor.stop();
       microphone.stop();
       party.stopAll();
