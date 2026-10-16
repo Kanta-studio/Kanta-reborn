@@ -12,7 +12,7 @@ import zipfile
 
 REPO = "kanta-gelo/Kanta-reborn"
 BUILDS = {
-    "android": {"run": 38845590252, "artifact": 12023251632, "source": "57dc0611cb54435802a4bd7d226e00983dd3c8f6"},
+    "android": {"run": 38881735518, "artifact": 12038226827, "source": "4f48e051dcd815e878205eda43bf9331591e279d"},
     "ios": {"run": 38806377805, "artifact": 12007058242, "source": "3c12a1fb962ac956250a8f238c01eace13f560d2"},
 }
 LIMIT = 128 * 1024 * 1024
@@ -109,3 +109,4 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
