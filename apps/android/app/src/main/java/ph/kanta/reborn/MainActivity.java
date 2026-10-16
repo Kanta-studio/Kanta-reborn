@@ -464,10 +464,49 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     body.addView(label);
   }
 
+  private void openYouTubeVideo() {
+    EditText input = new EditText(this);
+    input.setSingleLine(true);
+    input.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+        | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+    input.setHint("https://www.youtube.com/watch?v=...");
+    input.setSelectAllOnFocus(true);
+    input.setPadding(dp(20), dp(12), dp(20), dp(12));
+
+    new AlertDialog.Builder(this)
+        .setTitle("Watch on YouTube")
+        .setMessage(
+            "This opens the official YouTube app or browser outside KANTA. "
+                + "YouTube's normal ads, controls and policies apply. "
+                + "It does not download a video or add a song to the karaoke queue.")
+        .setView(input)
+        .setNegativeButton("Cancel", null)
+        .setPositiveButton("Open YouTube", (dialog, which) -> {
+          String canonical = YouTubeLink.canonical(input.getText().toString());
+          if (canonical == null) {
+            new AlertDialog.Builder(this)
+                .setTitle("Invalid YouTube link")
+                .setMessage("Paste a valid HTTPS YouTube video, Shorts, live or youtu.be link.")
+                .setPositiveButton("OK", null)
+                .show();
+            return;
+          }
+          try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(canonical)));
+          } catch (ActivityNotFoundException unavailable) {
+            Toast.makeText(this, "No app is available to open YouTube.", Toast.LENGTH_LONG).show();
+          }
+        })
+        .show();
+  }
+
   private void control() {
     Button companion = button("Companion control", () -> companionDialog = CompanionDialog.show(this, session));
     companion.setTag("kanta.companion.settings");
     body.addView(companion);
+    Button youtube = button("Watch on YouTube (online)", this::openYouTubeVideo);
+    youtube.setTag("kanta.youtube.external");
+    body.addView(youtube);
     Button voiceSettings =
         button(
             session.microphone.enabled()
