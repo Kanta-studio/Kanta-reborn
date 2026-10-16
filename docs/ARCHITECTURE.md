@@ -93,7 +93,7 @@ Dry/Room/Hall/Echo are first-party monitor-only effects with finite input saniti
 
 Routing limit: before API 36, AudioRouting exposes only getRoutedDevice; this implementation can verify that single reported route but cannot categorically exclude an additional unreported output. API 36 uses the complete AudioTrack.getRoutedDevices list. The privacy/UI text discloses this limit and the monitor remains experimental/default-off. Preferred-device selection is never treated as proof of actual routing.
 
-## Android optional pitch-following scoring (0.8.0 candidate)
+## Android optional pitch-following scoring (0.8.0 accepted source)
 
 The existing bounded SMF parser now retains track index, note-channel masks, bounded track/instrument labels and real lyric evidence without changing event timing, MIDI rendering or imported bytes. MelodyTarget requires exactly one lyric-bearing or explicitly vocal/melody-labelled track with one non-drum note-bearing channel. It rejects ambiguous candidates, overlapping or incomplete note lifetimes and noncentral channel pitch bends (including bends from another track). No target is invented for MP3/WAV or unlabelled high notes. Extraction runs with MIDI preparation off-main.
 
@@ -106,3 +106,6 @@ SoundFontPlayback exposes an audible control fence: main-thread key/tempo reques
 The scorer uses binary target lookup and constant-size incremental best-confidence slot aggregation, without a growing observation array. Source slots scale with tempo (200 ms at normal pace). Half-open note windows avoid double counting boundaries; final expected coverage always includes the complete target, including unobserved endings. At least 20 matched slots and 10% coverage are needed before reporting a finite estimate. Invalid/nonfinite, low-confidence, silent, out-of-order and foreign-identity samples are rejected. Pitch accuracy and timing coverage form an informal estimate; backing music can be mistaken for a singer and no ability assessment or physical scoring accuracy is claimed. Monitoring/effects remain separate, with no recording or networking. Pitch correction, secure companion and official YouTube remain follow-ups.
 
 Oversized optional track/instrument labels are skipped without rejecting otherwise playable MIDI. Overlong decoded labels are not truncated into explicit vocal-name evidence. Lyric/event bounds and original media bytes remain unchanged. Regression fixtures cover both oversized metadata and misleading name truncation.
+
+
+Accepted Android 0.8 source `57dc0611cb54435802a4bd7d226e00983dd3c8f6` passed run [38845590252](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38845590252): APK/instrumentation assembly, lint, native sanitizers, all 328 domain assertions, browser interoperability, permission/notices gate and 110 actual API 35 emulator checks. PR #21 merged as `5e6d5dc09f4bbfed25566d6dc17dfc20fe0cf25b`. No prior assertions were removed. Physical timing/scoring accuracy remains unverified; verified download packaging is separate. See ANDROID_SCORING_CHECKPOINT.md.
