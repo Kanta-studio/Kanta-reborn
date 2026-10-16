@@ -13,6 +13,34 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
     }
 
     @MainActor
+    func testFocusedVisualSmoke() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        app.launch()
+        let more = app.buttons["More"].firstMatch
+        waitForRendered(more, in: app)
+        capture("focused-main-stage", app)
+
+        let controls = app.buttons["stage.controls"].firstMatch
+        waitForRendered(controls, in: app)
+        controls.tap()
+        let close = app.buttons["Done"].firstMatch
+        XCTAssertTrue(close.waitForExistence(timeout: waitSeconds))
+        capture("focused-control-panel", app)
+        close.tap()
+
+        waitForRendered(more, in: app)
+        more.tap()
+        let library = app.buttons["Song Library"].firstMatch
+        XCTAssertTrue(library.waitForExistence(timeout: waitSeconds))
+        library.tap()
+        XCTAssertTrue(app.buttons["Done"].firstMatch.waitForExistence(timeout: waitSeconds))
+        capture("focused-song-library", app)
+        app.buttons["Done"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["stage.controls"].waitForExistence(timeout: waitSeconds))
+    }
+
+    @MainActor
     func testStarterPlaybackAndControls() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
