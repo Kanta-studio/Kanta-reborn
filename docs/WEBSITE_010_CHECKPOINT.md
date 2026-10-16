@@ -1,0 +1,9 @@
+# Android 0.10 companion download and website checkpoint
+
+Android source `d777334eec73996116fdf2c01d97ac73a3a53958` passed run `38885716463`: 448 domain assertions, 139 real API 35 emulator checks, APK/instrumentation build, lint, native sanitizer, browser interoperability and permission/notices gate. PR #28 merged as `51b57e0052c8f01d08fac04f12cccae06b189ad5`.
+
+Packaging run `38886416353` passed all five contracts, source/run/artifact checks and original-byte digest verification. Android bundle `12040160062` preserves the 26,974,938-byte APK with SHA-256 `7743d1994c500b472f86829ea041307303f0f908d0e5505b788c35ca76026d3d`. iOS bundle `12038684955` preserves the unchanged 24,818,257-byte unsigned IPA with SHA-256 `a3ebe254a87d5e58888acf8e0334de3490d55cfc51eb3f42547e94281866427d`. Downloaded manifest artifact `12039895604` matched SHA-256 `1869b30ef341893db84277c685792c84891c3cff0bf96895d926bbee78e9c973`. Bundles require GitHub sign-in and expire November 15, 2026 UTC.
+
+Website pages and manifest select these accepted bundles and explain same-network Android-to-Android setup, full private-code authorization, metadata encryption, expiry and Stop/background revocation. They explicitly retain incompatible iOS legacy transport, independent security review and physical two-device acceptance as open. The stale homepage scoring/correction statement is corrected. No original browser reader, stylesheet, runtime dependency, media or iOS application byte changes occur.
+
+Local route/anchor/metadata/CSP/provenance and JavaScript syntax checks precede hosted website validation, preview/browser checks and production publication. The new website is not yet claimed live. Official YouTube playback, encrypted iOS companion compatibility, physical audio/camera/external-display acceptance and production signing remain open.
