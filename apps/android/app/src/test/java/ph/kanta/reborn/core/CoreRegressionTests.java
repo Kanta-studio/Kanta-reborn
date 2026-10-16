@@ -17,6 +17,40 @@ public final class CoreRegressionTests {
     if (!yes) throw new AssertionError(message);
   }
 
+  private static void youtubeLinkChecks() {
+    String video = "aBcD123_-xy";
+    String canonical = "https://www.youtube.com/watch?v=" + video;
+    for (String input : new String[] {
+        canonical,
+        "https://m.youtube.com/watch?feature=share&v=" + video + "&t=4",
+        "https://youtu.be/" + video + "?si=ignored",
+        "https://www.youtube.com/shorts/" + video,
+        "https://www.youtube.com/live/" + video,
+        "https://www.youtube-nocookie.com/embed/" + video
+    }) {
+      check(canonical.equals(YouTubeLink.canonical(input)), "YouTube video canonicalization");
+    }
+    for (String input : new String[] {
+        "",
+        "https://youtube.com/",
+        "https://www.youtube.com/playlist?list=PL123",
+        "http://www.youtube.com/watch?v=" + video,
+        "https://youtube.com.evil.example/watch?v=" + video,
+        "https://evil.example@youtube.com/watch?v=" + video,
+        "https://www.youtube.com:443/watch?v=" + video,
+        "https://www.youtube.com/watch?v=" + video + "&v=" + video,
+        "https://youtu.be/" + video + "/extra",
+        "https://www.youtube.com/watch?v=" + video + "#fragment",
+        "https://youtu.be/%2Fetc%2Fpasswd",
+        "https://www.youtube.com/watch?v=<script>",
+        "https://www.youtube.com/watch?v=" + video.substring(0, 10)
+    }) {
+      check(YouTubeLink.canonical(input) == null, "Untrusted YouTube URL accepted: " + input);
+    }
+    check(YouTubeLink.canonical(null) == null, "Null YouTube URL accepted");
+    check(YouTubeLink.canonical("x".repeat(2049)) == null, "Oversized YouTube URL accepted");
+  }
+
   private static Song song() {
     return new Song("one", "Morning Light", "KANTA Originals", "001", "morning-light.mid", true);
   }
@@ -1071,6 +1105,7 @@ public final class CoreRegressionTests {
               + "\"}";
       Files.write(Paths.get(args[1]), fixture.getBytes(StandardCharsets.UTF_8));
     }
+    youtubeLinkChecks();
     checks += CompanionRegressionTests.run();
     System.out.println("KANTA Android core: " + checks + " regression checks passed");
   }
