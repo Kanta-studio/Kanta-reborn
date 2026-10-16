@@ -27,11 +27,6 @@ struct RemoteView: View {
             Section("Encrypted Android companion") {
                 NavigationLink("Control an Android host") { EncryptedCompanionView() }
                     .accessibilityIdentifier("companion.open")
-                    .simultaneousGesture(TapGesture().onEnded {
-                        pendingCatalogSearch?.cancel()
-                        client.disconnect()
-                        pairingPIN = ""
-                    })
                 Text("Uses the full Android pairing code. No plaintext fallback.")
                     .font(.caption).foregroundStyle(.secondary)
             }
@@ -514,6 +509,7 @@ struct RemoteView: View {
         .onDisappear {
             pendingCatalogSearch?.cancel()
             client.disconnect()
+            pairingPIN = ""
             browser.stop()
         }
     }
