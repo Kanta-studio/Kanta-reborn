@@ -172,3 +172,10 @@ The background SingingModalPresenter now retains a weak identity for only the ka
 ### Persistent KANTA route presentation (iOS PR #31)
 
 The root stage and sheet destination routes share one state-owned SwiftUI sheet. The More menu is a persistent native list instead of a transient confirmation dialog, so frequent now-playing updates cannot tear down route presentation or collide with a second sheet presenter. Dedicated fullscreen UIKit still dismisses only its own player. The encrypted Android companion form places IP/code inputs before setup prose and validates private-address and 32-hex-character requirements in the UI and again at the network client boundary. This UI state does not own transport, queue, media or secrets persisted outside the in-memory form; invalid public addresses are rejected before socket allocation. Device/UI acceptance remains pending for this candidate.
+
+### PR #31 sheet and remote navigation ownership repair
+
+After [iOS run 38923007543](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/38923007543), the prior route-as-optional sheet binding was replaced by two explicit root presentation states: a stable `isSheetPresented` Boolean that owns sheet lifetime and a `sheetRoute` that selects its content. The More stage action opens the sheet; switching between destinations does not dismiss it; Done closes it; onDismiss resets the selected destination. This isolates playback-driven HostView refreshes from sheet dismissal.
+
+RemoteView's encrypted `NavigationLink` now uses the native navigation tap without a competing simultaneous gesture. Its existing onDisappear cleans up the legacy Bonjour/PIN connection (and clears the typed PIN); `EncryptedCompanionView` retains independent foreground-only KCP1 session revocation. The Android FIFO/session authority and media playback are unaffected. iPhone/iPad simulator acceptance is required before the change is considered verified.
+
