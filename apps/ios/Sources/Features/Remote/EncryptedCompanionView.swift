@@ -14,10 +14,9 @@ struct EncryptedCompanionView: View {
     var body: some View {
         List {
             Section("Pair with Android") {
-                Text("On Android 0.10 or later, open Control → Companion control and start hosting. Keep both apps open on the same trusted Wi-Fi. Enter the address and full code shown there.")
                 TextField("Host IPv4 address", text: $address)
                     .accessibilityIdentifier("companion.address")
-                    .keyboardType(.decimalPad)
+                    .keyboardType(.numbersAndPunctuation)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .disabled(client.paired || client.busy)
                 SecureField("32-character pairing code", text: $code)
@@ -35,9 +34,13 @@ struct EncryptedCompanionView: View {
                         code = ""
                     }
                     .accessibilityIdentifier("companion.connect")
-                    .disabled(address.isEmpty || code.isEmpty)
+                    .disabled(!validPairingInput)
                 }
                 Text(client.status).font(.footnote)
+                Text("On Android 0.10 or later, open Control → Companion control and start hosting. Keep both apps on the same trusted Wi-Fi.")
+                    .font(.footnote)
+                Text("Enter the Android host's private IPv4 address and full 32-character hexadecimal pairing code.")
+                    .font(.footnote)
             }
             if client.paired {
                 Section("Now playing") {
@@ -99,6 +102,14 @@ struct EncryptedCompanionView: View {
         }
         .onDisappear { stop() }
     }
+    private var validPairingInput: Bool {
+        guard (try? CompanionProtocol.privateAddress(address)) != nil,
+              code.utf8.count == 32 else { return false }
+        return code.utf8.allSatisfy {
+            (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0)
+        }
+    }
+
     private func stop() { client.disconnect(); code = "" }
     private func search() { client.send(action: "search", argument: query) }
 }
