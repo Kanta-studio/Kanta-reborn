@@ -3,12 +3,42 @@
 from __future__ import annotations
 import json
 import argparse
+from collections import deque
 import os
+import re
 from pathlib import Path
 import signal
 import subprocess
 
 OUT = Path("runtime-captures")
+# Four full UI walkthroughs can exceed the combined XCTest per-case limit.
+SUITE_TIMEOUT_SECONDS = 1080
+EXPECTED_TESTS = frozenset({
+    "testStarterPlaybackAndControls",
+    "testMainMenuButtonsAndScreens",
+    "testEncryptedCompanionPairingScreenAndInputRejection",
+    "testDemoKeypadCancelAndRepeatedIntentionalReservations",
+})
+TEST_SUCCESS = re.compile(
+    r"^Test Case '-\[KantaUITests\.KantaVisualWalkthroughUITests (test\w+)\]' passed "
+)
+TEST_FAILURE = re.compile(
+    r"(?:^Test Case .* failed \(|:\d+: error:|^Testing failed:|"
+    r"\*\* TEST FAILED \*\*|Restarting after unexpected exit)"
+)
+
+def inspect_test_log(path: Path) -> tuple[set[str], list[str]]:
+    passed: set[str] = set()
+    failures: list[str] = []
+    if path.is_file():
+        with path.open(errors="replace") as log:
+            for line in log:
+                match = TEST_SUCCESS.search(line)
+                if match:
+                    passed.add(match.group(1))
+                if TEST_FAILURE.search(line):
+                    failures.append(line.rstrip())
+    return passed, failures[-25:]
 
 def run(*args: str, **kwargs):
     print("+", " ".join(args), flush=True)
@@ -35,13 +65,14 @@ def main() -> int:
         label, udid = device["label"], device["udid"]
         recorder = None
         passed = False
+        test_log = OUT / f"{label}-tests.log"
         try:
             subprocess.run(["xcrun", "simctl", "boot", udid], check=False)
             run("xcrun", "simctl", "bootstatus", udid, "-b", timeout=180)
             with (OUT / f"{label}-recording.log").open("w") as recording_log:
                 recorder = subprocess.Popen(["xcrun", "simctl", "io", udid, "recordVideo", "--codec=h264",
                     str(OUT / f"{label}-walkthrough.mp4")], stdout=recording_log, stderr=subprocess.STDOUT)
-                with (OUT / f"{label}-tests.log").open("w") as log:
+                with test_log.open("w") as log:
                     run("xcodebuild", "test-without-building", "-project", "GeloKaraoke.xcodeproj",
                         "-scheme", "GeloKaraoke", "-configuration", "Release", "-destination",
                         f"platform=iOS Simulator,id={udid}", "-derivedDataPath", "build/DerivedData",
@@ -49,10 +80,22 @@ def main() -> int:
                         "-test-timeouts-enabled", "YES", "-default-test-execution-time-allowance", "120",
                         "-maximum-test-execution-time-allowance", "180",
                         "-only-testing:KantaUITests/KantaVisualWalkthroughUITests", "CODE_SIGNING_ALLOWED=NO",
-                        stdout=log, stderr=subprocess.STDOUT, timeout=660)
+                        stdout=log, stderr=subprocess.STDOUT, timeout=SUITE_TIMEOUT_SECONDS)
                 passed = True
         except (OSError, subprocess.SubprocessError) as error:
             print(f"{label}: {error}", flush=True)
+            if test_log.is_file():
+                print(f"--- {label} XCTest log tail ---", flush=True)
+                passed_cases, failures = inspect_test_log(test_log)
+                print(f"--- {label} XCTest failures ---", flush=True)
+                for line in failures:
+                    print(line, flush=True)
+                print(f"Passed cases: {sorted(passed_cases)}", flush=True)
+                print(f"--- end {label} XCTest failures ---", flush=True)
+                with test_log.open(errors="replace") as log:
+                    for line in deque(log, maxlen=100):
+                        print(line.rstrip(), flush=True)
+                print(f"--- end {label} XCTest log tail ---", flush=True)
         finally:
             if recorder is not None:
                 if recorder.poll() is None: recorder.send_signal(signal.SIGINT)
@@ -61,13 +104,18 @@ def main() -> int:
                     recorder.kill()
                     recorder.wait()
             result = OUT / f"{label}.xcresult"
-            if result.exists():
+            if (result / "Info.plist").is_file():
                 subprocess.run(["xcrun", "xcresulttool", "export", "attachments", "--path", str(result),
                     "--output-path", str(OUT / f"{label}-screenshots")], check=False, timeout=90)
             subprocess.run(["xcrun", "simctl", "shutdown", udid], check=False, timeout=30)
         video = OUT / f"{label}-walkthrough.mp4"
-        passed = passed and video.exists() and video.stat().st_size > 0
-        results.append(dict(**device, passed=passed))
+        completed_cases, _ = inspect_test_log(test_log)
+        missing = EXPECTED_TESTS - completed_cases
+        if missing:
+            print(f"{label}: missing passing walkthroughs: {sorted(missing)}", flush=True)
+        passed = passed and not missing and video.exists() and video.stat().st_size > 0
+        results.append(dict(**device, passed=passed, passed_tests=sorted(completed_cases),
+            missing_tests=sorted(missing)))
         print(f"{label}: {'PASS' if passed else 'FAIL'}", flush=True)
     (OUT / (f"manifest-{requested}.json" if requested else "manifest.json")).write_text(json.dumps(dict(source_sha=os.environ.get("GITHUB_SHA"),
         results=results, boundary="Real simulator interactions; demo tests are named separately. Videos do not prove hardware audio."), indent=2) + "\n")

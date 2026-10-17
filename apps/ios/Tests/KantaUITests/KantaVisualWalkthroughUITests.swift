@@ -18,7 +18,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
         app.launch()
         capture("01-real-main-stage", app)
-        app.buttons["More"].tap()
+        openMenu(in: app, expecting: "Song Library")
         let library = app.buttons["Song Library"]
         waitForRendered(library, in: app)
         library.tap()
@@ -47,10 +47,31 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         expectation(for: NSPredicate(format: "label == 'Pause'"), evaluatedWith: transport)
         waitForExpectations(timeout: 5)
         capture("05-real-resumed", app)
+        openMenu(in: app, expecting: "Song Library")
+        let deadline = Date().addingTimeInterval(1)
+        while Date() < deadline {
+            XCTAssertTrue(app.buttons["Song Library"].exists, "Playback updates dismissed the menu")
+            XCTAssertTrue(app.buttons["Done"].firstMatch.exists, "Playback replaced navigation sheet")
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        capture("real-menu-stays-open-during-playback", app)
+        app.buttons["Song Library"].tap()
+        XCTAssertTrue(app.buttons["Done"].firstMatch.waitForExistence(timeout: 5))
+        app.buttons["Done"].firstMatch.tap()
         XCTAssertFalse(app.sliders["Song position"].exists)
         XCTAssertFalse(app.buttons["Previous song"].exists)
-        app.buttons["stage.search"].tap()
-        XCTAssertTrue(app.buttons["stage.keypad.0"].waitForExistence(timeout: 5))
+        let search = app.buttons["stage.search"]
+        waitForRendered(search, in: app)
+        let keypadZero = app.buttons["stage.keypad.0"]
+        // Sheet dismissal can consume a tap while UIKit finishes its transition.
+        // Retry only the idempotent open action, and still require the real keypad.
+        for _ in 0..<3 {
+            guard !keypadZero.exists else { break }
+            XCTAssertTrue(search.isHittable, "Search is blocked after leaving the library")
+            search.tap()
+            if keypadZero.waitForExistence(timeout: 3) { break }
+        }
+        XCTAssertTrue(keypadZero.exists, "Search did not present the keypad after library dismissal")
         capture("06-real-search-overlay", app)
         app.buttons["Cancel"].tap()
         app.buttons["stage.controls"].tap()
@@ -69,7 +90,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
                             "Companion Remote", "iCloud Save", "Legal & Privacy"] {
             app.launch()
             XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
-            app.buttons["More"].tap()
+            openMenu(in: app, expecting: destination)
             let button = app.buttons[destination].firstMatch
             XCTAssertTrue(button.waitForExistence(timeout: 5))
             waitForRendered(button, in: app)
@@ -77,6 +98,37 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
             capture("menu-" + destination, app)
             app.terminate()
         }
+    }
+
+    @MainActor
+    func testEncryptedCompanionPairingScreenAndInputRejection() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        app.launch()
+        XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
+        openMenu(in: app, expecting: "Companion Remote")
+        let remote = app.buttons["Companion Remote"]
+        waitForRendered(remote, in: app)
+        remote.tap()
+        let encrypted = app.buttons["companion.open"]
+        waitForRendered(encrypted, in: app)
+        encrypted.tap()
+        let address = app.textFields["companion.address"]
+        let code = app.secureTextFields["companion.code"]
+        let connect = app.buttons["companion.connect"]
+        XCTAssertTrue(address.waitForExistence(timeout: waitSeconds))
+        XCTAssertTrue(code.exists)
+        XCTAssertFalse(connect.isEnabled)
+        capture("companion-encrypted-pairing", app)
+        address.tap()
+        address.typeText("8.8.8.8")
+        code.tap()
+        code.typeText("000102030405060708090a0b0c0d0e0f")
+        XCTAssertFalse(connect.isEnabled, "Public IPv4 addresses must be rejected before networking")
+        XCTAssertTrue(app.staticTexts["Enter the Android host's private IPv4 address and full 32-character hexadecimal pairing code."]
+            .waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Disconnect"].exists)
+        capture("companion-invalid-address-rejected", app)
     }
 
     @MainActor
@@ -126,6 +178,21 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         XCTAssertTrue(app.buttons["stage.reserve"].isHittable)
         capture("demo-landscape-keypad", app)
         XCUIDevice.shared.orientation = .portrait
+    }
+
+    @MainActor
+    private func openMenu(in app: XCUIApplication, expecting destination: String) {
+        let more = app.buttons["More"].firstMatch
+        waitForRendered(more, in: app)
+        let item = app.buttons[destination].firstMatch
+        // Opening is idempotent; retry only while the stage remains visible and no menu appeared.
+        for _ in 0..<3 {
+            more.tap()
+            if item.waitForExistence(timeout: 3) { return }
+            guard more.exists && more.isHittable else { break }
+        }
+        capture("menu-did-not-present", app)
+        XCTAssertTrue(item.exists, "More did not present the requested menu item: " + destination)
     }
 
     @MainActor

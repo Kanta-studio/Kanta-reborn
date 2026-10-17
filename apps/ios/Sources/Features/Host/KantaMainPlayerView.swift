@@ -63,30 +63,24 @@ struct KantaMainPlayerView: View {
                 }
                 .padding(.horizontal, wide ? 18 : 16)
                 .padding(.vertical, 8)
-                .accessibilityHidden(showingSearch)
 
-                if showingSearch {
-                    Color.black.opacity(0.4).ignoresSafeArea()
-                        .onTapGesture { showingSearch = false }
-                        .accessibilityHidden(true)
-                    KantaStageSearchView(model: model, singerName: $singerName,
-                                         microphoneBusy: microphoneBusy,
-                                         onClose: { showingSearch = false })
-                        .frame(maxWidth: wide ? min(760, geometry.size.width - 32) : 520,
-                               maxHeight: wide ? geometry.size.height - 12 : geometry.size.height * 0.85)
-                        .background(GeloVisualStyle.pageBackground.opacity(0.98),
-                                    in: RoundedRectangle(cornerRadius: 24))
-                        .overlay(RoundedRectangle(cornerRadius: 24)
-                            .stroke(GeloVisualStyle.accent.opacity(0.55)))
-                        .padding(wide ? 6 : 12)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity,
-                               alignment: wide ? .center : .bottom)
-                        .accessibilityAddTraits(.isModal)
-                }
             }
             .foregroundStyle(.white)
         }
         .background(.black)
+        .sheet(isPresented: $showingSearch) {
+            GeometryReader { geometry in
+                KantaStageSearchView(model: model, singerName: $singerName,
+                                     microphoneBusy: microphoneBusy,
+                                     onClose: { showingSearch = false })
+                    .padding(12)
+                    .frame(maxWidth: 760, maxHeight: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(GeloVisualStyle.pageBackground)
+            }
+            .preferredColorScheme(.dark)
+            .presentationDetents([.large])
+        }
         .sheet(isPresented: $showingQueue) { queueSheet }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { camera.stop() }

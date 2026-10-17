@@ -120,9 +120,13 @@ struct LegalView: View {
 
                 GeloSectionCard("Companion Remote and iCloud") {
                     notice(
-                        "The optional Companion Remote pairs with a code over local Wi-Fi. " +
-                        "The connection is not encrypted, so use only a network you trust. " +
-                        "Song searches, names, and queue details can travel between devices."
+                        "The legacy iPhone Companion Remote uses a PIN and plaintext local Wi-Fi. " +
+                        "The separate encrypted companion can control Android 0.10 hosts using " +
+                        "the full 32-character code. Both share bounded song and queue metadata; " +
+                        "neither shares media or sensor recordings. The encrypted connection stops " +
+                        "when you leave its screen or the foreground and has no automatic reconnect. " +
+                        "Use a trusted network. Physical cross-device testing and independent " +
+                        "security review remain pending; encrypted iPhone hosting is not included."
                     )
                     notice(
                         "If you choose iCloud Save, KANTA prepares selected app data " +

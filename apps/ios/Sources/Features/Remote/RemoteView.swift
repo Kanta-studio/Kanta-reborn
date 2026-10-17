@@ -24,6 +24,16 @@ struct RemoteView: View {
 
     var body: some View {
         List {
+            Section("Encrypted Android companion") {
+                NavigationLink("Control an Android host") { EncryptedCompanionView() }
+                    .accessibilityIdentifier("companion.open")
+                Text("Uses the full Android pairing code. No plaintext fallback.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Legacy iPhone remote") {
+                Text("The nearby-host PIN connection below is plaintext and incompatible with Android. Use only on a trusted local network.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             Section("Nearby hosts") {
                 if browser.hosts.isEmpty {
                     emptyState
@@ -499,6 +509,7 @@ struct RemoteView: View {
         .onDisappear {
             pendingCatalogSearch?.cancel()
             client.disconnect()
+            pairingPIN = ""
             browser.stop()
         }
     }

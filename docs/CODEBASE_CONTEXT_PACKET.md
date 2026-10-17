@@ -1,3 +1,9 @@
+## Active iOS encrypted controller batch — 2026-10-16
+
+Baseline main after Android 0.10 publication. No open pull requests were returned before editing. Swift 6.2 / iOS 17 SwiftUI and Network.framework with system CryptoKit; no new dependency. LocalKaraokeController remains the iOS queue authority; Android SessionController owns the remotely controlled queue. Existing SQLite/bookmarked storage, MIDI/AVFoundation audio and imported media are unchanged.
+
+KCP1 client work connects only to explicit numeric RFC1918 IPv4 on port 45731. It will match the accepted Android handshake and direction-separated records, allow one outstanding request, expire/revoke on foreground loss and never fall back to the recovered plaintext remote. This batch implements iPhone/iPad controller → Android host; encrypted iOS hosting is a separate remaining milestone. Existing Bonjour/PIN remote remains explicitly legacy. No measured device latency or network reliability is inferred. Swift compilation, shared vectors, actual socket exchange and app build require cloud acceptance; local Python/layout checks are preliminary only.
+
 # Codebase Context Packet — KANTA Reborn
 
 Current snapshot: merged Android stage/party and iOS runtime work, verified download packaging and restored website. Native source revisions and checks are listed below and in the root README. This is a testing reconstruction, not a signed production release.
