@@ -100,6 +100,8 @@ public final class CompanionRegressionTests {
       check(r.id.equals(id)&&r.action.equals(action)&&r.argument.equals("Búwan")&&r.singer.equals("Gelo"),"Command round trip");
     }
     rejects(()->new CompanionProtocol.Request(id,"microphone","","").encode(),"Sensor command accepted");
+    for(String blank:new String[]{"", " ", "\t\n"})
+      rejects(()->new CompanionProtocol.Request(id,"search",blank,"").encode(),"Blank search accepted");
     rejects(()->new CompanionProtocol.Request(id,"reserve","x".repeat(129),"").encode(),"Oversized song ID");
     rejects(()->new CompanionProtocol.Request(id,"reserve","one","x".repeat(81)).encode(),"Oversized singer");
     byte[] encoded=new CompanionProtocol.Request(id,"snapshot","","").encode();
