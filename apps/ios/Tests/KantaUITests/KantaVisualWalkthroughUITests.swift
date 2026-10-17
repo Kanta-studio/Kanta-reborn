@@ -58,10 +58,14 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.buttons["Song Library"].tap()
         XCTAssertTrue(app.buttons["Done"].firstMatch.waitForExistence(timeout: 5))
         app.buttons["Done"].firstMatch.tap()
+        let libraryTitle = app.navigationBars["Song Library"]
+        let dismissed = NSPredicate(format: "exists == false")
+        expectation(for: dismissed, evaluatedWith: libraryTitle)
+        waitForExpectations(timeout: 10)
         XCTAssertFalse(app.sliders["Song position"].exists)
         XCTAssertFalse(app.buttons["Previous song"].exists)
         let search = app.buttons["stage.search"]
-        waitForRendered(search, in: app)
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
         let keypadZero = app.buttons["stage.keypad.0"]
         XCTAssertTrue(search.isHittable, "Search is blocked after leaving the library")
         search.tap()
