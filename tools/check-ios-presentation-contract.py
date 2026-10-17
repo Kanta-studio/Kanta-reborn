@@ -14,10 +14,12 @@ def verify():
     stage = (APP / 'Features/Host/KantaMainPlayerView.swift').read_text()
     test = TEST.read_text()
     checks = {
-        'root tracks navigation lifecycle': 'navigationPresentation' in root and 'onDismiss:' in root,
-        'root rejects overlapping menu presentations': 'guard navigationPresentation == .idle else { return }' in root,
-        'host receives navigation presentation state': 'navigationSheetPresented: navigationPresentation != .idle' in root and 'navigationSheetPresented' in host,
-        'single authoritative navigation state': '@State private var isSheetPresented' not in root and 'navigationTransition' not in root,
+        'root owns navigation sheet identity': '.sheet(item: $activeNavigation' in root and 'onDismiss:' in root,
+        'root rejects overlapping menu presentations': 'guard activeNavigation == nil else { return }' in root,
+        'host receives navigation presentation state': 'navigationSheetPresented: activeNavigation != nil' in root and 'navigationSheetPresented' in host,
+        'single authoritative navigation state': 'navigationPresentation' not in root and 'navigationTransition' not in root,
+        'host uses one sheet coordinator': '.sheet(item: $activeHostSheet' in host and 'showingHostControls' not in host,
+        'stage uses one sheet coordinator': '.sheet(item: $activeStageSheet' in stage and 'showingSearch' not in stage and 'showingQueue' not in stage,
         'playback does not mutate root navigation': 'snapshot.transport' not in root,
         'real playback walkthrough': 'func testStarterPlaybackAndControls()' in test,
         'library dismissal then search coverage': 'Search did not present the keypad after library dismissal' in test,
