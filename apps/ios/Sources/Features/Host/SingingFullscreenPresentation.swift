@@ -22,13 +22,13 @@ struct SingingFullscreenPresentation: UIViewControllerRepresentable {
         presenter.configure(
             isPresented: isPresented,
             presentationGate: presentationGate,
-            makePlayer: {
+            makePlayer: { [weak presenter] in
                 let screen = FullscreenKaraokePlayerView(
                     model: model, backgroundsEnabled: backgroundsEnabled,
                     selectedPreset: selectedPreset,
                     onExit: {
-                        presentationGate.beginDismissal(.fullscreen)
                         isPresented = false
+                        presenter?.requestDismissal()
                     },
                     camera: camera, presentationGate: presentationGate,
                     microphoneBusy: microphoneBusy
@@ -108,6 +108,12 @@ final class SingingModalPresenter: UIViewController {
             }
             self.updatePresentation()
         }
+    }
+
+    func requestDismissal() {
+        wantsPresentation = false
+        presentationGate?.beginDismissal(.fullscreen)
+        updatePresentation()
     }
 
     private func updatePresentation() {
