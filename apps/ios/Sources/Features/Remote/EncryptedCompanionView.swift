@@ -27,6 +27,7 @@ struct EncryptedCompanionView: View {
                     .disabled(client.paired || client.busy)
                 if client.paired || client.busy {
                     Button("Disconnect", role: .destructive) { stop() }
+                        .accessibilityIdentifier("companion.disconnect")
                 } else {
                     Button("Connect") {
                         guard scenePhase == .active else { return }
@@ -36,7 +37,7 @@ struct EncryptedCompanionView: View {
                     .accessibilityIdentifier("companion.connect")
                     .disabled(!validPairingInput)
                 }
-                Text(client.status).font(.footnote)
+                Text(client.status).font(.footnote).accessibilityIdentifier("companion.status")
                 Text("On Android 0.10 or later, open Control → Companion control and start hosting. Keep both apps on the same trusted Wi-Fi.")
                     .font(.footnote)
                 Text("Enter the Android host's private IPv4 address and full 32-character hexadecimal pairing code.")
@@ -51,14 +52,18 @@ struct EncryptedCompanionView: View {
                         }
                         Spacer()
                         Button("Next") { client.send(action: "next") }
+                            .accessibilityIdentifier("companion.next")
                     }.disabled(client.busy || client.snapshot == nil)
                 }
                 Section("Reserve a song") {
                     TextField("Singer name (optional)", text: $singer)
                     TextField("Title, artist or code", text: $query)
+                        .accessibilityIdentifier("companion.query")
                         .autocorrectionDisabled()
                         .onSubmit { search() }
-                    Button("Search") { search() }.disabled(client.busy)
+                    Button("Search") { search() }
+                        .disabled(client.busy || query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .accessibilityIdentifier("companion.search")
                     Text("Shows up to 10 matches. Refine your search for more.").font(.caption)
                     ForEach(client.snapshot?.songs ?? []) { song in
                         HStack {
@@ -111,5 +116,9 @@ struct EncryptedCompanionView: View {
     }
 
     private func stop() { client.disconnect(); code = "" }
-    private func search() { client.send(action: "search", argument: query) }
+    private func search() {
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !term.isEmpty, !client.busy else { return }
+        client.send(action: "search", argument: term)
+    }
 }
