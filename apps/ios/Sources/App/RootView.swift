@@ -6,6 +6,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var sheetRoute: Route = .menu
     @State private var isSheetPresented = false
+    @State private var navigationDismissing = false
 
     private enum Route: String, Identifiable {
         case menu, library, remote, settings, legal, icloud, songbook
@@ -22,7 +23,7 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, navigationSheetPresented: isSheetPresented, onOpenNavigation: {
+            HostView(services: services, navigationSheetPresented: isSheetPresented || navigationDismissing, onOpenNavigation: {
                 sheetRoute = .menu
                 isSheetPresented = true
             })
@@ -31,12 +32,18 @@ struct RootView: View {
         .preferredColorScheme(.dark)
         .tint(GeloVisualStyle.accent)
         // Navigation stays presented while the playing song updates the host view.
-        .sheet(isPresented: $isSheetPresented, onDismiss: { sheetRoute = .menu }) {
+        .sheet(isPresented: $isSheetPresented, onDismiss: {
+            sheetRoute = .menu
+            navigationDismissing = false
+        }) {
             NavigationStack {
                 destination(sheetRoute)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { isSheetPresented = false }
+                            Button("Done") {
+                                navigationDismissing = true
+                                isSheetPresented = false
+                            }
                         }
                     }
             }
