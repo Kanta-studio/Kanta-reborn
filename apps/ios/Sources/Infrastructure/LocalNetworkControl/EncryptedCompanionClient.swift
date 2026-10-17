@@ -87,7 +87,7 @@ public final class EncryptedCompanionClient: ObservableObject {
         let id = UUID()
         let plain: Data
         do { plain = try CompanionProtocol.request(id: id, action: action, argument: argument, singer: singer) }
-        catch { status = "The search or singer name is too long."; return }
+        catch { status = "Enter a search term and keep search or singer names within the limits."; return }
         busy = true
         commands += 1
         let run = generation
