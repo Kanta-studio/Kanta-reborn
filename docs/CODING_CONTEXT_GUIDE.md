@@ -26,3 +26,5 @@ Keep `docs/CODEBASE_CONTEXT_PACKET.md` updated with architectural changes. This 
 ## Comment style
 
 Apply this standard to existing and new code across both platforms. Write concise engineering comments about intent, invariants, tradeoffs and non-obvious edge cases. Keep conversational progress and drafting notes out of production source. Preserve required licensing, attribution, provenance and original authorship/history.
+
+Mandatory before substantive changes: read [Engineering architecture contract](ENGINEERING_ARCHITECTURE_CONTRACT.md) and complete its ownership/lifecycle/documentation checklist.
