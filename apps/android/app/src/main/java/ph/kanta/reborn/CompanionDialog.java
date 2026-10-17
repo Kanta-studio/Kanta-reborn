@@ -15,7 +15,7 @@ final class CompanionDialog {
     LinearLayout body=new LinearLayout(activity);body.setOrientation(LinearLayout.VERTICAL);
     int pad=(int)(16*activity.getResources().getDisplayMetrics().density);body.setPadding(pad,pad,pad,pad);
     ScrollView scroll=new ScrollView(activity);scroll.addView(body);
-    TextView help=label(activity,"Android companion · Same private Wi-Fi/Ethernet network. The full code grants song search, reservations, cancellation and Play/Pause/Next. Share it only with someone you trust. One companion, 5-minute pairing window, 10-minute session. Leaving either app revokes the connection. iPhone/iPad pairing is not compatible yet.");body.addView(help);
+    TextView help=label(activity,"Android companion · Same private Wi-Fi/Ethernet network. The full code grants song search, reservations, cancellation and Play/Pause/Next. Share it only with someone you trust. One companion, 5-minute pairing window, 10-minute session. Leaving either app revokes the connection. iPhone/iPad can control an Android host using encrypted companion pairing. iPhone hosting still uses a separate legacy protocol.");body.addView(help);
     TextView status=label(activity,session.companion.status);body.addView(status);
     TextView pairing=label(activity,"");pairing.setTextIsSelectable(true);body.addView(pairing);
     body.addView(label(activity,"Host on this device"));
@@ -35,7 +35,8 @@ final class CompanionDialog {
     Button stop=button(activity,"Stop / revoke companion",session.companion::stop);stop.setTag("kanta.companion.stop");body.addView(stop);
     EditText search=input(activity,"Search host songs by title, artist or code");search.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(128)});body.addView(search);
     EditText singer=input(activity,"Singer name (optional)");singer.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(80)});body.addView(singer);
-    body.addView(button(activity,"Search host",()->session.companion.send("search",search.getText().toString(),"")));
+    Button searchButton=button(activity,"Search host",()->session.companion.send("search",search.getText().toString().trim(),""));
+    searchButton.setTag("kanta.companion.search");body.addView(searchButton);
     LinearLayout transport=new LinearLayout(activity);
     Button playPause=button(activity,"Play / Pause",()->session.companion.send(session.companion.remote!=null&&session.companion.remote.optBoolean("playing")?"pause":"play","",""));
     transport.addView(playPause);transport.addView(button(activity,"Next",()->session.companion.send("next","","")));
@@ -47,6 +48,8 @@ final class CompanionDialog {
       playPause.setText(session.companion.remote!=null&&session.companion.remote.optBoolean("playing")?"Pause":"Play");
       status.setText(session.companion.status);pairing.setText(session.companion.pairing.isEmpty()?"":"Private pairing code\n"+session.companion.pairing);
       host.setEnabled(!addresses.isEmpty()&&!session.companion.enabled());join.setEnabled(!session.companion.enabled());
+      searchButton.setEnabled(session.companion.client()&&!search.getText().toString().trim().isEmpty());
+      playPause.setEnabled(session.companion.client()&&session.companion.remote!=null);
       results.removeAllViews();JSONObject remote=session.companion.remote;
       current.setText(remote==null?"Search and controls above apply only to the connected host.":remote.optString("current")+(remote.optBoolean("playing")?" · Playing":" · Paused"));
       if(remote==null)return;
@@ -64,6 +67,11 @@ final class CompanionDialog {
         results.addView(button(activity,"Cancel reservation",()->session.companion.send("cancel",entry.optString("id"),"")));
       }
     };
+    search.addTextChangedListener(new android.text.TextWatcher(){
+      public void beforeTextChanged(CharSequence text,int start,int count,int after){}
+      public void onTextChanged(CharSequence text,int start,int before,int count){refresh.run();}
+      public void afterTextChanged(android.text.Editable text){}
+    });
     session.companion.changed=refresh;
     dialog.setOnDismissListener(d->{if(session.companion.changed==refresh)session.companion.changed=null;code.setText("");});
     dialog.show();
