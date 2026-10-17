@@ -1,8 +1,34 @@
 import SwiftUI
 
+// Serializes top-level presentation requests across stage, host and navigation.
+@MainActor
+final class KantaPresentationGate: ObservableObject {
+    enum Owner: Equatable { case navigation, host, stage, fullscreen }
+    @Published private(set) var owner: Owner?
+    @Published private(set) var dismissing = false
+
+    func acquire(_ requested: Owner) -> Bool {
+        guard owner == nil && !dismissing else { return false }
+        owner = requested
+        return true
+    }
+
+    func beginDismissal(_ requested: Owner) {
+        guard owner == requested else { return }
+        dismissing = true
+    }
+
+    func completeDismissal(_ requested: Owner) {
+        guard owner == requested else { return }
+        owner = nil
+        dismissing = false
+    }
+}
+
 @MainActor
 struct RootView: View {
     @ObservedObject var services: AppServices
+    @StateObject private var presentationGate = KantaPresentationGate()
     @Environment(\.scenePhase) private var scenePhase
     @State private var sheetRoute: Route = .menu
     @State private var activeNavigation: NavigationSheet? = nil
@@ -28,8 +54,9 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, navigationSheetPresented: activeNavigation != nil, onOpenNavigation: {
+            HostView(services: services, presentationGate: presentationGate, navigationSheetPresented: activeNavigation != nil, onOpenNavigation: {
                 guard activeNavigation == nil && !navigationDismissing else { return }
+                guard presentationGate.acquire(.navigation) else { return }
                 sheetRoute = .menu
                 activeNavigation = .navigation
             })
@@ -41,6 +68,7 @@ struct RootView: View {
         .sheet(item: $activeNavigation, onDismiss: {
             sheetRoute = .menu
             navigationDismissing = false
+            presentationGate.completeDismissal(.navigation)
         }) {
             _ in
             NavigationStack {
@@ -50,6 +78,7 @@ struct RootView: View {
                             Button("Done") {
                                 guard !navigationDismissing else { return }
                                 navigationDismissing = true
+                                presentationGate.beginDismissal(.navigation)
                                 activeNavigation = nil
                             }
                             .accessibilityIdentifier("navigation.done")
