@@ -17,9 +17,10 @@ def verify():
     test = TEST.read_text()
     checks = {
         'root owns navigation sheet identity': '.sheet(item: $activeNavigation' in root and 'onDismiss:' in root,
-        'root rejects overlapping menu presentations': (
-            'guard activeNavigation == nil && !navigationDismissing else { return }' in root
-            and 'guard presentationGate.acquire(.navigation) else { return }' in root),
+        'root queues menu requests through the shared presentation gate': (
+            'guard activeNavigation == nil else { return }' in root
+            and 'presentationGate.request(.navigation)' in root
+            and 'func request(_ requested: Owner' in root),
         'host receives navigation presentation state': 'navigationSheetPresented: activeNavigation != nil' in root and 'navigationSheetPresented' in host,
         'single authoritative navigation state': 'navigationPresentation' not in root and 'navigationTransition' not in root,
         'host uses one sheet coordinator': '.sheet(item: $activeHostSheet' in host and 'showingHostControls' not in host,
