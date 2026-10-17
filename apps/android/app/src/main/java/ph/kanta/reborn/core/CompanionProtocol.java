@@ -169,6 +169,8 @@ public final class CompanionProtocol {
     public byte[] encode() throws IOException {
       if (!Arrays.asList("snapshot", "search", "reserve", "cancel", "play", "pause", "next").contains(action))
         throw new IOException("Unsupported command");
+      if ("search".equals(action) && (argument == null || argument.trim().isEmpty()))
+        throw new IOException("Empty search command");
       ByteArrayOutputStream bytes=new ByteArrayOutputStream(); DataOutputStream out=new DataOutputStream(bytes);
       out.writeLong(id.getMostSignificantBits()); out.writeLong(id.getLeastSignificantBits());
       field(out, action, 16); field(out, argument, 128); field(out, singer, 80);
