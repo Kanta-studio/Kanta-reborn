@@ -12,6 +12,7 @@ struct SingingFullscreenPresentation: UIViewControllerRepresentable {
     let backgroundsEnabled: Bool
     let selectedPreset: KantaBuiltInVisualPreset
     let camera: KantaCameraBackground
+    let presentationGate: KantaPresentationGate
     let microphoneBusy: Bool
 
     func makeUIViewController(context: Context) -> SingingModalPresenter {
@@ -31,6 +32,7 @@ struct SingingFullscreenPresentation: UIViewControllerRepresentable {
                     selectedPreset: selectedPreset,
                     onExit: { isPresented = false },
                     camera: camera,
+                    presentationGate: presentationGate,
                     microphoneBusy: microphoneBusy
                 )
                 let controller = SingingRotationHostingController(rootView: screen)

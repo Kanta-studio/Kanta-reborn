@@ -8,6 +8,7 @@ struct FullscreenKaraokePlayerView: View {
     let selectedPreset: KantaBuiltInVisualPreset
     let onExit: () -> Void
     @ObservedObject var camera: KantaCameraBackground
+    @ObservedObject var presentationGate: KantaPresentationGate
     var microphoneBusy = false
     @State private var singerName = ""
 
@@ -20,7 +21,7 @@ struct FullscreenKaraokePlayerView: View {
 
     var body: some View {
         KantaMainPlayerView(
-            model: model, camera: camera,
+            model: model, camera: camera, presentationGate: presentationGate,
             backgroundsEnabled: backgroundsEnabled,
             selectedPreset: selectedPreset,
             singerName: $singerName,

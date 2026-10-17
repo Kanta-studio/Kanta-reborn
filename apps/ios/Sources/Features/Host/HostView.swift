@@ -108,6 +108,7 @@ struct HostView: View {
                 backgroundsEnabled: settings.stageVisualsEnabled,
                 selectedPreset: settings.selectedVisualPreset,
                 camera: camera,
+                presentationGate: presentationGate,
                 microphoneBusy: microphonePitchMonitor.status == .running
                     || microphonePitchMonitor.status == .requestingPermission
             )

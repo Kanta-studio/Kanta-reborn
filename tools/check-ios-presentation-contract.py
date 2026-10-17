@@ -12,6 +12,8 @@ def verify():
     root = (APP / 'App/RootView.swift').read_text()
     host = (APP / 'Features/Host/HostView.swift').read_text()
     stage = (APP / 'Features/Host/KantaMainPlayerView.swift').read_text()
+    fullscreen = (APP / 'Features/Host/FullscreenKaraokePlayerView.swift').read_text()
+    fullscreen_presenter = (APP / 'Features/Host/SingingFullscreenPresentation.swift').read_text()
     test = TEST.read_text()
     checks = {
         'root owns navigation sheet identity': '.sheet(item: $activeNavigation' in root and 'onDismiss:' in root,
@@ -22,6 +24,12 @@ def verify():
         'single authoritative navigation state': 'navigationPresentation' not in root and 'navigationTransition' not in root,
         'host uses one sheet coordinator': '.sheet(item: $activeHostSheet' in host and 'showingHostControls' not in host,
         'stage uses one sheet coordinator': '.sheet(item: $activeStageSheet' in stage and 'showingSearch' not in stage and 'showingQueue' not in stage,
+        'fullscreen reuses host presentation gate': (
+            'presentationGate: presentationGate' in host
+            and 'presentationGate: presentationGate' in fullscreen_presenter
+            and 'presentationGate: presentationGate' in fullscreen
+            and '@ObservedObject var presentationGate: KantaPresentationGate' in fullscreen
+        ),
         'playback does not mutate root navigation': 'snapshot.transport' not in root,
         'real playback walkthrough': 'func testStarterPlaybackAndControls()' in test,
         'library dismissal then search coverage': 'Search did not present the keypad after library dismissal' in test,
