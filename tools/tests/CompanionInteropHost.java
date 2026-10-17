@@ -1,10 +1,19 @@
 import ph.kanta.reborn.core.CompanionProtocol;
 import java.net.*;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /** Synthetic Java peer using the unmodified production Android codec, never a user catalog. */
 public final class CompanionInteropHost {
+  private static final class FragmentingOutput extends FilterOutputStream {
+    FragmentingOutput(OutputStream output) { super(output); }
+    @Override public void write(byte[] bytes, int offset, int length) throws IOException {
+      for (int i = 0; i < length; i++) out.write(bytes[offset + i]);
+      out.flush();
+    }
+  }
+
   public static void main(String[] args) throws Exception {
     try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getByName("127.0.0.1"))) {
       server.setSoTimeout(10000);
@@ -12,7 +21,7 @@ public final class CompanionInteropHost {
       try (Socket socket = server.accept()) {
         socket.setSoTimeout(5000);
         try (CompanionProtocol.Channel channel = CompanionProtocol.handshake(
-            socket.getInputStream(), socket.getOutputStream(), "000102030405060708090a0b0c0d0e0f", true)) {
+            socket.getInputStream(), new FragmentingOutput(socket.getOutputStream()), "000102030405060708090a0b0c0d0e0f", true)) {
           CompanionProtocol.Replay replay = new CompanionProtocol.Replay();
           List<UUID> reservations = new ArrayList<>();
           boolean playing = false;
