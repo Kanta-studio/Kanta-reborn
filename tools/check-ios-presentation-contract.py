@@ -14,10 +14,11 @@ def verify():
     stage = (APP / 'Features/Host/KantaMainPlayerView.swift').read_text()
     test = TEST.read_text()
     checks = {
-        'root tracks navigation lifecycle': 'navigationPresentation' in root and 'onDismiss:' in root,
-        'root rejects overlapping menu presentations': 'guard navigationPresentation == .idle else { return }' in root,
-        'host receives navigation presentation state': 'navigationSheetPresented: navigationPresentation != .idle' in root and 'navigationSheetPresented' in host,
-        'single authoritative navigation state': '@State private var isSheetPresented' not in root and 'navigationTransition' not in root,
+        'root tracks navigation lifecycle': 'navigationSession' in root and '.sheet(item: $navigationSession' in root,
+        'root rejects overlapping menu presentations': 'guard navigationSession == nil else { return }' in root,
+        'host receives navigation presentation state': 'navigationSheetPresented: navigationSession != nil' in root and 'navigationSheetPresented' in host,
+        'single authoritative navigation state': 'navigationPresentation' not in root and 'isSheetPresented' not in root,
+        'done releases navigation session': 'navigationSession = nil' in root,
         'playback does not mutate root navigation': 'snapshot.transport' not in root,
         'real playback walkthrough': 'func testStarterPlaybackAndControls()' in test,
         'library dismissal then search coverage': 'Search did not present the keypad after library dismissal' in test,
