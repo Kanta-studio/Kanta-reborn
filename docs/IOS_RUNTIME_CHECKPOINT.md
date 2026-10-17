@@ -24,3 +24,8 @@ The IPA is a separate personal-signing input with iCloud capabilities omitted. I
 **Candidate repair:** commit `ceafa768744c21e24a3ebe9b301eea814b7f42f2` queues one pending request per owner and activates it from `completeDismissal`; Root, Host and Stage now submit their sheet actions through that API. The existing walkthrough remains a one-tap regression. No assertions were removed and no waits/retries were added.
 
 **Validation:** candidate. PR #36 reconstruction run `39024475624` passed the prior head `5d81f5d1addd9731c862d45c7a11308e1814a3f4`; it does not validate this commit. Current-head Swift compilation, package tests and iPhone/iPad walkthroughs remain pending. The exact original failure mechanism is still unconfirmed. Fullscreen UIKit coordination remains open.
+
+
+## Fullscreen presentation-gate integration candidate — 2026-10-17
+
+PR #36 now routes UIKit fullscreen acquisition and dismissal through the shared main-actor presentation gate. CONTROL-to-fullscreen handoff is queued before CONTROL releases its sheet owner. Search and Queue remain usable within fullscreen through a nested stage slot that restores the fullscreen parent after sheet dismissal. UIKit ownership is released only after the player dismissal completion callback. The walkthrough now exercises Search within fullscreen and again after exit. Current-head compilation, iPhone/iPad runtime and unsigned IPA remain pending; this is not runtime acceptance.

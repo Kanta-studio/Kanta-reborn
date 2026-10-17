@@ -101,6 +101,7 @@ struct FullscreenKaraokePlayerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Exit fullscreen player")
+        .accessibilityIdentifier("fullscreen.exit")
     }
 
     private func requestOrientation(

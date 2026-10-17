@@ -77,15 +77,17 @@ struct HostView: View {
             onMore: onOpenNavigation
         )
         .sheet(item: $activeHostSheet, onDismiss: {
-            presentationGate.completeDismissal(.host)
             if dismissedHostSheet == .sessionSave {
                 model.showingSessionSavePrompt = false
             }
             dismissedHostSheet = nil
             if pendingFullscreen {
                 pendingFullscreen = false
-                showingFullscreenPlayer = true
+                // Queue fullscreen before releasing CONTROL so the gate owns the
+                // transition continuously, including while the sheet animates out.
+                presentationGate.request(.fullscreen) { showingFullscreenPlayer = true }
             }
+            presentationGate.completeDismissal(.host)
         }) { sheet in
             switch sheet {
             case .controls:

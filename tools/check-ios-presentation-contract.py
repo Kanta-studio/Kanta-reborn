@@ -28,8 +28,20 @@ def verify():
         'fullscreen reuses host presentation gate': (
             'presentationGate: presentationGate' in host
             and 'presentationGate: presentationGate' in fullscreen_presenter
-            and 'presentationGate: presentationGate' in fullscreen
             and '@ObservedObject var presentationGate: KantaPresentationGate' in fullscreen
+        ),
+        'fullscreen is gate-owned through UIKit dismissal callback': (
+            'presentationGate.request(.fullscreen)' in fullscreen_presenter
+            and 'presentationGate.beginDismissal(.fullscreen)' in fullscreen_presenter
+            and 'presentationGate?.completeDismissal(.fullscreen)' in fullscreen_presenter
+            and 'self?.finishDismissal()' in fullscreen_presenter
+        ),
+        'fullscreen child sheets restore parent ownership': (
+            'fullscreenChildActive' in root and 'owner = .fullscreen' in root and 'requested == .stage' in root
+        ),
+        'fullscreen nested presentation regression coverage': (
+            'Search did not present inside fullscreen' in test
+            and 'Fullscreen dismissal did not release stage presentation ownership' in test
         ),
         'playback does not mutate root navigation': 'snapshot.transport' not in root,
         'real playback walkthrough': 'func testStarterPlaybackAndControls()' in test,

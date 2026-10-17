@@ -190,3 +190,8 @@ RemoteView's encrypted `NavigationLink` now uses the native navigation tap witho
 ## iOS presentation ownership — candidate repair (2026-10-17)
 
 Root, Host and Stage now route SwiftUI sheet requests through one main-actor gate. Requests are retained by owner while another sheet is transitioning and activated only after its `onDismiss` callback; duplicate queued requests from the same owner are coalesced. This addresses the one-tap Search race after Library dismissal without changing the playback controller or FIFO. UIKit fullscreen presentation still has independent lifecycle ownership and remains an open coordinator integration. Simulator walkthroughs on this source head are required before this candidate is considered verified.
+
+
+## iOS presentation-gate candidate (2026-10-17)
+
+The shared main-actor gate now serializes navigation, Host and Stage sheets, and UIKit fullscreen requests. Fullscreen Search/Queue are modeled as a child stage owner: dismissing the child restores fullscreen ownership, while dismissing the UIKit player releases ownership only from its actual completion callback. Requests arriving during dismissal remain queued by owner. The presenter dismisses only the player controller it created. This is still a candidate until changed-source compilation and complete iPhone/iPad walkthroughs pass.

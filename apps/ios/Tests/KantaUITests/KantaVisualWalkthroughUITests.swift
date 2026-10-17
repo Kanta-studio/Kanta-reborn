@@ -90,6 +90,23 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
             app.swipeUp()
             capture("08-real-controls-\(index)", app)
         }
+        let openFullscreen = app.buttons["Open fullscreen player"]
+        for _ in 0..<8 where !openFullscreen.isHittable { app.swipeUp() }
+        XCTAssertTrue(openFullscreen.isHittable)
+        openFullscreen.tap()
+        let fullscreenExit = app.buttons["fullscreen.exit"]
+        XCTAssertTrue(fullscreenExit.waitForExistence(timeout: waitSeconds))
+        let fullscreenSearch = app.buttons["stage.search"]
+        XCTAssertTrue(fullscreenSearch.waitForExistence(timeout: waitSeconds))
+        fullscreenSearch.tap()
+        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Search did not present inside fullscreen")
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(fullscreenExit.waitForExistence(timeout: 5))
+        fullscreenExit.tap()
+        XCTAssertTrue(search.waitForExistence(timeout: waitSeconds))
+        search.tap()
+        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Fullscreen dismissal did not release stage presentation ownership")
+        app.buttons["Cancel"].tap()
     }
 
     @MainActor

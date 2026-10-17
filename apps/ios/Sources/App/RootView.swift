@@ -1,20 +1,23 @@
 import SwiftUI
 
-// Serializes top-level presentation requests across stage, host and navigation.
+// Serializes app presentations and tracks the stage sheet nested inside fullscreen.
 @MainActor
 final class KantaPresentationGate: ObservableObject {
     enum Owner: Equatable { case navigation, host, stage, fullscreen }
     @Published private(set) var owner: Owner?
     @Published private(set) var dismissing = false
-
-    private struct PendingRequest {
-        let owner: Owner
-        let action: @MainActor () -> Void
-    }
-
+    private struct PendingRequest { let owner: Owner; let action: @MainActor () -> Void }
     private var pendingRequests: [PendingRequest] = []
+    private var fullscreenChildActive = false
+    private var fullscreenDismissalRequested = false
 
     func request(_ requested: Owner, action: @escaping @MainActor () -> Void) {
+        if owner == .fullscreen, requested == .stage, !dismissing {
+            owner = .stage
+            fullscreenChildActive = true
+            action()
+            return
+        }
         guard owner == nil && !dismissing else {
             guard !pendingRequests.contains(where: { $0.owner == requested }) else { return }
             pendingRequests.append(PendingRequest(owner: requested, action: action))
@@ -25,14 +28,40 @@ final class KantaPresentationGate: ObservableObject {
     }
 
     func beginDismissal(_ requested: Owner) {
-        guard owner == requested else { return }
-        dismissing = true
+        if owner == requested { dismissing = true; return }
+        if requested == .fullscreen, owner == .stage, fullscreenChildActive {
+            fullscreenDismissalRequested = true
+            dismissing = true
+        }
     }
 
     func completeDismissal(_ requested: Owner) {
+        if requested == .stage, owner == .stage, fullscreenChildActive {
+            owner = .fullscreen
+            fullscreenChildActive = false
+            dismissing = fullscreenDismissalRequested
+            fullscreenDismissalRequested = false
+            return
+        }
+        if requested == .fullscreen, owner == .stage, fullscreenChildActive {
+            owner = nil
+            fullscreenChildActive = false
+            fullscreenDismissalRequested = false
+            dismissing = false
+            activateNextRequest()
+            return
+        }
         guard owner == requested else { return }
         owner = nil
         dismissing = false
+        if requested == .fullscreen {
+            fullscreenChildActive = false
+            fullscreenDismissalRequested = false
+        }
+        activateNextRequest()
+    }
+
+    private func activateNextRequest() {
         guard !pendingRequests.isEmpty else { return }
         let next = pendingRequests.removeFirst()
         owner = next.owner

@@ -204,3 +204,8 @@ Android companion implementation, automated acceptance, original-byte packaging 
 ## Active iOS presentation repair — 2026-10-17
 
 Repository: `kanta-gelo/Kanta-reborn`, PR #36, branch `fix/ios-modal-ownership-preflight-20261017`. Candidate source commit: `27fed3a92416f0efce221f6bb9ad4c8c712a9f83`. RootView, HostView and KantaMainPlayerView share `KantaPresentationGate`; it queues one pending request per owner through a dismissal callback so a Search tap during the Library sheet transition is not discarded. Existing UI coverage exercises More → Library → play starter → Done → one-tap Search → keypad → Cancel → CONTROL. This is source-level reasoning only until the current head passes both iPhone and iPad UI walkthroughs. UIKit fullscreen ownership remains separate and unverified. No IPA, merge or deployment is established.
+
+
+### iOS presentation lifecycle update — 2026-10-17 candidate
+
+PR #36 now covers the previously separate UIKit fullscreen player in the shared presentation-gate candidate. The gate models Search/Queue presented inside fullscreen as a nested stage owner, restores fullscreen on child dismissal, and releases fullscreen only after UIKit's dismissal callback. The UI walkthrough adds nested Search and post-exit Search checks. Current-head CI and iPhone/iPad runtime evidence are still required; no release verification is implied.
