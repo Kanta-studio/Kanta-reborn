@@ -105,7 +105,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         let openFullscreen = app.buttons["controls.openFullscreen"]
         XCTAssertTrue(
             openFullscreen.waitForExistence(timeout: waitSeconds),
-            "The fullscreen action must stay available in the CONTROL toolbar"
+            "The fullscreen action must remain available in the CONTROL bottom action area"
         )
         XCTAssertTrue(openFullscreen.isHittable)
         openFullscreen.tap()
