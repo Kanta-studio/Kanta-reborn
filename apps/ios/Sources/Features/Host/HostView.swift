@@ -71,7 +71,9 @@ struct HostView: View {
             singerName: $singerName,
             microphoneBusy: microphonePitchMonitor.status == .running
                 || microphonePitchMonitor.status == .requestingPermission,
-            onControls: { if presentationGate.acquire(.host) { activeHostSheet = .controls } },
+            onControls: {
+                presentationGate.request(.host) { activeHostSheet = .controls }
+            },
             onMore: onOpenNavigation
         )
         .sheet(item: $activeHostSheet, onDismiss: {
@@ -185,13 +187,13 @@ struct HostView: View {
             }
         }
         .onChange(of: model.showingSessionSavePrompt) { _, pending in
-            if pending && !navigationSheetPresented && activeHostSheet == nil && presentationGate.acquire(.host) {
-                activeHostSheet = .sessionSave
+            if pending && !navigationSheetPresented && activeHostSheet == nil {
+                presentationGate.request(.host) { activeHostSheet = .sessionSave }
             }
         }
         .onChange(of: navigationSheetPresented) { _, presented in
-            if !presented && model.showingSessionSavePrompt && activeHostSheet == nil && presentationGate.acquire(.host) {
-                activeHostSheet = .sessionSave
+            if !presented && model.showingSessionSavePrompt && activeHostSheet == nil {
+                presentationGate.request(.host) { activeHostSheet = .sessionSave }
             }
         }
         .onDisappear {
@@ -336,7 +338,7 @@ struct HostView: View {
                 .disabled(model.currentSessionSongCount == 0)
 
                 Button {
-                    if presentationGate.acquire(.host) { activeHostSheet = .favorites }
+                    presentationGate.request(.host) { activeHostSheet = .favorites }
                 } label: {
                     Label(
                         "Saved Favorites (\(model.savedFavorites.count))",

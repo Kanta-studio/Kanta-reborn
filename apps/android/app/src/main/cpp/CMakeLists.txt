@@ -1,6 +1,0 @@
-cmake_minimum_required(VERSION 3.22.1)
-project(kanta_audio C)
-set(CMAKE_C_STANDARD 11)
-add_library(kanta_audio SHARED soundfont.c soundfont-jni.c)
-target_compile_options(kanta_audio PRIVATE -Wall -Wextra)
-target_link_libraries(kanta_audio m)

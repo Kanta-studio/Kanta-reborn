@@ -163,13 +163,13 @@ struct KantaMainPlayerView: View {
     }
     private var searchButton: some View {
         stageButton("Search", icon: "magnifyingglass") {
-            if presentationGate.acquire(.stage) { activeStageSheet = .search }
+            presentationGate.request(.stage) { activeStageSheet = .search }
         }
             .accessibilityIdentifier("stage.search")
     }
     private var queueButton: some View {
         stageButton("Queue", icon: "list.bullet") {
-            if presentationGate.acquire(.stage) { activeStageSheet = .queue }
+            presentationGate.request(.stage) { activeStageSheet = .queue }
         }
             .accessibilityValue("\(model.snapshot.queue.count) reservations")
     }

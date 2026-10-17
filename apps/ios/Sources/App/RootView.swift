@@ -7,10 +7,21 @@ final class KantaPresentationGate: ObservableObject {
     @Published private(set) var owner: Owner?
     @Published private(set) var dismissing = false
 
-    func acquire(_ requested: Owner) -> Bool {
-        guard owner == nil && !dismissing else { return false }
+    private struct PendingRequest {
+        let owner: Owner
+        let action: @MainActor () -> Void
+    }
+
+    private var pendingRequests: [PendingRequest] = []
+
+    func request(_ requested: Owner, action: @escaping @MainActor () -> Void) {
+        guard owner == nil && !dismissing else {
+            guard !pendingRequests.contains(where: { $0.owner == requested }) else { return }
+            pendingRequests.append(PendingRequest(owner: requested, action: action))
+            return
+        }
         owner = requested
-        return true
+        action()
     }
 
     func beginDismissal(_ requested: Owner) {
@@ -22,6 +33,10 @@ final class KantaPresentationGate: ObservableObject {
         guard owner == requested else { return }
         owner = nil
         dismissing = false
+        guard !pendingRequests.isEmpty else { return }
+        let next = pendingRequests.removeFirst()
+        owner = next.owner
+        next.action()
     }
 }
 
@@ -55,10 +70,11 @@ struct RootView: View {
     var body: some View {
         NavigationStack {
             HostView(services: services, presentationGate: presentationGate, navigationSheetPresented: activeNavigation != nil, onOpenNavigation: {
-                guard activeNavigation == nil && !navigationDismissing else { return }
-                guard presentationGate.acquire(.navigation) else { return }
-                sheetRoute = .menu
-                activeNavigation = .navigation
+                guard activeNavigation == nil else { return }
+                presentationGate.request(.navigation) {
+                    sheetRoute = .menu
+                    activeNavigation = .navigation
+                }
             })
                 .toolbar(.hidden, for: .navigationBar)
         }
