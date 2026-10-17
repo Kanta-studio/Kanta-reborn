@@ -98,3 +98,12 @@ The presentation contract guard checks that the UIKit fullscreen presenter acqui
 ## Automatic workflow triggers and release boundary
 
 Reconstruction validation runs for relevant app, tool and workflow changes on feature/main pushes and pull requests. iOS runtime, website and verified-download contract checks also run on relevant feature-branch pushes so a PR does not need a manually applied label to start. iOS simulator walkthroughs follow relevant same-repository pull requests and successful main reconstruction runs. Website validation runs for relevant website changes. Verified-download contract tests run automatically; packaging the fixed, previously accepted IPA/APK artifacts still requires owner dispatch or the packaging label. No workflow signs, merges, deploys or publishes production downloads automatically.
+
+## CI separation: fast validation, unsigned artifacts and visual acceptance
+
+- `reconstruction-validation.yml` remains the required PR source, Swift package, simulator-build, and Android validation gate. It does not execute the long XCTest UI walkthrough.
+- `ios-runtime-artifacts.yml` builds the unsigned personal-signing IPA independently on relevant iOS changes or manual dispatch. Its success proves packaging, not simulator interactions, signing, or installability.
+- `ios-visual-walkthrough.yml` runs the full four-case XCTest walkthrough separately on both iPhone and iPad, with screenshots, recordings and failure diagnostics. It is manually dispatchable, scheduled weekly (Monday 03:00 Asia/Manila), and triggered by `ios-rc-*` tags. It does not run on ordinary pull requests or documentation commits.
+- A release candidate requires a successful visual walkthrough on the **exact candidate SHA**; weekly or unrelated-commit green evidence cannot substitute for release acceptance. CI does not sign, publish or deploy.
+- Focused simulator smoke testing on navigation-changing PRs is a follow-up gate, not yet an implemented separate suite. Do not claim smoke coverage from compile-only checks.
+- This split deliberately prevents the expensive walkthrough from blocking ordinary merges while keeping the full iPhone/iPad visual acceptance mandatory for release.

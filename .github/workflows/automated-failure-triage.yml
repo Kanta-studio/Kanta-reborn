@@ -4,7 +4,8 @@ on:
     workflows:
       - Verified download packaging (owner-approved)
       - KANTA reconstruction validation
-      - KANTA iOS runtime and unsigned artifacts
+      - KANTA iOS unsigned artifacts
+      - KANTA iOS visual walkthrough
       - KANTA website validation
     types: [completed]
 permissions:
