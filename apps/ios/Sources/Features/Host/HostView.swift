@@ -10,6 +10,7 @@ struct HostView: View {
     let navigationSheetPresented: Bool
     @StateObject private var camera = KantaCameraBackground()
     @State private var pendingFullscreen = false
+    @State private var dismissedHostSheet: HostSheet?
     @State private var activeHostSheet: HostSheet? =
         ProcessInfo.processInfo.environment["KANTA_CONTROL_EXPANDED"] == "1" ? .controls : nil
 
@@ -72,9 +73,10 @@ struct HostView: View {
             onMore: onOpenNavigation
         )
         .sheet(item: $activeHostSheet, onDismiss: {
-            if model.showingSessionSavePrompt {
+            if dismissedHostSheet == .sessionSave {
                 model.showingSessionSavePrompt = false
             }
+            dismissedHostSheet = nil
             if pendingFullscreen {
                 pendingFullscreen = false
                 showingFullscreenPlayer = true
@@ -171,6 +173,11 @@ struct HostView: View {
 
             await model.run()
             intermission.sync(model.snapshot.transport)
+        }
+        .onChange(of: activeHostSheet) { previous, current in
+            if previous != nil && current == nil {
+                dismissedHostSheet = previous
+            }
         }
         .onChange(of: model.showingSessionSavePrompt) { _, pending in
             if pending && !navigationSheetPresented && activeHostSheet == nil {
