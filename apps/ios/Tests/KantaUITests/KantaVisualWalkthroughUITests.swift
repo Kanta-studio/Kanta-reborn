@@ -58,28 +58,80 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.buttons["Song Library"].tap()
         XCTAssertTrue(app.buttons["Done"].firstMatch.waitForExistence(timeout: 5))
         app.buttons["Done"].firstMatch.tap()
+        // LibraryView sets its navigation title to "Library", not "Song Library".
+        // Wait for the actual presented navigation host to leave the hierarchy.
+        let libraryNavigation = app.navigationBars["Library"]
+        let dismissed = NSPredicate(format: "exists == false")
+        expectation(for: dismissed, evaluatedWith: libraryNavigation)
+        waitForExpectations(timeout: 10)
         XCTAssertFalse(app.sliders["Song position"].exists)
         XCTAssertFalse(app.buttons["Previous song"].exists)
+        XCTAssertFalse(app.navigationBars["Save to Favorites"].exists,
+                       "A completed session must not replace Library dismissal with a save sheet")
         let search = app.buttons["stage.search"]
-        waitForRendered(search, in: app)
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
         let keypadZero = app.buttons["stage.keypad.0"]
-        // Sheet dismissal can consume a tap while UIKit finishes its transition.
-        // Retry only the idempotent open action, and still require the real keypad.
-        for _ in 0..<3 {
-            guard !keypadZero.exists else { break }
-            XCTAssertTrue(search.isHittable, "Search is blocked after leaving the library")
-            search.tap()
-            if keypadZero.waitForExistence(timeout: 3) { break }
+        if !search.isHittable {
+            capture("search-blocked-after-library", app)
+            let hierarchy = app.debugDescription
+            let attachment = XCTAttachment(string: hierarchy)
+            attachment.name = "search-blocked-accessibility-hierarchy"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            XCTFail("Search is blocked after leaving the library; accessibility hierarchy attached")
+            return
         }
-        XCTAssertTrue(keypadZero.exists, "Search did not present the keypad after library dismissal")
+        search.tap()
+        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10),
+                      "Search did not present the keypad after library dismissal")
         capture("06-real-search-overlay", app)
         app.buttons["Cancel"].tap()
+        let saveSession = app.buttons["stage.saveSession"]
+        if saveSession.exists {
+            saveSession.tap()
+            XCTAssertTrue(app.navigationBars["Save to Favorites"].waitForExistence(timeout: 5),
+                          "The deferred session must remain available for explicit saving")
+            app.buttons["Don't Save"].tap()
+            let saveSheetGone = NSPredicate(format: "exists == false")
+            expectation(for: saveSheetGone, evaluatedWith: app.navigationBars["Save to Favorites"])
+            waitForExpectations(timeout: 10)
+        }
         app.buttons["stage.controls"].tap()
         capture("07-real-controls", app)
         for index in 0..<3 {
             app.swipeUp()
             capture("08-real-controls-\(index)", app)
         }
+        let openFullscreen = app.buttons["controls.openFullscreen"]
+        XCTAssertTrue(
+            openFullscreen.waitForExistence(timeout: waitSeconds),
+            "The fullscreen action must remain available in the CONTROL bottom action area"
+        )
+        XCTAssertTrue(openFullscreen.isHittable)
+        openFullscreen.tap()
+        let fullscreenExit = app.buttons["fullscreen.exit"]
+        XCTAssertTrue(fullscreenExit.waitForExistence(timeout: waitSeconds))
+        let fullscreenSearch = app.buttons["stage.search"]
+        XCTAssertTrue(fullscreenSearch.waitForExistence(timeout: waitSeconds))
+        fullscreenSearch.tap()
+        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Search did not present inside fullscreen")
+        app.buttons["Cancel"].tap()
+        let fullscreenSearchDismissed = NSPredicate(format: "exists == false")
+        expectation(for: fullscreenSearchDismissed, evaluatedWith: keypadZero)
+        waitForExpectations(timeout: waitSeconds)
+
+        XCTAssertTrue(fullscreenExit.isHittable)
+        fullscreenExit.tap()
+        let fullscreenPlayerDismissed = NSPredicate(format: "exists == false")
+        expectation(for: fullscreenPlayerDismissed, evaluatedWith: fullscreenExit)
+        waitForExpectations(timeout: waitSeconds)
+
+        let stageSearchReady = NSPredicate(format: "exists == true AND hittable == true")
+        expectation(for: stageSearchReady, evaluatedWith: search)
+        waitForExpectations(timeout: waitSeconds)
+        search.tap()
+        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Stage Search must present after the fullscreen player has fully dismissed")
+        app.buttons["Cancel"].tap()
     }
 
     @MainActor
@@ -185,14 +237,12 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         let more = app.buttons["More"].firstMatch
         waitForRendered(more, in: app)
         let item = app.buttons[destination].firstMatch
-        // Opening is idempotent; retry only while the stage remains visible and no menu appeared.
-        for _ in 0..<3 {
-            more.tap()
-            if item.waitForExistence(timeout: 3) { return }
-            guard more.exists && more.isHittable else { break }
+        XCTAssertTrue(more.isHittable, "More is obstructed before opening: " + destination)
+        more.tap()
+        if !item.waitForExistence(timeout: 10) {
+            capture("menu-did-not-present", app)
+            XCTFail("More did not present the requested menu item: " + destination)
         }
-        capture("menu-did-not-present", app)
-        XCTAssertTrue(item.exists, "More did not present the requested menu item: " + destination)
     }
 
     @MainActor

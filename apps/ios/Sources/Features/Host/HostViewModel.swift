@@ -481,18 +481,22 @@ final class HostViewModel: ObservableObject {
     }
 
     private func recordSessionSnapshot(_ current: KaraokeSnapshot) {
-        guard !showingSessionSavePrompt else { return }
         sessionHistory.observe(current)
         currentSessionSongCount = sessionHistory.playedSongs.count
     }
 
     private func presentFinishedSessionIfNeeded() {
-        guard !showingSessionSavePrompt,
-              !sessionHistory.playedSongs.isEmpty else { return }
-        pendingSessionSongs = sessionHistory.finish()
-        pendingSessionSaveID = UUID()
+        guard !sessionHistory.playedSongs.isEmpty else { return }
+        let finishedSongs = sessionHistory.finish()
         currentSessionSongCount = 0
-        showingSessionSavePrompt = true
+        if showingSessionSavePrompt {
+            // Keep later performances while an earlier session is awaiting a save decision.
+            pendingSessionSongs.append(contentsOf: finishedSongs)
+        } else {
+            pendingSessionSongs = finishedSongs
+            pendingSessionSaveID = UUID()
+            showingSessionSavePrompt = true
+        }
     }
 
     @discardableResult

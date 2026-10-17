@@ -51,7 +51,7 @@ Cloud run [38748040876](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/
 
 ## iOS online runtime workflow
 
-The root `ios-runtime-artifacts.yml` runs only by owner manual dispatch or `owner-approved-ios-runtime` label. It builds all Xcode UI tests, executes the complete walkthrough suite on an available iPhone and iPad separately, records each simulator and extracts XCTest attachments even on failures. Stable accessibility IDs identify the requested starter and current song, and predicates wait for actual playback. Logs, results and video remain available for seven days. Only after both walkthroughs pass does it build/package an unsigned iPhoneOS personal-signing input; signing and hardware acceptance remain separate.
+The root `ios-runtime-artifacts.yml` runs automatically for relevant feature-branch iOS pushes, same-repository pull requests and after successful main-branch reconstruction validation. Manual dispatch remains available for a deliberate rerun. It builds all Xcode UI tests, executes the complete walkthrough suite on an available iPhone and iPad separately, records each simulator and extracts XCTest attachments even on failures. Stable accessibility IDs identify the requested starter and current song, and predicates wait for actual playback. Logs, results and video remain available for seven days. Only after both walkthroughs pass does it build/package an unsigned iPhoneOS personal-signing input; signing and hardware acceptance remain separate.
 
 Android runtime fixtures live in the test APK behind a signature permission declared only by debug builds. The read-only provider exposes synthetic/original starter bytes and a bounded cyclic SAF tree; no user storage is exposed. Instrumentation checks nested traversal, partial failure, cancellation rollback/reopen, byte integrity, real controller import, custom pad decode/reset and idle intermission gating. Fixture code is excluded from release builds.
 
@@ -83,3 +83,18 @@ RootView passes navigation-sheet visibility to HostView. The automatic completed
 ## Post-navigation keypad transition regression
 
 The real playback walkthrough waits for a rendered stage Search button after closing the Song Library sheet. UIKit can consume a touch during sheet dismissal, so the harness retries only the idempotent action to open Search (maximum three attempts). It still fails if the stage is blocked or the actual numbered keypad never appears; no assertions are skipped. Both iPhone and iPad must pass on the final commit.
+
+
+## iOS modal request lifecycle
+
+The Root, Host and Stage SwiftUI sheet owners share `KantaPresentationGate`. The gate holds a request received while another sheet is presented or dismissing, coalesces a second pending request from the same owner, and activates the first pending action only after the current owner reports `onDismiss`. The Search walkthrough deliberately taps once after leaving Library; do not add retries or fixed sleeps to mask a dropped presentation request. UIKit fullscreen remains a separately owned presenter and is not covered by this gate yet.
+
+
+### iOS fullscreen presentation ownership candidate
+
+The presentation contract guard checks that the UIKit fullscreen presenter acquires and releases `KantaPresentationGate` ownership through its dismissal callback, and that the gate restores fullscreen after a nested Search/Queue sheet. The UI walkthrough opens fullscreen from CONTROL, uses Search inside fullscreen, exits, and verifies normal-stage Search can present afterward. Run `tools/check-ios-presentation-contract.py` and the full reconstruction validation on the candidate SHA. A green run on a different SHA does not validate it.
+
+
+## Automatic workflow triggers and release boundary
+
+Reconstruction validation runs for relevant app, tool and workflow changes on feature/main pushes and pull requests. iOS runtime, website and verified-download contract checks also run on relevant feature-branch pushes so a PR does not need a manually applied label to start. iOS simulator walkthroughs follow relevant same-repository pull requests and successful main reconstruction runs. Website validation runs for relevant website changes. Verified-download contract tests run automatically; packaging the fixed, previously accepted IPA/APK artifacts still requires owner dispatch or the packaging label. No workflow signs, merges, deploys or publishes production downloads automatically.

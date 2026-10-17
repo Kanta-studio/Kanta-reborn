@@ -2,9 +2,10 @@ name: Automated CI failure triage
 on:
   workflow_run:
     workflows:
-      - Owner-approved reconstruction validation
-      - Owner-approved iOS runtime and unsigned artifacts
-      - Owner-approved website validation
+      - Verified download packaging (owner-approved)
+      - KANTA reconstruction validation
+      - KANTA iOS runtime and unsigned artifacts
+      - KANTA website validation
     types: [completed]
 permissions:
   actions: read

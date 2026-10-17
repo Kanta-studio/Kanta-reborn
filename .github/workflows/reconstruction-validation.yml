@@ -1,22 +1,21 @@
-name: Owner-approved reconstruction validation
+name: KANTA reconstruction validation
 on:
   workflow_dispatch:
   push:
-    branches: [main]
     paths:
       - 'apps/**'
       - 'tools/**'
-      - '.github/workflows/reconstruction-validation.yml'
+      - '.github/workflows/**'
   pull_request:
     types: [opened, synchronize, reopened, labeled]
     paths:
       - 'apps/**'
       - 'tools/**'
-      - '.github/workflows/reconstruction-validation.yml'
+      - '.github/workflows/**'
 permissions:
   contents: read
 concurrency:
-  group: reconstruction-${{ github.event.pull_request.number || github.ref }}
+  group: reconstruction-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   android:

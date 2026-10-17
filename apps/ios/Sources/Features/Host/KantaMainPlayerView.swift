@@ -6,15 +6,21 @@ import SwiftUI
 struct KantaMainPlayerView: View {
     @ObservedObject var model: HostViewModel
     @ObservedObject var camera: KantaCameraBackground
+    @ObservedObject var presentationGate: KantaPresentationGate
     let backgroundsEnabled: Bool
     let selectedPreset: KantaBuiltInVisualPreset
     @Binding var singerName: String
     var microphoneBusy = false
     var onControls: () -> Void = {}
     var onMore: () -> Void = {}
+    var onSaveSession: () -> Void = {}
     @Environment(\.scenePhase) private var scenePhase
-    @State private var showingSearch = false
-    @State private var showingQueue = false
+    @State private var activeStageSheet: StageSheet?
+
+    private enum StageSheet: String, Identifiable {
+        case search, queue
+        var id: String { rawValue }
+    }
     @State private var transportBusy = false
 
     var body: some View {
@@ -58,6 +64,12 @@ struct KantaMainPlayerView: View {
                             Text(notice).font(.caption2).lineLimit(2)
                         }
                         Spacer(minLength: 8)
+                        if model.showingSessionSavePrompt {
+                            Button("Save session", action: onSaveSession)
+                                .font(.caption.weight(.semibold))
+                                .buttonStyle(.bordered)
+                                .accessibilityIdentifier("stage.saveSession")
+                        }
                         KantaStageWatermark()
                     }
                 }
@@ -68,20 +80,26 @@ struct KantaMainPlayerView: View {
             .foregroundStyle(.white)
         }
         .background(.black)
-        .sheet(isPresented: $showingSearch) {
-            GeometryReader { geometry in
-                KantaStageSearchView(model: model, singerName: $singerName,
-                                     microphoneBusy: microphoneBusy,
-                                     onClose: { showingSearch = false })
-                    .padding(12)
-                    .frame(maxWidth: 760, maxHeight: .infinity)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(GeloVisualStyle.pageBackground)
+        .sheet(item: $activeStageSheet, onDismiss: {
+            presentationGate.completeDismissal(.stage)
+        }) { sheet in
+            switch sheet {
+            case .search:
+                GeometryReader { geometry in
+                    KantaStageSearchView(model: model, singerName: $singerName,
+                                         microphoneBusy: microphoneBusy,
+                                         onClose: { presentationGate.beginDismissal(.stage); activeStageSheet = nil })
+                        .padding(12)
+                        .frame(maxWidth: 760, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(GeloVisualStyle.pageBackground)
+                }
+                .preferredColorScheme(.dark)
+                .presentationDetents([.large])
+            case .queue:
+                queueSheet
             }
-            .preferredColorScheme(.dark)
-            .presentationDetents([.large])
         }
-        .sheet(isPresented: $showingQueue) { queueSheet }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { camera.stop() }
         }
@@ -151,11 +169,15 @@ struct KantaMainPlayerView: View {
         }
     }
     private var searchButton: some View {
-        stageButton("Search", icon: "magnifyingglass") { showingSearch = true }
+        stageButton("Search", icon: "magnifyingglass") {
+            presentationGate.request(.stage) { activeStageSheet = .search }
+        }
             .accessibilityIdentifier("stage.search")
     }
     private var queueButton: some View {
-        stageButton("Queue", icon: "list.bullet") { showingQueue = true }
+        stageButton("Queue", icon: "list.bullet") {
+            presentationGate.request(.stage) { activeStageSheet = .queue }
+        }
             .accessibilityValue("\(model.snapshot.queue.count) reservations")
     }
     private var cameraButton: some View {
@@ -233,7 +255,7 @@ struct KantaMainPlayerView: View {
             }
             .navigationTitle("Reservations")
             .toolbar { ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { showingQueue = false }
+                Button("Done") { presentationGate.beginDismissal(.stage); activeStageSheet = nil }
             } }
         }
         .preferredColorScheme(.dark)

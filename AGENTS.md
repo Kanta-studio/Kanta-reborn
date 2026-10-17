@@ -265,3 +265,9 @@ Pause only when:
 When one gate is blocked, record the precise blocker and immediately advance an independent task if one exists.
 
 Never claim background or autonomous execution after the active session ends. Future monitoring requires an explicitly configured scheduled task.
+
+## 15. PR #36 architecture and validation supplements
+
+Before each substantive change, also read `docs/ENGINEERING_ARCHITECTURE_CONTRACT.md` and follow its ownership, lifecycle, parity, and documentation review checklist. Treat planned seams as unimplemented until code and tests prove otherwise.
+
+For each CI failure, update `docs/CI_FAILURE_REPAIR_LEDGER.md` with the fingerprint, run/SHA, confirmed cause versus hypothesis, repair commit, and regression coverage. Append green validation evidence in a separate documentation follow-up after the actual fixed head passes; do not erase failures or infer simulator acceptance from compilation.

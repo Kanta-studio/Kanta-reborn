@@ -2,6 +2,7 @@
 """Run clean-install Android acceptance with bounded startup and retained diagnostics."""
 from __future__ import annotations
 import os
+import ipaddress
 from pathlib import Path
 import subprocess
 import tempfile
@@ -42,6 +43,20 @@ def main() -> int:
                 except subprocess.TimeoutExpired: pass
                 time.sleep(2)
             if not booted: raise RuntimeError("Emulator did not boot within seven minutes")
+            run(adb, "shell", "svc", "wifi", "enable", timeout=15)
+            network_deadline = time.monotonic() + 90
+            private_ranges = tuple(map(ipaddress.ip_network, ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")))
+            while time.monotonic() < network_deadline:
+                addresses = subprocess.run([str(adb), "shell", "ip", "-4", "-o", "addr", "show"],
+                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=8)
+                if any(ipaddress.ip_interface(token).ip in private_ranges[0]
+                       or any(ipaddress.ip_interface(token).ip in network for network in private_ranges[1:])
+                       for token in addresses.stdout.split()
+                       if "/" in token):
+                    break
+                time.sleep(2)
+            else:
+                raise RuntimeError(f"Emulator has no private IPv4 after Wi-Fi enable: {addresses.stdout.strip()}")
             run(adb, "shell", "input", "keyevent", "82", timeout=15)
             run(adb, "install", ROOT / "apps/android/app/build/outputs/apk/debug/app-debug.apk", timeout=60)
             run(adb, "install", ROOT / "apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk", timeout=60)

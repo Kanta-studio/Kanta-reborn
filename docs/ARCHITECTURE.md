@@ -13,6 +13,7 @@
 ## Runtime contracts
 
 Each platform has one playback controller and FIFO reservation queue. UI, lyrics, fullscreen/TV stage and companion control project that owner's state. Import and persistence run away from latency-sensitive playback/UI work; commits are atomic and stale async results cannot replace newer state. Retry suppression applies to the same operation ID, never separate intentional reservations.
+The iOS fullscreen stage is a UIKit-owned modal: its presenter must be attached to present, but must still dismiss its owned player when UIKit detaches the presenter view. The shared gate releases fullscreen ownership only after UIKit confirms dismissal.
 
 Scoring is default off and observes dry microphone input without storing audio. Completion scores belong to immutable playback identities and are emitted only once. Monitoring and pitch processing are separate opt-in services and must mute on unsafe output routes. Source media and user SF2 are byte-preserved.
 
@@ -20,7 +21,7 @@ Companion commands require explicit pairing, authorization, bounded replay prote
 
 ## Build isolation
 
-Historical `.github` directories nested inside app/recovery folders do not run as root GitHub workflows. The new root reconstruction-validation workflow runs only by explicit manual dispatch or an owner-applied owner-approved-validation label (both platforms); owner-approved-android-validation runs Android only for focused repair. It has no push/synchronize trigger, read-only repository permissions, bounded timeouts and pinned action revisions. Publishing code does not launch it. Signing secrets never belong in Git. The iOS job explicitly selects Xcode 26.2 on macos-15 to satisfy Package.swift tools version 6.2; the image default Xcode 16.4 is insufficient.
+Historical `.github` directories nested inside app/recovery folders do not run as root GitHub workflows. The root KANTA reconstruction-validation workflow runs automatically for relevant branch/main pushes and pull-request opens/updates, with path filters for apps, tools and workflow files; manual dispatch and owner labels remain available for focused reruns. The iOS runtime workflow runs automatically on relevant branch pushes, same-repository pull requests and after successful main-branch reconstruction validation. Website checks run automatically on relevant web pushes and pull requests. The verified-download contract tests run automatically with relevant changes, while packaging pinned accepted binaries remains owner-gated. Workflows use read-only source permissions, bounded timeouts and pinned actions. Signing secrets never belong in Git. The iOS job explicitly selects Xcode 26.2 on macos-15 to satisfy Package.swift tools version 6.2; the image default Xcode 16.4 is insufficient.
 
 ## Shared material
 
@@ -48,7 +49,7 @@ The validation pipeline compiles all Swift package test targets before running t
 
 ## Online runtime and packaging evidence
 
-The separate owner-labeled iOS runtime workflow compiles the complete Xcode UI target, runs real interactions on one available iPhone and iPad simulator, and retains screenshots, videos and XCTest results. Stable accessibility identities select the actual starter row and current song; playback waits for an enabled Pause state and the selected title before interaction. These UI identities do not own playback state. Simulator videos do not establish physical audio quality.
+The automatic iOS runtime workflow compiles the complete Xcode UI target, runs real interactions on one available iPhone and iPad simulator, and retains screenshots, videos and XCTest results. Stable accessibility identities select the actual starter row and current song; playback waits for an enabled Pause state and the selected title before interaction. These UI identities do not own playback state. Simulator videos do not establish physical audio quality.
 
 After both walkthroughs pass, the same workflow builds a separate unsigned iPhoneOS archive with `KANTA_PERSONAL_SIGNING` and no iCloud signing entitlements, then invokes the validated IPA packager. It retains source/run identity and a SHA-256 manifest. This is a personal-signing input, not a signed or directly installable release; it never requests or publishes Apple credentials. The ordinary iOS build retains its original bundle/container identities and capabilities.
 
@@ -165,6 +166,10 @@ Android companion implementation, automated acceptance, original-byte packaging 
 This milestone is iPhone/iPad controller → Android host only. The recovered Bonjour/PIN iOS host remains separate, plaintext, explicitly labeled legacy and incompatible. It is not upgraded by this client. Android public 0.10 bytes/website and current unsigned iOS download remain unchanged pending changed-source acceptance and separately verified packaging. Protocol lacks forward secrecy and independent review; physical cross-device behavior remains unverified. Tests include independent fixed Python vectors, adversarial records and a real TCP Swift client exchange with the unmodified production Java codec and a synthetic peer queue. That peer is not Android runtime/device acceptance.
 
 
+## Fullscreen stage presentation-gate wiring (PR #36 repair)
+
+The Host-owned `KantaPresentationGate` must be passed through `SingingFullscreenPresentation` and `FullscreenKaraokePlayerView` into the fullscreen `KantaMainPlayerView`. Both stage projections share the same modal owner; neither creates a replacement gate. The iOS source guard checks this complete dependency path to prevent missing-argument simulator compilation regressions. The earlier PR #36 run 39022026489 failed simulator compilation because fullscreen omitted the new required dependency; this patch is a build repair candidate, not runtime acceptance. Both iPhone and iPad navigation walkthroughs remain required before merge or release.
+
 ## Fullscreen modal ownership repair
 
 The background SingingModalPresenter now retains a weak identity for only the karaoke player it creates and dismisses that player directly. UIKit's presentedViewController may refer to an ancestor's presentation, so it must never be used as permission to dismiss unrelated SwiftUI menus or sheets. The active-playback walkthrough verifies that More remains visible across redraws, then enters/exits the library without changing playback. UI harness waits for rendered controls and observed menu presentation, with bounded retries only for the idempotent open-menu action. This repair changes app presentation only; package/core source, FIFO ownership and audio semantics remain unchanged. Changed-source simulator execution remains required. Reference: https://developer.apple.com/documentation/uikit/uiviewcontroller/presentedviewcontroller .
@@ -179,3 +184,35 @@ After [iOS run 38923007543](https://github.com/kanta-gelo/Kanta-reborn/actions/r
 
 RemoteView's encrypted `NavigationLink` now uses the native navigation tap without a competing simultaneous gesture. Its existing onDisappear cleans up the legacy Bonjour/PIN connection (and clears the typed PIN); `EncryptedCompanionView` retains independent foreground-only KCP1 session revocation. The Android FIFO/session authority and media playback are unaffected. iPhone/iPad simulator acceptance is required before the change is considered verified.
 
+
+> **Design authority:** [Engineering architecture contract](ENGINEERING_ARCHITECTURE_CONTRACT.md) defines mandatory ownership, presentation-state and planned-feature boundaries. Historical status sections below are not proof of current release acceptance.
+
+
+## iOS presentation ownership — candidate repair (2026-10-17)
+
+Root, Host and Stage now route SwiftUI sheet requests through one main-actor gate. Requests are retained by owner while another sheet is transitioning and activated only after its `onDismiss` callback; duplicate queued requests from the same owner are coalesced. This addresses the one-tap Search race after Library dismissal without changing the playback controller or FIFO. UIKit fullscreen now acquires and releases through the shared gate in the PR #36 candidate; current-head simulator walkthroughs remain required. Simulator walkthroughs on this source head are required before this candidate is considered verified.
+
+
+## iOS presentation-gate candidate (2026-10-17)
+
+The shared main-actor gate now serializes navigation, Host and Stage sheets, and UIKit fullscreen requests. Fullscreen Search/Queue are modeled as a child stage owner: dismissing the child restores fullscreen ownership, while dismissing the UIKit player releases ownership only from its actual completion callback. Requests arriving during dismissal remain queued by owner. The presenter dismisses only the player controller it created. This is still a candidate until changed-source compilation and complete iPhone/iPad walkthroughs pass.
+
+### Noninterruptive session-save handoff (iOS PR #36 candidate)
+
+Natural completion may leave an optional pending favorites save while Library is presented. The stage must not automatically replace Library dismissal with the session-save sheet: an explicit `Save session` action opens that Host-owned sheet. A pending save must not suppress observation of subsequent playback; later finished sessions are accumulated until Save/Don't Save resolves the decision. The Host presentation gate still serializes the explicit sheet request. Both iPhone and iPad runtime walkthroughs must verify the first Search tap and the deferred save action before this is accepted.
+
+
+### Fullscreen entry from CONTROL
+
+The CONTROL sheet keeps its fullscreen action in a bottom safe-area inset outside the scrolling List, where it remains reachable while detailed controls are expanded. The stage-preview affordance and CONTROL inset action both call the Host-owned transition, which marks the Host sheet as dismissing and queues fullscreen through the shared presentation gate. UI walkthroughs target the stable CONTROL identifier, wait for the fullscreen child sheet and player to leave the accessibility tree, then verify stage Search is hittable after exit.
+
+## CONTROL fullscreen accessibility (PR #36)
+
+CONTROL presents its fullscreen action in a bottom safe-area inset outside the scrolling `List`. The action retains accessibility identifier `controls.openFullscreen` and delegates to `HostView.openFullscreenPlayer()`, preserving the shared presentation gate and UIKit dismissal callback. Keep this entry point persistent on iPhone and iPad; do not put the only fullscreen action in a conditional list section or navigation toolbar. This change requires fresh iPhone/iPad walkthrough evidence and does not by itself establish that fullscreen dismissal or subsequent Search is correct.
+
+Fullscreen lifecycle hardening (PR #36): the UIKit presenter completes gate dismissal before updating the SwiftUI presentation binding, allowing the underlying Stage to request Search without inheriting stale fullscreen ownership. A cancelled queued acquisition must enter dismissal instead of presenting an obsolete fullscreen player. Both behaviors require iPhone/iPad runtime validation; source changes alone are not acceptance evidence.
+
+
+### Fullscreen teardown waits for its child sheet
+
+When a fullscreen Search or Queue sheet is open, its HostViewController remains the fullscreen player's presented controller until UIKit completes the sheet dismissal. A fullscreen Exit request is held by the shared presentation gate while the child owns the stage. The Exit action updates the binding and directly calls `SingingModalPresenter.requestDismissal()`. The presenter must not dismiss or release its player until the gate's stage `onDismiss` restores fullscreen ownership; it observes that gate handoff and resumes teardown only then. This prevents the child-sheet dismissal callback from being mistaken for completion of the parent fullscreen dismissal. The iPhone/iPad walkthrough closes the child, exits fullscreen, waits for the unique exit control to disappear, and then verifies the Host Search can open.

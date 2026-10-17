@@ -1,14 +1,86 @@
 import SwiftUI
 
+// Serializes app presentations and tracks the stage sheet nested inside fullscreen.
+@MainActor
+final class KantaPresentationGate: ObservableObject {
+    enum Owner: Equatable { case navigation, host, stage, fullscreen }
+    @Published private(set) var owner: Owner?
+    @Published private(set) var dismissing = false
+    private struct PendingRequest { let owner: Owner; let action: @MainActor () -> Void }
+    private var pendingRequests: [PendingRequest] = []
+    private var fullscreenChildActive = false
+    private var fullscreenDismissalRequested = false
+
+    func request(_ requested: Owner, action: @escaping @MainActor () -> Void) {
+        if owner == .fullscreen, requested == .stage, !dismissing {
+            owner = .stage
+            fullscreenChildActive = true
+            action()
+            return
+        }
+        guard owner == nil && !dismissing else {
+            guard !pendingRequests.contains(where: { $0.owner == requested }) else { return }
+            pendingRequests.append(PendingRequest(owner: requested, action: action))
+            return
+        }
+        owner = requested
+        action()
+    }
+
+    func beginDismissal(_ requested: Owner) {
+        if owner == requested { dismissing = true; return }
+        if requested == .fullscreen, owner == .stage, fullscreenChildActive {
+            fullscreenDismissalRequested = true
+            dismissing = true
+        }
+    }
+
+    func completeDismissal(_ requested: Owner) {
+        if requested == .stage, owner == .stage, fullscreenChildActive {
+            owner = .fullscreen
+            fullscreenChildActive = false
+            dismissing = fullscreenDismissalRequested
+            fullscreenDismissalRequested = false
+            return
+        }
+        if requested == .fullscreen, owner == .stage, fullscreenChildActive {
+            owner = nil
+            fullscreenChildActive = false
+            fullscreenDismissalRequested = false
+            dismissing = false
+            activateNextRequest()
+            return
+        }
+        guard owner == requested else { return }
+        owner = nil
+        dismissing = false
+        if requested == .fullscreen {
+            fullscreenChildActive = false
+            fullscreenDismissalRequested = false
+        }
+        activateNextRequest()
+    }
+
+    private func activateNextRequest() {
+        guard !pendingRequests.isEmpty else { return }
+        let next = pendingRequests.removeFirst()
+        owner = next.owner
+        next.action()
+    }
+}
+
 @MainActor
 struct RootView: View {
     @ObservedObject var services: AppServices
+    @StateObject private var presentationGate = KantaPresentationGate()
     @Environment(\.scenePhase) private var scenePhase
     @State private var sheetRoute: Route = .menu
-    @State private var navigationPresentation: NavigationPresentation = .idle
+    @State private var activeNavigation: NavigationSheet? = nil
+    @State private var navigationDismissing = false
 
-    private enum NavigationPresentation {
-        case idle, showing, dismissing
+    private enum NavigationSheet: String, Identifiable {
+        case navigation
+        var id: String { rawValue }
     }
 
     private enum Route: String, Identifiable {
@@ -21,39 +93,40 @@ struct RootView: View {
         let mode = ProcessInfo.processInfo.environment["GELO_SCREENSHOT_MODE"] ?? ""
         let initialRoute = Route(rawValue: mode)
         _sheetRoute = State(initialValue: initialRoute ?? .menu)
-        _navigationPresentation = State(initialValue: initialRoute == nil ? .idle : .showing)
+        _activeNavigation = State(initialValue: initialRoute == nil ? nil : .navigation)
     }
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, navigationSheetPresented: navigationPresentation != .idle, onOpenNavigation: {
-                guard navigationPresentation == .idle else { return }
-                sheetRoute = .menu
-                navigationPresentation = .showing
+            HostView(services: services, presentationGate: presentationGate, navigationSheetPresented: activeNavigation != nil, onOpenNavigation: {
+                guard activeNavigation == nil else { return }
+                presentationGate.request(.navigation) {
+                    sheetRoute = .menu
+                    activeNavigation = .navigation
+                }
             })
                 .toolbar(.hidden, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
         .tint(GeloVisualStyle.accent)
-        // Navigation stays presented while the playing song updates the host view.
-        .sheet(isPresented: Binding(
-            get: { navigationPresentation == .showing },
-            set: { presented in
-                if !presented && navigationPresentation == .showing {
-                    navigationPresentation = .dismissing
-                }
-            }
-        ), onDismiss: {
+        // One optional sheet identity owns presentation and dismissal.
+        .sheet(item: $activeNavigation, onDismiss: {
             sheetRoute = .menu
-            navigationPresentation = .idle
+            navigationDismissing = false
+            presentationGate.completeDismissal(.navigation)
         }) {
+            _ in
             NavigationStack {
                 destination(sheetRoute)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
-                                navigationPresentation = .dismissing
+                                guard !navigationDismissing else { return }
+                                navigationDismissing = true
+                                presentationGate.beginDismissal(.navigation)
+                                activeNavigation = nil
                             }
+                            .accessibilityIdentifier("navigation.done")
                         }
                     }
             }
