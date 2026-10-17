@@ -72,6 +72,9 @@ struct HostView: View {
             onMore: onOpenNavigation
         )
         .sheet(item: $activeHostSheet, onDismiss: {
+            if model.showingSessionSavePrompt {
+                model.showingSessionSavePrompt = false
+            }
             if pendingFullscreen {
                 pendingFullscreen = false
                 showingFullscreenPlayer = true
