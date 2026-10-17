@@ -6,6 +6,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var sheetRoute: Route = .menu
     @State private var activeNavigation: NavigationSheet? = nil
+    @State private var navigationDismissing = false
 
     private enum NavigationSheet: String, Identifiable {
         case navigation
@@ -28,7 +29,7 @@ struct RootView: View {
     var body: some View {
         NavigationStack {
             HostView(services: services, navigationSheetPresented: activeNavigation != nil, onOpenNavigation: {
-                guard activeNavigation == nil else { return }
+                guard activeNavigation == nil && !navigationDismissing else { return }
                 sheetRoute = .menu
                 activeNavigation = .navigation
             })
@@ -39,6 +40,7 @@ struct RootView: View {
         // One optional sheet identity owns presentation and dismissal.
         .sheet(item: $activeNavigation, onDismiss: {
             sheetRoute = .menu
+            navigationDismissing = false
         }) {
             _ in
             NavigationStack {
@@ -46,8 +48,11 @@ struct RootView: View {
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
+                                guard !navigationDismissing else { return }
+                                navigationDismissing = true
                                 activeNavigation = nil
                             }
+                            .accessibilityIdentifier("navigation.done")
                         }
                     }
             }
