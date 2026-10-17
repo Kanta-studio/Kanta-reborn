@@ -12,7 +12,7 @@ on:
     paths:
       - 'apps/**'
       - 'tools/**'
-      - '.github/workflows/reconstruction-validation.yml'
+      - '.github/workflows/**'
 permissions:
   contents: read
 concurrency:
