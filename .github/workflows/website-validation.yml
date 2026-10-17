@@ -7,6 +7,12 @@ on:
       - 'apps/web/**'
       - 'tools/verify-website.py'
       - '.github/workflows/website-validation.yml'
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'apps/web/**'
+      - 'tools/verify-website.py'
+      - '.github/workflows/website-validation.yml'
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -16,8 +22,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: website-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  group: website-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
   website:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)

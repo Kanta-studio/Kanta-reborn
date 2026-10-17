@@ -5,6 +5,15 @@ on:
     workflows: ['KANTA reconstruction validation']
     types: [completed]
     branches: [main]
+  push:
+    branches-ignore: [main]
+    paths:
+      - 'apps/ios/**'
+      - 'tools/capture-ios-runtime.py'
+      - 'tools/verify-test-layout.py'
+      - 'tools/check-ios-presentation-contract.py'
+      - '.github/workflows/ios-runtime-artifacts.yml'
+      - '.github/workflows/reconstruction-validation.yml'
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
@@ -17,11 +26,11 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: ios-runtime-${{ github.event.workflow_run.head_sha || github.event.pull_request.number || github.ref }}
+  group: ios-runtime-${{ github.event.workflow_run.head_branch || github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
   ios-runtime:
-    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository) || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository) || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.repository == 'kanta-gelo/Kanta-reborn') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: macos-15
     timeout-minutes: 55
     env:
