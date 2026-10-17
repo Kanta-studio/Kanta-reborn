@@ -2,6 +2,7 @@ name: KANTA website validation
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'apps/web/**'
       - 'tools/verify-website.py'

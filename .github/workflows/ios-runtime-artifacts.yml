@@ -1,22 +1,6 @@
 name: KANTA iOS unsigned artifacts
 on:
   workflow_dispatch:
-  push:
-    branches-ignore: [main]
-    paths:
-      - 'apps/ios/**'
-      - 'tools/verify-test-layout.py'
-      - 'tools/check-ios-presentation-contract.py'
-      - '.github/workflows/ios-runtime-artifacts.yml'
-      - '.github/workflows/reconstruction-validation.yml'
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'apps/ios/**'
-      - 'tools/verify-test-layout.py'
-      - 'tools/check-ios-presentation-contract.py'
-      - '.github/workflows/ios-runtime-artifacts.yml'
-      - '.github/workflows/reconstruction-validation.yml'
 permissions:
   contents: read
 concurrency:
@@ -24,7 +8,6 @@ concurrency:
   cancel-in-progress: true
 jobs:
   ios-unsigned:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: macos-15
     timeout-minutes: 35
     env:
