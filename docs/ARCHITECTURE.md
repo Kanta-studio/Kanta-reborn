@@ -203,4 +203,4 @@ Natural completion may leave an optional pending favorites save while Library is
 
 ### Fullscreen entry from CONTROL
 
-The CONTROL sheet keeps its fullscreen action in the navigation toolbar so it remains reachable while the detailed controls list is expanded. The stage-preview affordance and CONTROL toolbar action both call the Host-owned transition, which marks the Host sheet as dismissing and queues fullscreen through the shared presentation gate. UI walkthroughs target the stable CONTROL toolbar identifier and verify fullscreen Search plus ownership release after exit.
+The CONTROL sheet keeps its fullscreen action in the navigation toolbar so it remains reachable while the detailed controls list is expanded. The stage-preview affordance and CONTROL toolbar action both call the Host-owned transition, which marks the Host sheet as dismissing and queues fullscreen through the shared presentation gate. UI walkthroughs target the stable CONTROL toolbar identifier, wait for the fullscreen child sheet and player to leave the accessibility tree, then verify stage Search is hittable after exit.

@@ -116,11 +116,21 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         fullscreenSearch.tap()
         XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Search did not present inside fullscreen")
         app.buttons["Cancel"].tap()
-        XCTAssertTrue(fullscreenExit.waitForExistence(timeout: 5))
+        let fullscreenSearchDismissed = NSPredicate(format: "exists == false")
+        expectation(for: fullscreenSearchDismissed, evaluatedWith: keypadZero)
+        waitForExpectations(timeout: waitSeconds)
+
+        XCTAssertTrue(fullscreenExit.isHittable)
         fullscreenExit.tap()
-        XCTAssertTrue(search.waitForExistence(timeout: waitSeconds))
+        let fullscreenPlayerDismissed = NSPredicate(format: "exists == false")
+        expectation(for: fullscreenPlayerDismissed, evaluatedWith: fullscreenExit)
+        waitForExpectations(timeout: waitSeconds)
+
+        let stageSearchReady = NSPredicate(format: "exists == true AND hittable == true")
+        expectation(for: stageSearchReady, evaluatedWith: search)
+        waitForExpectations(timeout: waitSeconds)
         search.tap()
-        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Fullscreen dismissal did not release stage presentation ownership")
+        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Stage Search must present after the fullscreen player has fully dismissed")
         app.buttons["Cancel"].tap()
     }
 
