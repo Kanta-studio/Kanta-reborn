@@ -34,7 +34,7 @@ def verify():
             'presentationGate.request(.fullscreen)' in fullscreen_presenter
             and 'presentationGate.beginDismissal(.fullscreen)' in fullscreen_presenter
             and 'presentationGate?.completeDismissal(.fullscreen)' in fullscreen_presenter
-            and 'self?.finishDismissal()' in fullscreen_presenter
+            and 'self.finishDismissal()' in fullscreen_presenter
         ),
         'fullscreen child sheets restore parent ownership': (
             'fullscreenChildActive' in root and 'owner = .fullscreen' in root and 'requested == .stage' in root
