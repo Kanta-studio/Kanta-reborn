@@ -82,6 +82,7 @@ jobs:
           xcodebuild -version
           swift --version
           python3 ../../tools/verify-test-layout.py
+          python3 ../../tools/check-ios-presentation-contract.py
           python3 -m unittest discover -s Tests/ReleaseToolingTests
           python3 -m unittest discover -s Tests -p test_starter_kar_generator.py
           python3 Tools/verify-starter-resources.py
