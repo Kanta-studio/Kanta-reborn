@@ -6,6 +6,7 @@ import SwiftUI
 struct KantaMainPlayerView: View {
     @ObservedObject var model: HostViewModel
     @ObservedObject var camera: KantaCameraBackground
+    @ObservedObject var presentationGate: KantaPresentationGate
     let backgroundsEnabled: Bool
     let selectedPreset: KantaBuiltInVisualPreset
     @Binding var singerName: String
@@ -72,13 +73,15 @@ struct KantaMainPlayerView: View {
             .foregroundStyle(.white)
         }
         .background(.black)
-        .sheet(item: $activeStageSheet) { sheet in
+        .sheet(item: $activeStageSheet, onDismiss: {
+            presentationGate.completeDismissal(.stage)
+        }) { sheet in
             switch sheet {
             case .search:
                 GeometryReader { geometry in
                     KantaStageSearchView(model: model, singerName: $singerName,
                                          microphoneBusy: microphoneBusy,
-                                         onClose: { activeStageSheet = nil })
+                                         onClose: { presentationGate.beginDismissal(.stage); activeStageSheet = nil })
                         .padding(12)
                         .frame(maxWidth: 760, maxHeight: .infinity)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -159,11 +162,15 @@ struct KantaMainPlayerView: View {
         }
     }
     private var searchButton: some View {
-        stageButton("Search", icon: "magnifyingglass") { activeStageSheet = .search }
+        stageButton("Search", icon: "magnifyingglass") {
+            if presentationGate.acquire(.stage) { activeStageSheet = .search }
+        }
             .accessibilityIdentifier("stage.search")
     }
     private var queueButton: some View {
-        stageButton("Queue", icon: "list.bullet") { activeStageSheet = .queue }
+        stageButton("Queue", icon: "list.bullet") {
+            if presentationGate.acquire(.stage) { activeStageSheet = .queue }
+        }
             .accessibilityValue("\(model.snapshot.queue.count) reservations")
     }
     private var cameraButton: some View {
@@ -241,7 +248,7 @@ struct KantaMainPlayerView: View {
             }
             .navigationTitle("Reservations")
             .toolbar { ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { activeStageSheet = nil }
+                Button("Done") { presentationGate.beginDismissal(.stage); activeStageSheet = nil }
             } }
         }
         .preferredColorScheme(.dark)
