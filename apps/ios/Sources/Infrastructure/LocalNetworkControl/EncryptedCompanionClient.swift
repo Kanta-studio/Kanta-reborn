@@ -141,16 +141,22 @@ public final class EncryptedCompanionClient: ObservableObject {
 
     private func read(_ count: Int, run: UUID) async throws -> Data {
         guard generation == run, let connection else { throw CompanionError.closed }
-        let data: Data = try await withCheckedThrowingContinuation { continuation in
-            connection.receive(minimumIncompleteLength: count, maximumLength: count) { data, _, _, error in
-                guard error == nil, let data, data.count == count else {
-                    continuation.resume(throwing: CompanionError.closed); return
+        var accumulated = Data()
+        while accumulated.count < count {
+            let remaining = count - accumulated.count
+            let chunk: Data = try await withCheckedThrowingContinuation { continuation in
+                connection.receive(minimumIncompleteLength: 1, maximumLength: remaining) { data, _, isComplete, error in
+                    guard error == nil, !isComplete, let data, !data.isEmpty else {
+                        continuation.resume(throwing: CompanionError.closed)
+                        return
+                    }
+                    continuation.resume(returning: data)
                 }
-                continuation.resume(returning: data)
             }
+            guard generation == run else { throw CompanionError.closed }
+            accumulated.append(chunk)
         }
-        guard generation == run else { throw CompanionError.closed }
-        return data
+        return accumulated
     }
 
     private func write(_ data: Data, run: UUID) async throws {
