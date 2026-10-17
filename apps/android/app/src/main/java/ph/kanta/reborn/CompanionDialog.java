@@ -39,7 +39,8 @@ final class CompanionDialog {
     searchButton.setTag("kanta.companion.search");body.addView(searchButton);
     LinearLayout transport=new LinearLayout(activity);
     Button playPause=button(activity,"Play / Pause",()->session.companion.send(session.companion.remote!=null&&session.companion.remote.optBoolean("playing")?"pause":"play","",""));
-    transport.addView(playPause);transport.addView(button(activity,"Next",()->session.companion.send("next","","")));
+    Button next=button(activity,"Next",()->session.companion.send("next","",""));
+    transport.addView(playPause);transport.addView(next);
     body.addView(transport);
     TextView current=label(activity,"");body.addView(current);
     LinearLayout results=new LinearLayout(activity);results.setOrientation(LinearLayout.VERTICAL);body.addView(results);
@@ -50,6 +51,7 @@ final class CompanionDialog {
       host.setEnabled(!addresses.isEmpty()&&!session.companion.enabled());join.setEnabled(!session.companion.enabled());
       searchButton.setEnabled(session.companion.client()&&!search.getText().toString().trim().isEmpty());
       playPause.setEnabled(session.companion.client()&&session.companion.remote!=null);
+      next.setEnabled(session.companion.client()&&session.companion.remote!=null);
       results.removeAllViews();JSONObject remote=session.companion.remote;
       current.setText(remote==null?"Search and controls above apply only to the connected host.":remote.optString("current")+(remote.optBoolean("playing")?" · Playing":" · Paused"));
       if(remote==null)return;
