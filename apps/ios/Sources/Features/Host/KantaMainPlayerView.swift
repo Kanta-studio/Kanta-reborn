@@ -10,11 +10,11 @@ struct KantaMainPlayerView: View {
     let selectedPreset: KantaBuiltInVisualPreset
     @Binding var singerName: String
     var microphoneBusy = false
+    @Binding var showingSearch: Bool
     var onControls: () -> Void = {}
     var onSearch: () -> Void = {}
     var onMore: () -> Void = {}
     @Environment(\.scenePhase) private var scenePhase
-    @Binding var showingSearch: Bool
     @State private var showingQueue = false
     @State private var transportBusy = false
 
