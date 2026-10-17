@@ -22,7 +22,7 @@ Before coding, read `AGENTS.md`, this contract, `docs/ARCHITECTURE.md`, `docs/CO
 
 Dependency direction: UI/composition → domain interfaces → platform adapters. Domain must not depend on SwiftUI/Android views. Async work has explicit owner, cancellation and generation/operation identity. No playback snapshot refresh may dismiss or present navigation. Every reservation has a unique identity; scoring completion is idempotent.
 
-## Presentation state machine — required, NOT IMPLEMENTED
+## Presentation state machine — required; PR #36 candidate implementation
 
 States `stage`, `presenting(destination)`, `presented(destination)`, `dismissing(destination)`. Destinations: More/Library/Settings/Remote/Songbook/Legal, Search, Queue, CONTROL, Favorites, session save and fullscreen. Serialize requests. Dismissal completes only on presenter callback, never elapsed time. A second request during transition must be explicitly queued or rejected with accessible feedback; no silent dropped tap. Nested Library import/summary UI cannot outlive Library. UIKit and SwiftUI presentation share the same coordinator. Preserve focus and accessibility. Unit-test all transitions, cancellation and concurrent playback updates. PR #36 now contains a candidate shared gate for Root/Host/Stage and UIKit fullscreen; fullscreen Search/Queue temporarily own a child slot and restore their fullscreen parent after sheet dismissal. This is not verified until the current head passes simulator walkthroughs.
 
@@ -33,7 +33,7 @@ States `stage`, `presenting(destination)`, `presented(destination)`, `dismissing
 | Feature | Architectural placement | Evidence/gate |
 | --- | --- | --- |
 | Offline MIDI/KAR/SF2, lyric timeline, BYOL | Native domain controller + library adapter | Existing implementation; regression and device audio |
-| Search/Reserve/Cancel, stage controls, FIFO | Stage intents → controller; overlays → presentation coordinator | iOS modal gate unresolved |
+| Search/Reserve/Cancel, stage controls, FIFO | Stage intents → controller; overlays → presentation coordinator | Shared gate candidate; iPhone/iPad runtime gate pending |
 | Camera BGV, personal photos/videos | Optional permission-gated media/capture adapter | iOS/Android device acceptance |
 | Fullscreen, external display, scenic/realm visuals | Read-only stage projection and presentation coordinator | Rotation/display tests |
 | Microphone, monitor, scoring, pitch correction/Auto-Tune-style DSP | Opt-in audio capture/processing graph; route/feedback safeguards | Latency, tuning, safety and hardware validation |
