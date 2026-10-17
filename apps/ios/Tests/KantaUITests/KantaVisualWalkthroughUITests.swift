@@ -58,9 +58,11 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.buttons["Song Library"].tap()
         XCTAssertTrue(app.buttons["Done"].firstMatch.waitForExistence(timeout: 5))
         app.buttons["Done"].firstMatch.tap()
-        let libraryTitle = app.navigationBars["Song Library"]
+        // LibraryView sets its navigation title to "Library", not "Song Library".
+        // Wait for the actual presented navigation host to leave the hierarchy.
+        let libraryNavigation = app.navigationBars["Library"]
         let dismissed = NSPredicate(format: "exists == false")
-        expectation(for: dismissed, evaluatedWith: libraryTitle)
+        expectation(for: dismissed, evaluatedWith: libraryNavigation)
         waitForExpectations(timeout: 10)
         XCTAssertFalse(app.sliders["Song position"].exists)
         XCTAssertFalse(app.buttons["Previous song"].exists)
