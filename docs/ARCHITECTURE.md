@@ -179,3 +179,5 @@ After [iOS run 38923007543](https://github.com/kanta-gelo/Kanta-reborn/actions/r
 
 RemoteView's encrypted `NavigationLink` now uses the native navigation tap without a competing simultaneous gesture. Its existing onDisappear cleans up the legacy Bonjour/PIN connection (and clears the typed PIN); `EncryptedCompanionView` retains independent foreground-only KCP1 session revocation. The Android FIFO/session authority and media playback are unaffected. iPhone/iPad simulator acceptance is required before the change is considered verified.
 
+
+> **Design authority:** [Engineering architecture contract](ENGINEERING_ARCHITECTURE_CONTRACT.md) defines mandatory ownership, presentation-state and planned-feature boundaries. Historical status sections below are not proof of current release acceptance.
