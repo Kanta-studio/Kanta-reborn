@@ -21,7 +21,9 @@ Companion commands require explicit pairing, authorization, bounded replay prote
 
 ## Build isolation
 
-Historical `.github` directories nested inside app/recovery folders do not run as root GitHub workflows. The root KANTA reconstruction-validation workflow runs automatically for relevant branch/main pushes and pull-request opens/updates, with path filters for apps, tools and workflow files; manual dispatch and owner labels remain available for focused reruns. The iOS runtime workflow runs automatically on relevant branch pushes, same-repository pull requests and after successful main-branch reconstruction validation. Website checks run automatically on relevant web pushes and pull requests. The verified-download contract tests run automatically with relevant changes, while packaging pinned accepted binaries remains owner-gated. Workflows use read-only source permissions, bounded timeouts and pinned actions. Signing secrets never belong in Git. The iOS job explicitly selects Xcode 26.2 on macos-15 to satisfy Package.swift tools version 6.2; the image default Xcode 16.4 is insufficient.
+Root workflows validate relevant pull requests once and validate main after merge. `reconstruction-validation.yml` owns Swift package/source guards, unsigned iOS simulator compilation and Android build/tests. `ios-smoke.yml` adds focused iPhone simulator navigation acceptance on relevant iOS pull requests; it is not a replacement for the full device walkthrough. `website-validation.yml` and `verified-downloads.yml` run focused website and download-contract checks. Feature-branch push events do not duplicate PR validation.
+
+Unsigned iOS personal-signing IPA packaging is an explicitly dispatched, separate `ios-runtime-artifacts.yml` workflow. `ios-visual-walkthrough.yml` runs complete iPhone/iPad acceptance manually, weekly, or on `ios-rc-*` tags. Release acceptance requires evidence for the exact candidate SHA; neither simulator checks nor unsigned archives establish signing, device audio quality, or deployment. `automated-failure-triage.yml` is dispatched with a failed run ID rather than launching after every successful run. Workflow permissions, bounded timeouts, action pinning and no signing credentials in Git remain mandatory. See `docs/TESTING.md` for authoritative triggers and gates.
 
 ## Shared material
 
@@ -49,10 +51,7 @@ The validation pipeline compiles all Swift package test targets before running t
 
 ## Online runtime and packaging evidence
 
-The automatic iOS runtime workflow compiles the complete Xcode UI target, runs real interactions on one available iPhone and iPad simulator, and retains screenshots, videos and XCTest results. Stable accessibility identities select the actual starter row and current song; playback waits for an enabled Pause state and the selected title before interaction. These UI identities do not own playback state. Simulator videos do not establish physical audio quality.
-
-After both walkthroughs pass, the same workflow builds a separate unsigned iPhoneOS archive with `KANTA_PERSONAL_SIGNING` and no iCloud signing entitlements, then invokes the validated IPA packager. It retains source/run identity and a SHA-256 manifest. This is a personal-signing input, not a signed or directly installable release; it never requests or publishes Apple credentials. The ordinary iOS build retains its original bundle/container identities and capabilities.
-
+PR #36 passed final-head reconstruction and full iPhone/iPad walkthrough validation, with unsigned IPA evidence, before merging as `59258ee`. PR #42 added a separate focused iPhone simulator smoke test and merged as `714bfd6`. PR #43 separated costly packaging and eliminated duplicate branch push/PR runs, merging as `ad95e8b`; post-merge reconstruction run 39051661330 passed. These results establish hosted CI behavior only, not physical-device, signing, or production release acceptance.
 
 ## Android stage and auxiliary sound
 
