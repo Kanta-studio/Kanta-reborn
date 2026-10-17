@@ -1,16 +1,26 @@
 name: Owner-approved reconstruction validation
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'tools/**'
+      - '.github/workflows/reconstruction-validation.yml'
   pull_request:
-    types: [labeled]
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'apps/**'
+      - 'tools/**'
+      - '.github/workflows/reconstruction-validation.yml'
 permissions:
   contents: read
 concurrency:
   group: reconstruction-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   android:
-    if: github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || (github.event.label.name == 'owner-approved-validation' || github.event.label.name == 'owner-approved-android-validation'))
+    if: github.event_name != 'pull_request' || github.event.action != 'labeled' || contains(fromJSON('["owner-approved-validation", "owner-approved-android-validation"]'), github.event.label.name)
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -57,7 +67,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
   ios:
-    if: github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || (github.event.label.name == 'owner-approved-validation' || github.event.label.name == 'owner-approved-ios-validation'))
+    if: github.event_name != 'pull_request' || github.event.action != 'labeled' || contains(fromJSON('["owner-approved-validation", "owner-approved-ios-validation"]'), github.event.label.name)
     runs-on: macos-15
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
