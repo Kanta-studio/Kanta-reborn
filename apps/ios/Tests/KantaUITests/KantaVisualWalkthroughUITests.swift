@@ -63,15 +63,10 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         let search = app.buttons["stage.search"]
         waitForRendered(search, in: app)
         let keypadZero = app.buttons["stage.keypad.0"]
-        // Sheet dismissal can consume a tap while UIKit finishes its transition.
-        // Retry only the idempotent open action, and still require the real keypad.
-        for _ in 0..<3 {
-            guard !keypadZero.exists else { break }
-            XCTAssertTrue(search.isHittable, "Search is blocked after leaving the library")
-            search.tap()
-            if keypadZero.waitForExistence(timeout: 3) { break }
-        }
-        XCTAssertTrue(keypadZero.exists, "Search did not present the keypad after library dismissal")
+        XCTAssertTrue(search.isHittable, "Search is blocked after leaving the library")
+        search.tap()
+        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10),
+                      "Search did not present the keypad after library dismissal")
         capture("06-real-search-overlay", app)
         app.buttons["Cancel"].tap()
         app.buttons["stage.controls"].tap()
@@ -185,14 +180,12 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         let more = app.buttons["More"].firstMatch
         waitForRendered(more, in: app)
         let item = app.buttons[destination].firstMatch
-        // Opening is idempotent; retry only while the stage remains visible and no menu appeared.
-        for _ in 0..<3 {
-            more.tap()
-            if item.waitForExistence(timeout: 3) { return }
-            guard more.exists && more.isHittable else { break }
+        XCTAssertTrue(more.isHittable, "More is obstructed before opening: " + destination)
+        more.tap()
+        if !item.waitForExistence(timeout: 10) {
+            capture("menu-did-not-present", app)
+            XCTFail("More did not present the requested menu item: " + destination)
         }
-        capture("menu-did-not-present", app)
-        XCTAssertTrue(item.exists, "More did not present the requested menu item: " + destination)
     }
 
     @MainActor
