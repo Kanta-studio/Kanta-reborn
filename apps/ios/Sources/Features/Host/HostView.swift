@@ -10,8 +10,13 @@ struct HostView: View {
     let navigationSheetPresented: Bool
     @StateObject private var camera = KantaCameraBackground()
     @State private var pendingFullscreen = false
-    @State private var showingHostControls =
-        ProcessInfo.processInfo.environment["KANTA_CONTROL_EXPANDED"] == "1"
+    @State private var activeHostSheet: HostSheet? =
+        ProcessInfo.processInfo.environment["KANTA_CONTROL_EXPANDED"] == "1" ? .controls : nil
+
+    private enum HostSheet: String, Identifiable {
+        case controls, sessionSave, favorites
+        var id: String { rawValue }
+    }
     @StateObject private var model: HostViewModel
     @ObservedObject private var networkHost: BonjourHostAdvertiser
     @ObservedObject private var microphonePitchMonitor:
@@ -23,7 +28,6 @@ struct HostView: View {
     @StateObject private var intermission = KantaIntermissionMusic()
     private let partySFX: KantaPartySFXEngine
     private let diagnostics: KantaSupportDiagnostics
-    @State private var showingSavedFavorites = false
     @State private var showControlCenter =
         ProcessInfo.processInfo.environment[
             "KANTA_CONTROL_EXPANDED"
@@ -64,21 +68,28 @@ struct HostView: View {
             singerName: $singerName,
             microphoneBusy: microphonePitchMonitor.status == .running
                 || microphonePitchMonitor.status == .requestingPermission,
-            onControls: { showingHostControls = true },
+            onControls: { activeHostSheet = .controls },
             onMore: onOpenNavigation
         )
-        .sheet(isPresented: $showingHostControls, onDismiss: {
+        .sheet(item: $activeHostSheet, onDismiss: {
             if pendingFullscreen {
                 pendingFullscreen = false
                 showingFullscreenPlayer = true
             }
-        }) {
-            NavigationStack {
-                hostControls
-                    .navigationTitle("CONTROL")
-                    .toolbar { ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { showingHostControls = false }
-                    } }
+        }) { sheet in
+            switch sheet {
+            case .controls:
+                NavigationStack {
+                    hostControls
+                        .navigationTitle("CONTROL")
+                        .toolbar { ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { activeHostSheet = nil }
+                        } }
+                }
+            case .sessionSave:
+                SaveSessionFavoritesView(model: model)
+            case .favorites:
+                SavedFavoritesView(model: model)
             }
         }
         .navigationTitle("Karaoke Host")
@@ -158,14 +169,15 @@ struct HostView: View {
             await model.run()
             intermission.sync(model.snapshot.transport)
         }
-        .sheet(isPresented: Binding(
-            get: { model.showingSessionSavePrompt && !navigationSheetPresented },
-            set: { if !$0 && !navigationSheetPresented { model.showingSessionSavePrompt = false } }
-        )) {
-            SaveSessionFavoritesView(model: model)
+        .onChange(of: model.showingSessionSavePrompt) { _, pending in
+            if pending && !navigationSheetPresented && activeHostSheet == nil {
+                activeHostSheet = .sessionSave
+            }
         }
-        .sheet(isPresented: $showingSavedFavorites) {
-            SavedFavoritesView(model: model)
+        .onChange(of: navigationSheetPresented) { _, presented in
+            if !presented && model.showingSessionSavePrompt && activeHostSheet == nil {
+                activeHostSheet = .sessionSave
+            }
         }
         .onDisappear {
             camera.stop()
@@ -309,7 +321,7 @@ struct HostView: View {
                 .disabled(model.currentSessionSongCount == 0)
 
                 Button {
-                    showingSavedFavorites = true
+                    activeHostSheet = .favorites
                 } label: {
                     Label(
                         "Saved Favorites (\(model.savedFavorites.count))",
@@ -486,7 +498,7 @@ struct HostView: View {
 
                         Button {
                             pendingFullscreen = true
-                            showingHostControls = false
+                            activeHostSheet = nil
                         } label: {
                             Image(
                                 systemName:
