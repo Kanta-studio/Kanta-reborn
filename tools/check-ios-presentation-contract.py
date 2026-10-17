@@ -41,7 +41,12 @@ def verify():
         ),
         'fullscreen nested presentation regression coverage': (
             'Search did not present inside fullscreen' in test
-            and 'Fullscreen dismissal did not release stage presentation ownership' in test
+            and all(marker in test for marker in (
+                'fullscreenSearchDismissed',
+                'fullscreenPlayerDismissed',
+                'stageSearchReady',
+                'Stage Search must present after the fullscreen player has fully dismissed',
+            ))
         ),
         'playback does not mutate root navigation': 'snapshot.transport' not in root,
         'real playback walkthrough': 'func testStarterPlaybackAndControls()' in test,
