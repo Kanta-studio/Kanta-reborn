@@ -97,20 +97,20 @@ struct HostView: View {
             case .controls:
                 NavigationStack {
                     hostControls
+                        .safeAreaInset(edge: .bottom) {
+                            Button(action: openFullscreenPlayer) {
+                                Label("Open fullscreen player", systemImage: "arrow.up.left.and.arrow.down.right")
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier("controls.openFullscreen")
+                            .padding(.horizontal)
+                            .padding(.vertical, 8)
+                            .background(.regularMaterial)
+                        }
                         .navigationTitle("CONTROL")
                         .toolbar {
-                            ToolbarItem(placement: .primaryAction) {
-                                Button {
-                                    openFullscreenPlayer()
-                                } label: {
-                                    Label(
-                                        "Fullscreen",
-                                        systemImage: "arrow.up.left.and.arrow.down.right"
-                                    )
-                                }
-                                .accessibilityLabel("Open fullscreen player from controls")
-                                .accessibilityIdentifier("controls.openFullscreen")
-                            }
                             ToolbarItem(placement: .confirmationAction) {
                                 Button("Done") {
                                     presentationGate.beginDismissal(.host)
