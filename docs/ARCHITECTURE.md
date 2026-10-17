@@ -13,6 +13,7 @@
 ## Runtime contracts
 
 Each platform has one playback controller and FIFO reservation queue. UI, lyrics, fullscreen/TV stage and companion control project that owner's state. Import and persistence run away from latency-sensitive playback/UI work; commits are atomic and stale async results cannot replace newer state. Retry suppression applies to the same operation ID, never separate intentional reservations.
+The iOS fullscreen stage is a UIKit-owned modal: its presenter must be attached to present, but must still dismiss its owned player when UIKit detaches the presenter view. The shared gate releases fullscreen ownership only after UIKit confirms dismissal.
 
 Scoring is default off and observes dry microphone input without storing audio. Completion scores belong to immutable playback identities and are emitted only once. Monitoring and pitch processing are separate opt-in services and must mute on unsafe output routes. Source media and user SF2 are byte-preserved.
 
