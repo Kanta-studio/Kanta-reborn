@@ -46,3 +46,7 @@ Candidate repairs on the same feature branch separate the root sheet's presentat
 
 The capture helper now prints failed XCTest assertions and failing test-case names from the full stored test log (not merely its tail). It also requires all four named walkthroughs to have reported a passing outcome, protecting against a misleading zero-test success. This is an unvalidated **source repair**, not accepted iPhone/iPad behavior. The iPad's precise assertion has not been independently extracted from its large diagnostic bundle. Do not merge, sign, publish an IPA, or update download links before passing current-head native and simulator gates.
 
+
+## Companion reliability batch candidate — October 18, 2026
+
+Three coordinated changes are proposed, not yet validated by changed-head CI: (1) the iOS encrypted client now accumulates partial TCP reads for fixed-size KCP1 frames rather than assuming one Network.framework callback returns the entire frame; (2) iOS companion search trims and rejects blank queries and provides stable accessibility identities for pairing status, disconnect, query, search and Next; (3) Android companion client and host reject blank search requests rather than treating them as an unbounded all-songs query. Protocol framing, authentication, host FIFO ownership and existing media bytes are unchanged. Hosted Swift compilation, Java regression, iOS simulator, physical two-device pairing and release acceptance remain pending.
