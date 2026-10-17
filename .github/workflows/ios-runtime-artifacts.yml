@@ -13,7 +13,6 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - 'apps/ios/**'
-      - 'tools/capture-ios-runtime.py'
       - 'tools/verify-test-layout.py'
       - 'tools/check-ios-presentation-contract.py'
       - '.github/workflows/ios-runtime-artifacts.yml'
@@ -24,10 +23,10 @@ concurrency:
   group: ios-artifacts-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 jobs:
-  ios-runtime:
+  ios-unsigned:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: macos-15
-    timeout-minutes: 55
+    timeout-minutes: 35
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
       SOURCE_SHA: ${{ github.sha }}
@@ -46,10 +45,6 @@ jobs:
           python3 Tools/verify-starter-resources.py
           if ! command -v xcodegen >/dev/null; then brew install xcodegen; fi
           xcodegen generate
-      - name: Compile app and UI tests
-        run: |
-          set -o pipefail
-          xcodebuild build-for-testing -project GeloKaraoke.xcodeproj -scheme GeloKaraoke -configuration Release -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DerivedData CODE_SIGNING_ALLOWED=NO 2>&1 | tee runtime-test-build.log
       - name: Build unsigned personal-signing device archive
         run: |
           set -o pipefail
