@@ -11,9 +11,10 @@ struct KantaMainPlayerView: View {
     @Binding var singerName: String
     var microphoneBusy = false
     var onControls: () -> Void = {}
+    var onSearch: () -> Void = {}
     var onMore: () -> Void = {}
     @Environment(\.scenePhase) private var scenePhase
-    @State private var showingSearch = false
+    @Binding var showingSearch: Bool
     @State private var showingQueue = false
     @State private var transportBusy = false
 
@@ -151,7 +152,7 @@ struct KantaMainPlayerView: View {
         }
     }
     private var searchButton: some View {
-        stageButton("Search", icon: "magnifyingglass") { showingSearch = true }
+        stageButton("Search", icon: "magnifyingglass") { onSearch() }
             .accessibilityIdentifier("stage.search")
     }
     private var queueButton: some View {
