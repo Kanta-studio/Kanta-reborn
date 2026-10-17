@@ -102,8 +102,8 @@ Reconstruction validation runs for relevant app, tool and workflow changes on fe
 ## CI separation: fast validation, unsigned artifacts and visual acceptance
 
 - `reconstruction-validation.yml` remains the required PR source, Swift package, simulator-build, and Android validation gate. It does not execute the long XCTest UI walkthrough.
-- `ios-runtime-artifacts.yml` builds the unsigned personal-signing IPA independently on relevant iOS changes or manual dispatch. Its success proves packaging, not simulator interactions, signing, or installability.
-- `ios-visual-walkthrough.yml` runs the full four-case XCTest walkthrough separately on both iPhone and iPad, with screenshots, recordings and failure diagnostics. It is manually dispatchable, scheduled weekly (Monday 03:00 Asia/Manila), and triggered by `ios-rc-*` tags. It does not run on ordinary pull requests or documentation commits.
+- `ios-runtime-artifacts.yml` builds the unsigned personal-signing IPA only on manual dispatch. Its success proves packaging, not simulator interactions, signing, or installability.
+- `ios-visual-walkthrough.yml` runs the full four-case XCTest walkthrough separately on both iPhone and iPad, with screenshots, recordings and failure diagnostics. It is manually dispatchable, scheduled weekly (Tuesday 03:00 Asia/Manila; Monday 19:00 UTC), and triggered by `ios-rc-*` tags. It does not run on ordinary pull requests or documentation commits.
 - A release candidate requires a successful visual walkthrough on the **exact candidate SHA**; weekly or unrelated-commit green evidence cannot substitute for release acceptance. CI does not sign, publish or deploy.
 - `ios-smoke.yml` runs `testFocusedNavigationSmoke` on an iPhone simulator for relevant iOS PR changes. It checks Search, fullscreen dismissal and Search recovery. This is not the full iPhone/iPad release walkthrough.
 - This split deliberately prevents the expensive walkthrough from blocking ordinary merges while keeping the full iPhone/iPad visual acceptance mandatory for release.
@@ -115,3 +115,7 @@ Reconstruction validation runs for relevant app, tool and workflow changes on fe
 - Full iPhone/iPad visual walkthrough remains manual, weekly or release-candidate-tag gated. A release candidate must pass both devices on its exact SHA.
 - Failure triage is manually dispatchable with a failed run ID; it no longer starts a skipped workflow for every successful validation. Investigators can still inspect exact job logs and report failures.
 - The separate focused iOS simulator smoke PR must be validated before merge. Workflow YAML changes themselves require review of triggers and required status checks; do not remove required branch protection checks without an equivalent passing gate.
+
+## PR #43 post-merge evidence
+
+Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [39051661330](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39051661330). Website validation and verified-download contracts also passed on that main-branch commit. Unsigned IPA packaging is not automatic; an absent artifact from this merge is expected. The next release candidate still needs a candidate-SHA-matched full iPhone/iPad walkthrough and separately approved artifact packaging.
