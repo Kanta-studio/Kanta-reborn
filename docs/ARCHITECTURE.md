@@ -208,3 +208,5 @@ The CONTROL sheet keeps its fullscreen action in the navigation toolbar so it re
 ## CONTROL fullscreen accessibility (PR #36)
 
 CONTROL presents its fullscreen action in a bottom safe-area inset outside the scrolling `List`. The action retains accessibility identifier `controls.openFullscreen` and delegates to `HostView.openFullscreenPlayer()`, preserving the shared presentation gate and UIKit dismissal callback. Keep this entry point persistent on iPhone and iPad; do not put the only fullscreen action in a conditional list section or navigation toolbar. This change requires fresh iPhone/iPad walkthrough evidence and does not by itself establish that fullscreen dismissal or subsequent Search is correct.
+
+Fullscreen lifecycle hardening (PR #36): the UIKit presenter completes gate dismissal before updating the SwiftUI presentation binding, allowing the underlying Stage to request Search without inheriting stale fullscreen ownership. A cancelled queued acquisition must enter dismissal instead of presenting an obsolete fullscreen player. Both behaviors require iPhone/iPad runtime validation; source changes alone are not acceptance evidence.
