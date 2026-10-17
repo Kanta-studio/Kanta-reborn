@@ -7,6 +7,7 @@ import SwiftUI
 @MainActor
 struct HostView: View {
     private let onOpenNavigation: () -> Void
+    @ObservedObject var presentationGate: KantaPresentationGate
     let navigationSheetPresented: Bool
     @StateObject private var camera = KantaCameraBackground()
     @State private var pendingFullscreen = false
@@ -38,7 +39,8 @@ struct HostView: View {
             "KANTA_FULLSCREEN"
         ] == "1"
 
-    init(services: AppServices, navigationSheetPresented: Bool = false, onOpenNavigation: @escaping () -> Void = {}) {
+    init(services: AppServices, presentationGate: KantaPresentationGate = KantaPresentationGate(), navigationSheetPresented: Bool = false, onOpenNavigation: @escaping () -> Void = {}) {
+        self.presentationGate = presentationGate
         self.navigationSheetPresented = navigationSheetPresented
         self.onOpenNavigation = onOpenNavigation
         partySFX = services.partySFX
@@ -63,16 +65,17 @@ struct HostView: View {
 
     var body: some View {
         KantaMainPlayerView(
-            model: model, camera: camera,
+            model: model, camera: camera, presentationGate: presentationGate,
             backgroundsEnabled: settings.stageVisualsEnabled,
             selectedPreset: settings.selectedVisualPreset,
             singerName: $singerName,
             microphoneBusy: microphonePitchMonitor.status == .running
                 || microphonePitchMonitor.status == .requestingPermission,
-            onControls: { activeHostSheet = .controls },
+            onControls: { if presentationGate.acquire(.host) { activeHostSheet = .controls } },
             onMore: onOpenNavigation
         )
         .sheet(item: $activeHostSheet, onDismiss: {
+            presentationGate.completeDismissal(.host)
             if dismissedHostSheet == .sessionSave {
                 model.showingSessionSavePrompt = false
             }
@@ -88,7 +91,7 @@ struct HostView: View {
                     hostControls
                         .navigationTitle("CONTROL")
                         .toolbar { ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { activeHostSheet = nil }
+                            Button("Done") { presentationGate.beginDismissal(.host); activeHostSheet = nil }
                         } }
                 }
             case .sessionSave:
@@ -176,16 +179,17 @@ struct HostView: View {
         }
         .onChange(of: activeHostSheet) { previous, current in
             if previous != nil && current == nil {
+                presentationGate.beginDismissal(.host)
                 dismissedHostSheet = previous
             }
         }
         .onChange(of: model.showingSessionSavePrompt) { _, pending in
-            if pending && !navigationSheetPresented && activeHostSheet == nil {
+            if pending && !navigationSheetPresented && activeHostSheet == nil && presentationGate.acquire(.host) {
                 activeHostSheet = .sessionSave
             }
         }
         .onChange(of: navigationSheetPresented) { _, presented in
-            if !presented && model.showingSessionSavePrompt && activeHostSheet == nil {
+            if !presented && model.showingSessionSavePrompt && activeHostSheet == nil && presentationGate.acquire(.host) {
                 activeHostSheet = .sessionSave
             }
         }
@@ -331,7 +335,7 @@ struct HostView: View {
                 .disabled(model.currentSessionSongCount == 0)
 
                 Button {
-                    activeHostSheet = .favorites
+                    if presentationGate.acquire(.host) { activeHostSheet = .favorites }
                 } label: {
                     Label(
                         "Saved Favorites (\(model.savedFavorites.count))",
@@ -508,6 +512,7 @@ struct HostView: View {
 
                         Button {
                             pendingFullscreen = true
+                            presentationGate.beginDismissal(.host)
                             activeHostSheet = nil
                         } label: {
                             Image(
