@@ -71,7 +71,10 @@ final class SingingModalPresenter: UIViewController {
         self.makePlayer = makePlayer
         self.onDismiss = onDismiss
         if isPresented { acquireGateIfNeeded() }
-        else if ownsGate { presentationGate.beginDismissal(.fullscreen) }
+        else {
+            // A queued acquisition must not present a player after its intent was cancelled.
+            if ownsGate { presentationGate.beginDismissal(.fullscreen) }
+        }
         updatePresentation()
     }
 
@@ -91,6 +94,9 @@ final class SingingModalPresenter: UIViewController {
             guard let self else { return }
             self.hasRequestedGate = false
             self.ownsGate = true
+            if !self.wantsPresentation {
+                self.presentationGate?.beginDismissal(.fullscreen)
+            }
             self.updatePresentation()
         }
     }
@@ -129,8 +135,10 @@ final class SingingModalPresenter: UIViewController {
         guard ownsGate else { return }
         ownsGate = false
         hasRequestedGate = false
-        onDismiss?()
+        // Release ownership before publishing the dismissed binding. The next
+        // SwiftUI update may immediately request Search on the underlying stage.
         presentationGate?.completeDismissal(.fullscreen)
+        onDismiss?()
     }
 }
 
