@@ -13,6 +13,7 @@ struct KantaMainPlayerView: View {
     var microphoneBusy = false
     var onControls: () -> Void = {}
     var onMore: () -> Void = {}
+    var onSaveSession: () -> Void = {}
     @Environment(\.scenePhase) private var scenePhase
     @State private var activeStageSheet: StageSheet?
 
@@ -63,6 +64,12 @@ struct KantaMainPlayerView: View {
                             Text(notice).font(.caption2).lineLimit(2)
                         }
                         Spacer(minLength: 8)
+                        if model.showingSessionSavePrompt {
+                            Button("Save session", action: onSaveSession)
+                                .font(.caption.weight(.semibold))
+                                .buttonStyle(.bordered)
+                                .accessibilityIdentifier("stage.saveSession")
+                        }
                         KantaStageWatermark()
                     }
                 }

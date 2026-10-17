@@ -195,3 +195,7 @@ Root, Host and Stage now route SwiftUI sheet requests through one main-actor gat
 ## iOS presentation-gate candidate (2026-10-17)
 
 The shared main-actor gate now serializes navigation, Host and Stage sheets, and UIKit fullscreen requests. Fullscreen Search/Queue are modeled as a child stage owner: dismissing the child restores fullscreen ownership, while dismissing the UIKit player releases ownership only from its actual completion callback. Requests arriving during dismissal remain queued by owner. The presenter dismisses only the player controller it created. This is still a candidate until changed-source compilation and complete iPhone/iPad walkthroughs pass.
+
+### Noninterruptive session-save handoff (iOS PR #36 candidate)
+
+Natural completion may leave an optional pending favorites save while Library is presented. The stage must not automatically replace Library dismissal with the session-save sheet: an explicit `Save session` action opens that Host-owned sheet. A pending save must not suppress observation of subsequent playback; later finished sessions are accumulated until Save/Don't Save resolves the decision. The Host presentation gate still serializes the explicit sheet request. Both iPhone and iPad runtime walkthroughs must verify the first Search tap and the deferred save action before this is accepted.

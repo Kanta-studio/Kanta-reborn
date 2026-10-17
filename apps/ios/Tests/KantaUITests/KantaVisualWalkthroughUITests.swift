@@ -66,6 +66,8 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         waitForExpectations(timeout: 10)
         XCTAssertFalse(app.sliders["Song position"].exists)
         XCTAssertFalse(app.buttons["Previous song"].exists)
+        XCTAssertFalse(app.navigationBars["Save to Favorites"].exists,
+                       "A completed session must not replace Library dismissal with a save sheet")
         let search = app.buttons["stage.search"]
         XCTAssertTrue(search.waitForExistence(timeout: 10))
         let keypadZero = app.buttons["stage.keypad.0"]
@@ -84,6 +86,16 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
                       "Search did not present the keypad after library dismissal")
         capture("06-real-search-overlay", app)
         app.buttons["Cancel"].tap()
+        let saveSession = app.buttons["stage.saveSession"]
+        if saveSession.exists {
+            saveSession.tap()
+            XCTAssertTrue(app.navigationBars["Save to Favorites"].waitForExistence(timeout: 5),
+                          "The deferred session must remain available for explicit saving")
+            app.buttons["Don't Save"].tap()
+            let saveSheetGone = NSPredicate(format: "exists == false")
+            expectation(for: saveSheetGone, evaluatedWith: app.navigationBars["Save to Favorites"])
+            waitForExpectations(timeout: 10)
+        }
         app.buttons["stage.controls"].tap()
         capture("07-real-controls", app)
         for index in 0..<3 {

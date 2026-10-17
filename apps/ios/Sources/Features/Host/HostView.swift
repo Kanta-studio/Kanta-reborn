@@ -74,7 +74,11 @@ struct HostView: View {
             onControls: {
                 presentationGate.request(.host) { activeHostSheet = .controls }
             },
-            onMore: onOpenNavigation
+            onMore: onOpenNavigation,
+            onSaveSession: {
+                guard model.showingSessionSavePrompt else { return }
+                presentationGate.request(.host) { activeHostSheet = .sessionSave }
+            }
         )
         .sheet(item: $activeHostSheet, onDismiss: {
             if dismissedHostSheet == .sessionSave {
@@ -189,13 +193,9 @@ struct HostView: View {
             }
         }
         .onChange(of: model.showingSessionSavePrompt) { _, pending in
-            if pending && !navigationSheetPresented && activeHostSheet == nil {
-                presentationGate.request(.host) { activeHostSheet = .sessionSave }
-            }
-        }
-        .onChange(of: navigationSheetPresented) { _, presented in
-            if !presented && model.showingSessionSavePrompt && activeHostSheet == nil {
-                presentationGate.request(.host) { activeHostSheet = .sessionSave }
+            if !pending && activeHostSheet == .sessionSave {
+                presentationGate.beginDismissal(.host)
+                activeHostSheet = nil
             }
         }
         .onDisappear {
