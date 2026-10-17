@@ -107,3 +107,11 @@ Reconstruction validation runs for relevant app, tool and workflow changes on fe
 - A release candidate requires a successful visual walkthrough on the **exact candidate SHA**; weekly or unrelated-commit green evidence cannot substitute for release acceptance. CI does not sign, publish or deploy.
 - Focused simulator smoke testing on navigation-changing PRs is a follow-up gate, not yet an implemented separate suite. Do not claim smoke coverage from compile-only checks.
 - This split deliberately prevents the expensive walkthrough from blocking ordinary merges while keeping the full iPhone/iPad visual acceptance mandatory for release.
+
+## GitHub Actions cost controls (October 2026)
+
+- Feature branches are validated by the pull-request event only; ordinary feature-branch pushes do not duplicate the reconstruction, website or download-contract jobs. Main pushes retain post-merge verification.
+- The unsigned personal-signing IPA archive is manually dispatched only; compilation, Swift package tests and the unsigned simulator build remain in normal reconstruction CI. Do not interpret an unbuilt IPA as a release artifact.
+- Full iPhone/iPad visual walkthrough remains manual, weekly or release-candidate-tag gated. A release candidate must pass both devices on its exact SHA.
+- Failure triage is manually dispatchable with a failed run ID; it no longer starts a skipped workflow for every successful validation. Investigators can still inspect exact job logs and report failures.
+- The separate focused iOS simulator smoke PR must be validated before merge. Workflow YAML changes themselves require review of triggers and required status checks; do not remove required branch protection checks without an equivalent passing gate.
