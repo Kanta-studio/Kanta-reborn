@@ -98,9 +98,26 @@ struct HostView: View {
                 NavigationStack {
                     hostControls
                         .navigationTitle("CONTROL")
-                        .toolbar { ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { presentationGate.beginDismissal(.host); activeHostSheet = nil }
-                        } }
+                        .toolbar {
+                            ToolbarItem(placement: .primaryAction) {
+                                Button {
+                                    openFullscreenPlayer()
+                                } label: {
+                                    Label(
+                                        "Fullscreen",
+                                        systemImage: "arrow.up.left.and.arrow.down.right"
+                                    )
+                                }
+                                .accessibilityLabel("Open fullscreen player from controls")
+                                .accessibilityIdentifier("controls.openFullscreen")
+                            }
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") {
+                                    presentationGate.beginDismissal(.host)
+                                    activeHostSheet = nil
+                                }
+                            }
+                        }
                 }
             case .sessionSave:
                 SaveSessionFavoritesView(model: model)
@@ -229,6 +246,12 @@ struct HostView: View {
     }
 
 
+
+    private func openFullscreenPlayer() {
+        pendingFullscreen = true
+        presentationGate.beginDismissal(.host)
+        activeHostSheet = nil
+    }
 
     private var hostControls: some View {
         List {
@@ -516,9 +539,7 @@ struct HostView: View {
                         )
 
                         Button {
-                            pendingFullscreen = true
-                            presentationGate.beginDismissal(.host)
-                            activeHostSheet = nil
+                            openFullscreenPlayer()
                         } label: {
                             Image(
                                 systemName:

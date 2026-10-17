@@ -199,3 +199,8 @@ The shared main-actor gate now serializes navigation, Host and Stage sheets, and
 ### Noninterruptive session-save handoff (iOS PR #36 candidate)
 
 Natural completion may leave an optional pending favorites save while Library is presented. The stage must not automatically replace Library dismissal with the session-save sheet: an explicit `Save session` action opens that Host-owned sheet. A pending save must not suppress observation of subsequent playback; later finished sessions are accumulated until Save/Don't Save resolves the decision. The Host presentation gate still serializes the explicit sheet request. Both iPhone and iPad runtime walkthroughs must verify the first Search tap and the deferred save action before this is accepted.
+
+
+### Fullscreen entry from CONTROL
+
+The CONTROL sheet keeps its fullscreen action in the navigation toolbar so it remains reachable while the detailed controls list is expanded. The stage-preview affordance and CONTROL toolbar action both call the Host-owned transition, which marks the Host sheet as dismissing and queues fullscreen through the shared presentation gate. UI walkthroughs target the stable CONTROL toolbar identifier and verify fullscreen Search plus ownership release after exit.

@@ -102,8 +102,11 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
             app.swipeUp()
             capture("08-real-controls-\(index)", app)
         }
-        let openFullscreen = app.buttons["Open fullscreen player"]
-        for _ in 0..<8 where !openFullscreen.isHittable { app.swipeUp() }
+        let openFullscreen = app.buttons["controls.openFullscreen"]
+        XCTAssertTrue(
+            openFullscreen.waitForExistence(timeout: waitSeconds),
+            "The fullscreen action must stay available in the CONTROL toolbar"
+        )
         XCTAssertTrue(openFullscreen.isHittable)
         openFullscreen.tap()
         let fullscreenExit = app.buttons["fullscreen.exit"]
