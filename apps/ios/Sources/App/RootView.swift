@@ -5,11 +5,10 @@ struct RootView: View {
     @ObservedObject var services: AppServices
     @Environment(\.scenePhase) private var scenePhase
     @State private var sheetRoute: Route = .menu
-    @State private var isSheetPresented = false
-    @State private var navigationTransition: NavigationTransition = .idle
+    @State private var navigationPresentation: NavigationPresentation = .idle
 
-    private enum NavigationTransition {
-        case idle, presented, dismissing
+    private enum NavigationPresentation {
+        case idle, showing, dismissing
     }
 
     private enum Route: String, Identifiable {
@@ -22,34 +21,38 @@ struct RootView: View {
         let mode = ProcessInfo.processInfo.environment["GELO_SCREENSHOT_MODE"] ?? ""
         let initialRoute = Route(rawValue: mode)
         _sheetRoute = State(initialValue: initialRoute ?? .menu)
-        _isSheetPresented = State(initialValue: initialRoute != nil)
-        _navigationTransition = State(initialValue: initialRoute == nil ? .idle : .presented)
+        _navigationPresentation = State(initialValue: initialRoute == nil ? .idle : .showing)
     }
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, navigationSheetPresented: navigationTransition != .idle, onOpenNavigation: {
-                guard navigationTransition == .idle else { return }
+            HostView(services: services, navigationSheetPresented: navigationPresentation != .idle, onOpenNavigation: {
+                guard navigationPresentation == .idle else { return }
                 sheetRoute = .menu
-                navigationTransition = .presented
-                isSheetPresented = true
+                navigationPresentation = .showing
             })
                 .toolbar(.hidden, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
         .tint(GeloVisualStyle.accent)
         // Navigation stays presented while the playing song updates the host view.
-        .sheet(isPresented: $isSheetPresented, onDismiss: {
+        .sheet(isPresented: Binding(
+            get: { navigationPresentation == .showing },
+            set: { presented in
+                if !presented && navigationPresentation == .showing {
+                    navigationPresentation = .dismissing
+                }
+            }
+        ), onDismiss: {
             sheetRoute = .menu
-            navigationTransition = .idle
+            navigationPresentation = .idle
         }) {
             NavigationStack {
                 destination(sheetRoute)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
-                                navigationTransition = .dismissing
-                                isSheetPresented = false
+                                navigationPresentation = .dismissing
                             }
                         }
                     }
