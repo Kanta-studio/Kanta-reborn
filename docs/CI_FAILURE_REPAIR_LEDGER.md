@@ -124,3 +124,10 @@ undefined
 
 
 **Follow-up after run 39038432004:** the gate-observation guard compiled but the runtime still left `fullscreen.exit` visible on both devices. The Exit action now calls the UIKit presenter directly in the same main-actor turn that clears the SwiftUI binding. The presenter records the dismissal intent, enters the gate's serialized dismissal path and waits for child ownership restoration before dismissing its exact player. This addresses the missing presenter update signal shown by the failed assertion; fresh iPhone/iPad runtime validation is pending.
+
+### 2026-10-17 — fullscreen exit remains visible after tap
+
+- Failed runtime run: `39038432004`, source SHA `8e5c2560b0a6503f35101b8da93debc177e0c50b`; both iPhone and iPad `KantaVisualWalkthroughUITests.testStarterPlaybackAndControls` timed out at line 127 waiting for `fullscreen.exit` to disappear.
+- Source-level cause candidate: `SingingModalPresenter.updatePresentation()` refused to call UIKit dismissal unless `presentationGate.owner == .fullscreen` and `presentationGate.dismissing == true`. Fullscreen child Search/Queue can temporarily own the gate; the exit intent must not be dropped while that child transition completes.
+- Fix commit: `b2bdc3810e9470e7f87a8788b033d7c74e64969f` removes the blocking guard while preserving the existing dismissal callback and gate completion.
+- Verification: pending latest-head iPhone/iPad simulator walkthrough; no green runtime result claimed.
