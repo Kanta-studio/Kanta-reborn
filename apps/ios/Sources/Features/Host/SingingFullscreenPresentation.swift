@@ -131,8 +131,14 @@ final class SingingModalPresenter: UIViewController {
             // A Search or Queue sheet belongs to the fullscreen player. Let its
             // onDismiss callback restore fullscreen ownership before tearing down
             // the player that presents it.
-            guard presentationGate?.owner == .fullscreen,
-                  presentationGate?.dismissing == true else { return }
+            // Fullscreen may own a child Search/Queue sheet when Exit is tapped.
+            // The child's dismissal callback can restore the parent gate later,
+            // but it must not block UIKit from dismissing the player now.
+            // Dismissing the player also dismisses any child presentation.
+            if presentationGate?.owner == .fullscreen,
+               presentationGate?.dismissing != true {
+                presentationGate?.beginDismissal(.fullscreen)
+            }
             guard player.presentingViewController != nil else {
                 ownedPlayer = nil
                 finishDismissal()
