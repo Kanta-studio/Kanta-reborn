@@ -6,7 +6,6 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var sheetRoute: Route = .menu
     @State private var isSheetPresented = false
-    @State private var navigationDismissing = false
     @State private var navigationTransition: NavigationTransition = .idle
 
     private enum NavigationTransition {
@@ -24,6 +23,7 @@ struct RootView: View {
         let initialRoute = Route(rawValue: mode)
         _sheetRoute = State(initialValue: initialRoute ?? .menu)
         _isSheetPresented = State(initialValue: initialRoute != nil)
+        _navigationTransition = State(initialValue: initialRoute == nil ? .idle : .presented)
     }
 
     var body: some View {
@@ -41,7 +41,6 @@ struct RootView: View {
         // Navigation stays presented while the playing song updates the host view.
         .sheet(isPresented: $isSheetPresented, onDismiss: {
             sheetRoute = .menu
-            navigationDismissing = false
             navigationTransition = .idle
         }) {
             NavigationStack {
@@ -49,7 +48,6 @@ struct RootView: View {
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
-                                navigationDismissing = true
                                 navigationTransition = .dismissing
                                 isSheetPresented = false
                             }
