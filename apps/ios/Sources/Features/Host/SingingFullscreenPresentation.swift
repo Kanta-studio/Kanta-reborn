@@ -117,9 +117,14 @@ final class SingingModalPresenter: UIViewController {
     }
 
     private func updatePresentation() {
-        guard ownsGate, !isTransitioning, viewIfLoaded?.window != nil else { return }
+        guard ownsGate, !isTransitioning else { return }
         if wantsPresentation {
-            guard ownedPlayer == nil, presentedViewController == nil, let makePlayer else { return }
+            // The presenter must be attached only to start presentation. UIKit
+            // removes a full-screen presenter's view from the window while its
+            // child is visible; that must not prevent Exit from dismissing it.
+            guard viewIfLoaded?.window != nil,
+                  ownedPlayer == nil, presentedViewController == nil,
+                  let makePlayer else { return }
             let player = makePlayer()
             ownedPlayer = player
             isTransitioning = true
