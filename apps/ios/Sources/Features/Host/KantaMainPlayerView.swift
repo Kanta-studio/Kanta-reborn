@@ -13,8 +13,12 @@ struct KantaMainPlayerView: View {
     var onControls: () -> Void = {}
     var onMore: () -> Void = {}
     @Environment(\.scenePhase) private var scenePhase
-    @State private var showingSearch = false
-    @State private var showingQueue = false
+    @State private var activeStageSheet: StageSheet?
+
+    private enum StageSheet: String, Identifiable {
+        case search, queue
+        var id: String { rawValue }
+    }
     @State private var transportBusy = false
 
     var body: some View {
@@ -68,20 +72,24 @@ struct KantaMainPlayerView: View {
             .foregroundStyle(.white)
         }
         .background(.black)
-        .sheet(isPresented: $showingSearch) {
-            GeometryReader { geometry in
-                KantaStageSearchView(model: model, singerName: $singerName,
-                                     microphoneBusy: microphoneBusy,
-                                     onClose: { showingSearch = false })
-                    .padding(12)
-                    .frame(maxWidth: 760, maxHeight: .infinity)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(GeloVisualStyle.pageBackground)
+        .sheet(item: $activeStageSheet) { sheet in
+            switch sheet {
+            case .search:
+                GeometryReader { geometry in
+                    KantaStageSearchView(model: model, singerName: $singerName,
+                                         microphoneBusy: microphoneBusy,
+                                         onClose: { activeStageSheet = nil })
+                        .padding(12)
+                        .frame(maxWidth: 760, maxHeight: .infinity)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(GeloVisualStyle.pageBackground)
+                }
+                .preferredColorScheme(.dark)
+                .presentationDetents([.large])
+            case .queue:
+                queueSheet
             }
-            .preferredColorScheme(.dark)
-            .presentationDetents([.large])
         }
-        .sheet(isPresented: $showingQueue) { queueSheet }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { camera.stop() }
         }
@@ -151,11 +159,11 @@ struct KantaMainPlayerView: View {
         }
     }
     private var searchButton: some View {
-        stageButton("Search", icon: "magnifyingglass") { showingSearch = true }
+        stageButton("Search", icon: "magnifyingglass") { activeStageSheet = .search }
             .accessibilityIdentifier("stage.search")
     }
     private var queueButton: some View {
-        stageButton("Queue", icon: "list.bullet") { showingQueue = true }
+        stageButton("Queue", icon: "list.bullet") { activeStageSheet = .queue }
             .accessibilityValue("\(model.snapshot.queue.count) reservations")
     }
     private var cameraButton: some View {
@@ -233,7 +241,7 @@ struct KantaMainPlayerView: View {
             }
             .navigationTitle("Reservations")
             .toolbar { ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { showingQueue = false }
+                Button("Done") { activeStageSheet = nil }
             } }
         }
         .preferredColorScheme(.dark)
