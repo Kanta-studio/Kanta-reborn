@@ -66,3 +66,7 @@ Do not add fake functional controls for pending features. Add typed interfaces a
 - [ ] Identify iOS/Android parity adapters and pending acceptance
 - [ ] Update architecture, roadmap, checkpoint, README and website claims as applicable
 - [ ] Report static/unit/build/UI/device/signing/deployment results independently
+
+## PR #36 implementation checkpoint — 2026-10-17
+
+RootView now tracks navigation dismissal until the SwiftUI sheet's `onDismiss` callback, and exposes `navigation.done` as a stable accessibility identifier. This is an incremental lifecycle guard, **not** the final unified presentation coordinator: HostView, KantaMainPlayerView, nested Library presentations and UIKit fullscreen still require coordinated ownership. The walkthrough's previous `navigationBars["Song Library"]` wait was invalid because LibraryView's title is `Library`; the test now waits on the real title and retains a failure-time accessibility dump. Simulator regression, iPhone/iPad success, unsigned IPA and deployment remain unverified on this head.
