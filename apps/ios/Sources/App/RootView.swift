@@ -7,6 +7,11 @@ struct RootView: View {
     @State private var sheetRoute: Route = .menu
     @State private var isSheetPresented = false
     @State private var navigationDismissing = false
+    @State private var navigationTransition: NavigationTransition = .idle
+
+    private enum NavigationTransition {
+        case idle, presented, dismissing
+    }
 
     private enum Route: String, Identifiable {
         case menu, library, remote, settings, legal, icloud, songbook
@@ -23,8 +28,10 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, navigationSheetPresented: isSheetPresented || navigationDismissing, onOpenNavigation: {
+            HostView(services: services, navigationSheetPresented: navigationTransition != .idle, onOpenNavigation: {
+                guard navigationTransition == .idle else { return }
                 sheetRoute = .menu
+                navigationTransition = .presented
                 isSheetPresented = true
             })
                 .toolbar(.hidden, for: .navigationBar)
@@ -35,6 +42,7 @@ struct RootView: View {
         .sheet(isPresented: $isSheetPresented, onDismiss: {
             sheetRoute = .menu
             navigationDismissing = false
+            navigationTransition = .idle
         }) {
             NavigationStack {
                 destination(sheetRoute)
@@ -42,6 +50,7 @@ struct RootView: View {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
                                 navigationDismissing = true
+                                navigationTransition = .dismissing
                                 isSheetPresented = false
                             }
                         }
