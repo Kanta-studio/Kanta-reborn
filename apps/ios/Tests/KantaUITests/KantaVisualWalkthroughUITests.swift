@@ -51,6 +51,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         let deadline = Date().addingTimeInterval(1)
         while Date() < deadline {
             XCTAssertTrue(app.buttons["Song Library"].exists, "Playback updates dismissed the menu")
+            XCTAssertTrue(app.buttons["Done"].firstMatch.exists, "Playback replaced navigation sheet")
             RunLoop.current.run(until: Date().addingTimeInterval(0.1))
         }
         capture("real-menu-stays-open-during-playback", app)

@@ -7,6 +7,7 @@ import SwiftUI
 @MainActor
 struct HostView: View {
     private let onOpenNavigation: () -> Void
+    let navigationSheetPresented: Bool
     @StateObject private var camera = KantaCameraBackground()
     @State private var pendingFullscreen = false
     @State private var showingHostControls =
@@ -32,7 +33,8 @@ struct HostView: View {
             "KANTA_FULLSCREEN"
         ] == "1"
 
-    init(services: AppServices, onOpenNavigation: @escaping () -> Void = {}) {
+    init(services: AppServices, navigationSheetPresented: Bool = false, onOpenNavigation: @escaping () -> Void = {}) {
+        self.navigationSheetPresented = navigationSheetPresented
         self.onOpenNavigation = onOpenNavigation
         partySFX = services.partySFX
         diagnostics = services.diagnostics
@@ -156,7 +158,10 @@ struct HostView: View {
             await model.run()
             intermission.sync(model.snapshot.transport)
         }
-        .sheet(isPresented: $model.showingSessionSavePrompt) {
+        .sheet(isPresented: Binding(
+            get: { model.showingSessionSavePrompt && !navigationSheetPresented },
+            set: { if !$0 && !navigationSheetPresented { model.showingSessionSavePrompt = false } }
+        )) {
             SaveSessionFavoritesView(model: model)
         }
         .sheet(isPresented: $showingSavedFavorites) {

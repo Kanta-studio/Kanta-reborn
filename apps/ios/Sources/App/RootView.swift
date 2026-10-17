@@ -22,7 +22,7 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, onOpenNavigation: {
+            HostView(services: services, navigationSheetPresented: isSheetPresented, onOpenNavigation: {
                 sheetRoute = .menu
                 isSheetPresented = true
             })
