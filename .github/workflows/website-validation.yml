@@ -1,8 +1,18 @@
-name: Owner-approved website validation
+name: KANTA website validation
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'tools/verify-website.py'
+      - '.github/workflows/website-validation.yml'
   pull_request:
-    types: [labeled]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/web/**'
+      - 'tools/verify-website.py'
+      - '.github/workflows/website-validation.yml'
 permissions:
   contents: read
 concurrency:
@@ -10,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   website:
-    if: ${{ github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'owner-approved-website-validation') }}
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

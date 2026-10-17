@@ -1,4 +1,4 @@
-name: Owner-approved reconstruction validation
+name: KANTA reconstruction validation
 on:
   workflow_dispatch:
   push:
@@ -6,7 +6,7 @@ on:
     paths:
       - 'apps/**'
       - 'tools/**'
-      - '.github/workflows/reconstruction-validation.yml'
+      - '.github/workflows/**'
   pull_request:
     types: [opened, synchronize, reopened, labeled]
     paths:

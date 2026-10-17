@@ -25,7 +25,7 @@ The root coordinator owns mutually exclusive top-level destinations and their pr
 
 ## Automation boundaries
 
-GitHub Actions must use least-privilege permissions, concurrency limits, timeouts, pinned trusted actions and explicit release approval. Do not introduce unrestricted bot loops, automated workflow dispatch storms, secret printing or publication of unlicensed assets. Use read-only failure diagnostics and a bounded repair attempt; escalate when changes require account authorization, signing secrets, or policy decisions. A scheduled checker can report meaningful changes, but does not by itself execute repository fixes.
+GitHub Actions should run relevant source validation automatically on pull-request updates and main-branch pushes, using narrow path filters, least-privilege permissions, concurrency controls, bounded timeouts and pinned trusted actions. Keep a manual dispatch as a deliberate fallback, not the normal validation path. Failure triage may report failed runs, but must not create dispatch loops. Contract tests for verified downloads may run automatically; packaging or publishing accepted binaries remains explicitly owner-gated. Never automate signing, merge, production deployment or public release. Do not print secrets or publish unlicensed assets. Use read-only failure diagnostics and a bounded repair attempt; escalate when account authorization, signing secrets or policy decisions are required.
 
 ## Evidence and reporting
 

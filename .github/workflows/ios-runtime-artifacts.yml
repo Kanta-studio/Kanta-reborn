@@ -1,20 +1,27 @@
-name: Owner-approved iOS runtime and unsigned artifacts
+name: KANTA iOS runtime and unsigned artifacts
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: ['Owner-approved reconstruction validation']
+    workflows: ['KANTA reconstruction validation']
     types: [completed]
     branches: [main]
   pull_request:
-    types: [labeled]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/ios/**'
+      - 'tools/capture-ios-runtime.py'
+      - 'tools/verify-test-layout.py'
+      - 'tools/check-ios-presentation-contract.py'
+      - '.github/workflows/ios-runtime-artifacts.yml'
+      - '.github/workflows/reconstruction-validation.yml'
 permissions:
   contents: read
 concurrency:
   group: ios-runtime-${{ github.event.workflow_run.head_sha || github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   ios-runtime:
-    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository) || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.label.name == 'owner-approved-ios-runtime')
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository) || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: macos-15
     timeout-minutes: 55
     env:

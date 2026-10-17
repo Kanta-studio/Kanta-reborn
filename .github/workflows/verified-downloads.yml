@@ -1,8 +1,18 @@
-name: Owner-approved verified download packaging
+name: Verified download packaging (owner-approved)
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/prepare-verified-downloads.py'
+      - 'tools/tests/test_verified_downloads.py'
+      - '.github/workflows/verified-downloads.yml'
   pull_request:
-    types: [labeled]
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'tools/prepare-verified-downloads.py'
+      - 'tools/tests/test_verified_downloads.py'
+      - '.github/workflows/verified-downloads.yml'
 permissions:
   contents: read
   actions: read
@@ -10,14 +20,20 @@ concurrency:
   group: verified-downloads-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check artifact identity and packaging contracts
+        run: python3 -m unittest discover -s tools/tests -p test_verified_downloads.py
   package:
+    needs: contracts
     if: ${{ github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'owner-approved-download-packaging') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Check artifact identity and packaging contracts
-        run: python3 -m unittest discover -s tools/tests -p test_verified_downloads.py
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Preserve validated application bytes
         run: python3 tools/prepare-verified-downloads.py
         env:
