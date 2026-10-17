@@ -124,6 +124,9 @@ public enum CompanionProtocol {
     public static func request(id: UUID, action: String, argument: String = "", singer: String = "") throws -> Data {
         guard ["snapshot", "search", "reserve", "cancel", "play", "pause", "next"].contains(action)
         else { throw CompanionError.invalidInput }
+        guard action != "search" || !argument.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw CompanionError.invalidInput
+        }
         var uuid = id.uuid
         var bytes = withUnsafeBytes(of: &uuid) { Data($0) }
         for (value, bound) in [(action, 16), (argument, 128), (singer, 80)] {
