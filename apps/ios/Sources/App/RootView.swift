@@ -6,6 +6,9 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var sheetRoute: Route = .menu
     @State private var navigationPresentation: NavigationPresentation = .idle
+    @State private var stageSearchPresented = false
+    @State private var pendingMenuRequest = false
+    @State private var pendingSearchRequest = false
 
     private enum NavigationPresentation {
         case idle, showing, dismissing
@@ -26,7 +29,18 @@ struct RootView: View {
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, navigationSheetPresented: navigationPresentation != .idle, onOpenNavigation: {
+            HostView(services: services, navigationSheetPresented: navigationPresentation != .idle,
+                     stageSearchPresented: $stageSearchPresented, onOpenSearch: {
+                if navigationPresentation == .idle {
+                    stageSearchPresented = true
+                } else {
+                    pendingSearchRequest = true
+                }
+            }, onOpenNavigation: {
+                if navigationPresentation == .dismissing {
+                    pendingMenuRequest = true
+                    return
+                }
                 guard navigationPresentation == .idle else { return }
                 sheetRoute = .menu
                 navigationPresentation = .showing
@@ -46,6 +60,13 @@ struct RootView: View {
         ), onDismiss: {
             sheetRoute = .menu
             navigationPresentation = .idle
+            if pendingSearchRequest {
+                pendingSearchRequest = false
+                stageSearchPresented = true
+            } else if pendingMenuRequest {
+                pendingMenuRequest = false
+                navigationPresentation = .showing
+            }
         }) {
             NavigationStack {
                 destination(sheetRoute)
