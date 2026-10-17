@@ -7,6 +7,8 @@ import SwiftUI
 @MainActor
 struct HostView: View {
     private let onOpenNavigation: () -> Void
+    private let onOpenSearch: () -> Void
+    @Binding private var stageSearchPresented: Bool
     let navigationSheetPresented: Bool
     @StateObject private var camera = KantaCameraBackground()
     @State private var pendingFullscreen = false
@@ -33,8 +35,13 @@ struct HostView: View {
             "KANTA_FULLSCREEN"
         ] == "1"
 
-    init(services: AppServices, navigationSheetPresented: Bool = false, onOpenNavigation: @escaping () -> Void = {}) {
+    init(services: AppServices, navigationSheetPresented: Bool = false,
+         stageSearchPresented: Binding<Bool> = .constant(false),
+         onOpenSearch: @escaping () -> Void = {},
+         onOpenNavigation: @escaping () -> Void = {}) {
         self.navigationSheetPresented = navigationSheetPresented
+        _stageSearchPresented = stageSearchPresented
+        self.onOpenSearch = onOpenSearch
         self.onOpenNavigation = onOpenNavigation
         partySFX = services.partySFX
         diagnostics = services.diagnostics
@@ -64,7 +71,9 @@ struct HostView: View {
             singerName: $singerName,
             microphoneBusy: microphonePitchMonitor.status == .running
                 || microphonePitchMonitor.status == .requestingPermission,
+            showingSearch: $stageSearchPresented,
             onControls: { showingHostControls = true },
+            onSearch: onOpenSearch,
             onMore: onOpenNavigation
         )
         .sheet(isPresented: $showingHostControls, onDismiss: {
