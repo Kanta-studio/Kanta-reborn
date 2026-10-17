@@ -70,6 +70,12 @@ private enum Vector {
     #expect(throws: (any Error).self) {
         try CompanionProtocol.request(id: Vector.id, action: "camera")
     }
+    for blank in ["", " ", "\t\n"] {
+        #expect(throws: (any Error).self) {
+            try CompanionProtocol.request(id: Vector.id, action: "search", argument: blank)
+        }
+    }
+    #expect(try !CompanionProtocol.request(id: Vector.id, action: "snapshot").isEmpty)
     #expect(throws: (any Error).self) {
         try CompanionProtocol.request(id: Vector.id, action: "search", argument: String(repeating: "🎤", count: 65))
     }
