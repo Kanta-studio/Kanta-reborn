@@ -6,6 +6,7 @@ on:
       - KANTA reconstruction validation
       - KANTA iOS unsigned artifacts
       - KANTA iOS visual walkthrough
+      - KANTA iOS focused simulator smoke
       - KANTA website validation
     types: [completed]
 permissions:

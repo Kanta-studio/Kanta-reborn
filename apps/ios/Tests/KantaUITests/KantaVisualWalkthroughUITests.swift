@@ -135,6 +135,38 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
     }
 
     @MainActor
+    func testFocusedNavigationSmoke() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        app.launch()
+        let search = app.buttons["stage.search"]
+        XCTAssertTrue(search.waitForExistence(timeout: waitSeconds))
+        search.tap()
+        let keypad = app.buttons["stage.keypad.0"]
+        XCTAssertTrue(keypad.waitForExistence(timeout: 10), "Stage Search must open the keypad")
+        app.buttons["Cancel"].tap()
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: keypad)
+        waitForExpectations(timeout: 10)
+
+        app.buttons["stage.controls"].tap()
+        for _ in 0..<3 { app.swipeUp() }
+        let fullscreen = app.buttons["controls.openFullscreen"]
+        XCTAssertTrue(fullscreen.waitForExistence(timeout: waitSeconds))
+        XCTAssertTrue(fullscreen.isHittable)
+        fullscreen.tap()
+        let exit = app.buttons["fullscreen.exit"]
+        XCTAssertTrue(exit.waitForExistence(timeout: waitSeconds))
+        exit.tap()
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: exit)
+        waitForExpectations(timeout: waitSeconds)
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        XCTAssertTrue(keypad.waitForExistence(timeout: 10),
+                      "Stage Search must work after fullscreen dismissal")
+        app.buttons["Cancel"].tap()
+    }
+
+    @MainActor
     func testMainMenuButtonsAndScreens() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
