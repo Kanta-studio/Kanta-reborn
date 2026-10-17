@@ -2,6 +2,7 @@ name: KANTA reconstruction validation
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'apps/**'
       - 'tools/**'
