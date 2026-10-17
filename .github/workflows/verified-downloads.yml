@@ -2,13 +2,6 @@ name: Verified download packaging (owner-approved)
 on:
   workflow_dispatch:
   push:
-    branches: [main]
-    paths:
-      - 'tools/prepare-verified-downloads.py'
-      - 'tools/tests/test_verified_downloads.py'
-      - '.github/workflows/verified-downloads.yml'
-  push:
-    branches-ignore: [main]
     paths:
       - 'tools/prepare-verified-downloads.py'
       - 'tools/tests/test_verified_downloads.py'
