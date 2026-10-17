@@ -67,7 +67,16 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         let search = app.buttons["stage.search"]
         XCTAssertTrue(search.waitForExistence(timeout: 10))
         let keypadZero = app.buttons["stage.keypad.0"]
-        XCTAssertTrue(search.isHittable, "Search is blocked after leaving the library")
+        if !search.isHittable {
+            capture("search-blocked-after-library", app)
+            let hierarchy = app.debugDescription
+            let attachment = XCTAttachment(string: hierarchy)
+            attachment.name = "search-blocked-accessibility-hierarchy"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            XCTFail("Search is blocked after leaving the library; accessibility hierarchy attached")
+            return
+        }
         search.tap()
         XCTAssertTrue(keypadZero.waitForExistence(timeout: 10),
                       "Search did not present the keypad after library dismissal")
