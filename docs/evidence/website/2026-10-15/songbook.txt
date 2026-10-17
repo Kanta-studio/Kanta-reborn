@@ -1,0 +1,55 @@
+Private Songbook · KANTA
+Skip to content
+✦ KANTA
+iPhone / iPad
+Android
+How to Use
+Features
+My Songbook
+Help
+Privacy
+Music Rights
+This page opens a private song list that you create in KANTA.
+iPhone/iPad instructions
+·
+Android instructions
+. Your song list is not uploaded to KANTA.
+Choose your device
+iPhone / iPad
+Android phone / tablet
+PRIVATE DIGITAL SONGBOOK
+Every song.
+A page away.
+A beautiful book for your own karaoke collection. No public catalog or server uploads.
+🔒
+Unlock with your phone
+On iPhone or iPad, choose
+KANTA → Songbook → Create private website copy
+. Share the encrypted
+.kanta-book
+file to this browser and enter the code KANTA displays on your phone.
+1. Encrypted Songbook file
+2. Access code from the KANTA app
+32 hexadecimal digits, not your six-digit LAN Remote PIN.
+Open my Songbook →
+🔐 Private browser decryption · No cloud account · No uploads
+YOUR OWN COLLECTION
+My KANTA Songbook
+↓ Download CSV
+⎙ Print / Save as PDF
+🔒 Lock
+Search songs by title, artist or code
+✦ KANTA · SONG DIRECTORY ✦
+✦ THE SONGBOOK ✦
+← Previous
+Next →
+KANTA codes are local references; unknown artists are not guessed. Catalog-only songs cannot be played through this website.
+You can prepare a private Songbook from the updated Android test app or from KANTA on iPhone/iPad. Choose the saved
+.kanta-book
+file and enter the matching code. Keep both private; this website reads your file in your browser without uploading your song list. Cross-platform file exchange is still being tested.
+KANTA · Your music. Your stage.
+Home
+·
+Features
+·
+Privacy

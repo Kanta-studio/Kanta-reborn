@@ -1,0 +1,19 @@
+# Generated files and local secrets
+.DS_Store
+.build/
+DerivedData/
+.gradle/
+**/build/
+local.properties
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.mobileprovision
+*.jks
+*.keystore
+__pycache__/
+
+.cxx/
+.externalNativeBuild/

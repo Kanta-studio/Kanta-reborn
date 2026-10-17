@@ -1,0 +1,219 @@
+name: Manual KANTA Ad Hoc IPA (BetaDrop-ready)
+
+on:
+  workflow_dispatch:
+    inputs:
+      export_signed_ipa:
+        description: "I confirm an Ad Hoc profile includes my registered test devices"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kanta-ad-hoc-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prerequisites:
+    if: inputs.export_signed_ipa == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Explicit branch and signing preflight before any macOS allocation
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_DISTRIBUTION_CERT_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12_BASE64 }}
+          APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+          KANTA_ADHOC_MOBILEPROVISION_BASE64: ${{ secrets.KANTA_ADHOC_MOBILEPROVISION_BASE64 }}
+        run: |
+          set -euo pipefail
+          test "${{ github.ref }}" = "refs/heads/main" || {
+            echo "::error::Signed Ad Hoc IPA exports require validated main."; exit 1;
+          }
+          python3 - <<'PY'
+          import base64, os, sys
+          keys = (
+              "APPLE_TEAM_ID", "APPLE_DISTRIBUTION_CERT_P12_BASE64",
+              "APPLE_DISTRIBUTION_CERT_PASSWORD", "KANTA_ADHOC_MOBILEPROVISION_BASE64"
+          )
+          if any(not os.environ.get(name) for name in keys):
+              sys.exit("Missing Apple signing/profile prerequisites; macOS job suppressed.")
+          for name in ("APPLE_DISTRIBUTION_CERT_P12_BASE64",
+                       "KANTA_ADHOC_MOBILEPROVISION_BASE64"):
+              try:
+                  payload = base64.b64decode(
+                      "".join(os.environ[name].split()), validate=True
+                  )
+              except (ValueError, base64.binascii.Error):
+                  sys.exit("Invalid base64 signing/profile prerequisite.")
+              if len(payload) < 256:
+                  sys.exit("Signing/profile input is unexpectedly short.")
+          print("Signing input shapes verified. Private values not disclosed.")
+          PY
+
+  signed-ipa:
+    needs: prerequisites
+    runs-on: macos-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Commercial media / privacy / release guards
+        run: |
+          set -euo pipefail
+          bash Tools/verify-commercial-assets.sh
+          bash Tools/verify-media-provenance.sh
+          bash Tools/verify-ios-privacy.sh
+          bash Tools/verify-release-metadata.sh
+          python3 -m unittest discover -s Tests/ReleaseToolingTests -p 'test_*.py'
+          python3 Tests/test_starter_kar_generator.py
+      - name: Compile and test source before signing
+        run: |
+          set -euo pipefail
+          swift test
+          command -v xcodegen >/dev/null || brew install xcodegen
+          xcodegen generate
+      - name: Install device-registered Apple Ad Hoc profile
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KANTA_ADHOC_MOBILEPROVISION_BASE64: ${{ secrets.KANTA_ADHOC_MOBILEPROVISION_BASE64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          (Path(os.environ["RUNNER_TEMP"]) / "KANTA-AdHoc.mobileprovision").write_bytes(
+              base64.b64decode("".join(os.environ[
+                  "KANTA_ADHOC_MOBILEPROVISION_BASE64"
+              ].split()), validate=True)
+          )
+          PY
+          security cms -D -i "$RUNNER_TEMP/KANTA-AdHoc.mobileprovision" \
+            -o "$RUNNER_TEMP/KANTA-AdHoc.plist"
+          plutil -lint "$RUNNER_TEMP/KANTA-AdHoc.plist"
+          /usr/libexec/PlistBuddy -c "Print :ProvisionedDevices" \
+            "$RUNNER_TEMP/KANTA-AdHoc.plist" >/dev/null || {
+              echo "::error::Ad Hoc profile has no registered device allowlist."; exit 1;
+            }
+          team_profile=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" \
+            "$RUNNER_TEMP/KANTA-AdHoc.plist")
+          test "$team_profile" = "$APPLE_TEAM_ID" || {
+            echo "::error::Provisioning profile team mismatch."; exit 1;
+          }
+          app_identifier=$(/usr/libexec/PlistBuddy -c \
+            "Print :Entitlements:application-identifier" \
+            "$RUNNER_TEMP/KANTA-AdHoc.plist")
+          test "$app_identifier" = "$APPLE_TEAM_ID.com.gelo.karaoke" || {
+            echo "::error::Ad Hoc profile App ID does not match KANTA."; exit 1;
+          }
+          profile_uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" \
+            "$RUNNER_TEMP/KANTA-AdHoc.plist")
+          profile_name=$(/usr/libexec/PlistBuddy -c "Print :Name" \
+            "$RUNNER_TEMP/KANTA-AdHoc.plist")
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/KANTA-AdHoc.mobileprovision" \
+            "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
+          echo "KANTA_ADHOC_PROFILE_NAME=$profile_name" >> "$GITHUB_ENV"
+      - name: Import Apple Distribution identity into temporary keychain
+        env:
+          APPLE_DISTRIBUTION_CERT_P12_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERT_P12_BASE64 }}
+          APPLE_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          (Path(os.environ["RUNNER_TEMP"]) / "kanta-distribution.p12").write_bytes(
+              base64.b64decode("".join(os.environ[
+                  "APPLE_DISTRIBUTION_CERT_P12_BASE64"
+              ].split()), validate=True)
+          )
+          PY
+          keychain_password="$(openssl rand -hex 32)"
+          echo "::add-mask::$keychain_password"
+          keychain="$RUNNER_TEMP/kanta-ad-hoc.keychain-db"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security import "$RUNNER_TEMP/kanta-distribution.p12" \
+            -P "$APPLE_DISTRIBUTION_CERT_PASSWORD" -t cert -f pkcs12 \
+            -T /usr/bin/security -T /usr/bin/codesign -k "$keychain"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$keychain_password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain"
+          security find-identity -v -p codesigning "$keychain" | grep -q "Apple Distribution"
+      - name: Archive with manual Apple Ad Hoc signing
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild -project GeloKaraoke.xcodeproj -scheme GeloKaraoke \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/KANTA.xcarchive" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$KANTA_ADHOC_PROFILE_NAME" \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" archive
+      - name: Export registered-device Ad Hoc IPA without TestFlight upload
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, plistlib
+          from pathlib import Path
+          payload = {
+              "method": "release-testing",
+              "signingStyle": "manual",
+              "teamID": os.environ["APPLE_TEAM_ID"],
+              "manageAppVersionAndBuildNumber": False,
+              "provisioningProfiles": {
+                  "com.gelo.karaoke": os.environ["KANTA_ADHOC_PROFILE_NAME"]
+              }
+          }
+          with (Path(os.environ["RUNNER_TEMP"]) / "KANTA-AdHoc-ExportOptions.plist").open("wb") as out:
+              plistlib.dump(payload, out)
+          PY
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/KANTA.xcarchive" \
+            -exportPath "$RUNNER_TEMP/KANTA-AdHoc-Export" \
+            -exportOptionsPlist "$RUNNER_TEMP/KANTA-AdHoc-ExportOptions.plist"
+          ipa="$(find "$RUNNER_TEMP/KANTA-AdHoc-Export" -maxdepth 1 \
+            -name '*.ipa' -print -quit)"
+          test -n "$ipa" && test -s "$ipa"
+          echo "KANTA_SIGNED_ADHOC_IPA=$ipa" >> "$GITHUB_ENV"
+      - name: Keep signed beta files in authenticated GitHub artifact only
+        uses: actions/upload-artifact@v4
+        with:
+          name: kanta-private-ad-hoc-${{ github.run_number }}
+          path: |
+            ${{ env.KANTA_SIGNED_ADHOC_IPA }}
+            ${{ runner.temp }}/KANTA.xcarchive/dSYMs
+          if-no-files-found: error
+          retention-days: 3
+      - name: Private Ad Hoc handoff instructions
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ✅ KANTA signed Ad Hoc IPA export uploaded to authenticated GitHub Actions artifact.
+          This is NOT a TestFlight or App Store release.
+          Inspect the IPA/provisioning for each registered tester before distributing it.
+          BetaDrop can host the signed IPA via a password-protected, short-lived install URL.
+          Do NOT upload signing keys, provisioning profiles, dSYMs or debug reports to BetaDrop.
+          EOF
+      - name: Destroy temporary signing credentials
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/kanta-ad-hoc.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/kanta-distribution.p12" \
+            "$RUNNER_TEMP/KANTA-AdHoc.mobileprovision" \
+            "$RUNNER_TEMP/KANTA-AdHoc.plist" \
+            "$RUNNER_TEMP/KANTA-AdHoc-ExportOptions.plist"
