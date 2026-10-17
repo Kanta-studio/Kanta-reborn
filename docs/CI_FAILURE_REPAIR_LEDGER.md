@@ -131,3 +131,11 @@ undefined
 - Source-level cause candidate: `SingingModalPresenter.updatePresentation()` refused to call UIKit dismissal unless `presentationGate.owner == .fullscreen` and `presentationGate.dismissing == true`. Fullscreen child Search/Queue can temporarily own the gate; the exit intent must not be dropped while that child transition completes.
 - Fix commit: `b2bdc3810e9470e7f87a8788b033d7c74e64969f` removes the blocking guard while preserving the existing dismissal callback and gate completion.
 - Verification: pending latest-head iPhone/iPad simulator walkthrough; no green runtime result claimed.
+
+
+### 2026-10-17 — fullscreen Exit still visible after tap (run 39041512052)
+
+- iPhone 16 Pro failed at UI test line 127 after successfully tapping `fullscreen.exit`; the XCTest wait expired because the button remained in the accessibility tree. The failure log is in the [iOS runtime run](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39041512052).
+- Cause candidate: `updatePresentation()` required the presenter's view to remain attached to a window for both presentation and dismissal. UIKit can detach the presenting view during a full-screen presentation, so that guard can block the Exit dismissal path.
+- Fix commit: `fa635ab4eb33546c543ca61322a36bdb3c05ede0` moves the window attachment requirement into the presentation branch; dismissal remains available while the presenter is off-window.
+- Validation: pending fresh iPhone/iPad walkthrough and reconstruction checks on the updated head. Do not merge until both device walkthroughs pass.
