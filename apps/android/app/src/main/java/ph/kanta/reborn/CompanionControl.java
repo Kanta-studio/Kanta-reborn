@@ -153,7 +153,10 @@ final class CompanionControl {
       case "play": if(!session.playing)session.toggle();break;
       case "pause": session.pause();break;
       case "next": session.next();break;
-      case "snapshot": case "search":break;
+      case "search":
+        if(request.argument.trim().isEmpty())throw new IOException("Empty companion search");
+        break;
+      case "snapshot":break;
       default:throw new IOException("Unsupported companion command");
     }
     JSONObject reply=new JSONObject();reply.put("request",request.id.toString());
@@ -181,6 +184,7 @@ final class CompanionControl {
   private static String shortText(String value,int limit){return value.substring(0,Math.min(value.length(),limit));}
   void send(String action,String argument,String singer){
     Run run=active;
+    if("search".equals(action) && (argument==null || argument.trim().isEmpty()))return;
     if(run==null||run.host||!run.paired||!run.valid()||!busy.compareAndSet(false,true))return;
     long generation=++requestGeneration;
     CompanionProtocol.Request request=new CompanionProtocol.Request(UUID.randomUUID(),action,argument,singer);
