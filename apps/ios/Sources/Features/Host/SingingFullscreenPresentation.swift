@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UIKit
 
@@ -54,6 +55,7 @@ final class SingingModalPresenter: UIViewController {
     private var isTransitioning = false
     private var hasRequestedGate = false
     private var ownsGate = false
+    private var gateObservation: AnyCancellable?
     private weak var ownedPlayer: UIViewController?
 
     override func loadView() {
@@ -67,6 +69,13 @@ final class SingingModalPresenter: UIViewController {
         makePlayer: @escaping () -> UIViewController, onDismiss: @escaping () -> Void
     ) {
         wantsPresentation = isPresented
+        if self.presentationGate !== presentationGate {
+            gateObservation = presentationGate.objectWillChange.sink { [weak self] in
+                Task { @MainActor in
+                    self?.updatePresentation()
+                }
+            }
+        }
         self.presentationGate = presentationGate
         self.makePlayer = makePlayer
         self.onDismiss = onDismiss
@@ -113,6 +122,11 @@ final class SingingModalPresenter: UIViewController {
                 self?.updatePresentation()
             }
         } else if let player = ownedPlayer {
+            // A Search or Queue sheet belongs to the fullscreen player. Let its
+            // onDismiss callback restore fullscreen ownership before tearing down
+            // the player that presents it.
+            guard presentationGate?.owner == .fullscreen,
+                  presentationGate?.dismissing == true else { return }
             guard player.presentingViewController != nil else {
                 ownedPlayer = nil
                 finishDismissal()
