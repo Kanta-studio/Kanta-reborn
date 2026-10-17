@@ -29,6 +29,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          gh api "repos/$GH_REPO/actions/runs/$RUN_ID" --jq '.head_sha + " " + .name' > run-details.txt
+          read -r RUN_SHA WORKFLOW_NAME < run-details.txt
           gh api "repos/$GH_REPO/actions/runs/$RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.conclusion == "failure") | "- " + .name + ": " + .html_url' > failed-jobs.txt
           if [ ! -s failed-jobs.txt ]; then echo "- No failed job returned by GitHub API" > failed-jobs.txt; fi
           key="[CI failure] $WORKFLOW_NAME"
