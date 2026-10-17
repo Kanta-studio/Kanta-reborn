@@ -5,10 +5,11 @@ struct RootView: View {
     @ObservedObject var services: AppServices
     @Environment(\.scenePhase) private var scenePhase
     @State private var sheetRoute: Route = .menu
-    @State private var navigationPresentation: NavigationPresentation = .idle
+    @State private var activeNavigation: NavigationSheet? = nil
 
-    private enum NavigationPresentation {
-        case idle, showing, dismissing
+    private enum NavigationSheet: String, Identifiable {
+        case navigation
+        var id: String { rawValue }
     }
 
     private enum Route: String, Identifiable {
@@ -21,38 +22,31 @@ struct RootView: View {
         let mode = ProcessInfo.processInfo.environment["GELO_SCREENSHOT_MODE"] ?? ""
         let initialRoute = Route(rawValue: mode)
         _sheetRoute = State(initialValue: initialRoute ?? .menu)
-        _navigationPresentation = State(initialValue: initialRoute == nil ? .idle : .showing)
+        _activeNavigation = State(initialValue: initialRoute == nil ? nil : .navigation)
     }
 
     var body: some View {
         NavigationStack {
-            HostView(services: services, navigationSheetPresented: navigationPresentation != .idle, onOpenNavigation: {
-                guard navigationPresentation == .idle else { return }
+            HostView(services: services, navigationSheetPresented: activeNavigation != nil, onOpenNavigation: {
+                guard activeNavigation == nil else { return }
                 sheetRoute = .menu
-                navigationPresentation = .showing
+                activeNavigation = .navigation
             })
                 .toolbar(.hidden, for: .navigationBar)
         }
         .preferredColorScheme(.dark)
         .tint(GeloVisualStyle.accent)
-        // Navigation stays presented while the playing song updates the host view.
-        .sheet(isPresented: Binding(
-            get: { navigationPresentation == .showing },
-            set: { presented in
-                if !presented && navigationPresentation == .showing {
-                    navigationPresentation = .dismissing
-                }
-            }
-        ), onDismiss: {
+        // One optional sheet identity owns presentation and dismissal.
+        .sheet(item: $activeNavigation, onDismiss: {
             sheetRoute = .menu
-            navigationPresentation = .idle
         }) {
+            _ in
             NavigationStack {
                 destination(sheetRoute)
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") {
-                                navigationPresentation = .dismissing
+                                activeNavigation = nil
                             }
                         }
                     }
