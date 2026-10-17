@@ -60,8 +60,18 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.buttons["Done"].firstMatch.tap()
         XCTAssertFalse(app.sliders["Song position"].exists)
         XCTAssertFalse(app.buttons["Previous song"].exists)
-        app.buttons["stage.search"].tap()
-        XCTAssertTrue(app.buttons["stage.keypad.0"].waitForExistence(timeout: 5))
+        let search = app.buttons["stage.search"]
+        waitForRendered(search, in: app)
+        let keypadZero = app.buttons["stage.keypad.0"]
+        // Sheet dismissal can consume a tap while UIKit finishes its transition.
+        // Retry only the idempotent open action, and still require the real keypad.
+        for _ in 0..<3 {
+            guard !keypadZero.exists else { break }
+            XCTAssertTrue(search.isHittable, "Search is blocked after leaving the library")
+            search.tap()
+            if keypadZero.waitForExistence(timeout: 3) { break }
+        }
+        XCTAssertTrue(keypadZero.exists, "Search did not present the keypad after library dismissal")
         capture("06-real-search-overlay", app)
         app.buttons["Cancel"].tap()
         app.buttons["stage.controls"].tap()
