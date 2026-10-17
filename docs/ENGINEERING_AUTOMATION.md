@@ -30,3 +30,7 @@ GitHub Actions must use least-privilege permissions, concurrency limits, timeout
 ## Evidence and reporting
 
 For each repair report: failing test and source line, root cause, files and commit SHA, validation commands and results, open blockers, and links to workflow and artifacts. Mark all unrun checks **not verified**. Never describe unsigned IPA as signed or downloadable production software.
+
+## Durable failure history
+
+Use [CI failure and repair ledger](CI_FAILURE_REPAIR_LEDGER.md) for every failed CI job that prompts a code fix. Search previous fingerprints before changing source. Log the candidate fix immediately, then update its record **after the relevant CI gate passes** with the first green run, job, tested SHA and scope. If the same assertion returns, append a recurrence explaining why the earlier repair failed; preserve all earlier evidence. A docs-only record commit is not retroactive CI validation of that commit.
