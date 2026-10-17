@@ -2,6 +2,7 @@ name: Verified download packaging (owner-approved)
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'tools/prepare-verified-downloads.py'
       - 'tools/tests/test_verified_downloads.py'
