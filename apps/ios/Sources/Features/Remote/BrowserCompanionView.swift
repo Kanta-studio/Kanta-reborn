@@ -122,12 +122,12 @@ private struct PinnedCompanionBrowser: UIViewRepresentable {
         var active = true
         let failure: Binding<String>
         init(address: String, fingerprint: String, failure: Binding<String>) { self.address = address; self.fingerprint = fingerprint; self.failure = failure }
-        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void) {
             guard active, let url = navigationAction.request.url, url.scheme == "https", url.host == address,
                   url.port == 45732, url.user == nil, url.password == nil else { decisionHandler(.cancel); return }
             decisionHandler(.allow)
         }
-        func webView(_ webView: WKWebView, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        func webView(_ webView: WKWebView, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping @MainActor @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
             guard active, challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
                   challenge.protectionSpace.host == address, challenge.protectionSpace.port == 45732,
                   let trust = challenge.protectionSpace.serverTrust,
@@ -136,7 +136,7 @@ private struct PinnedCompanionBrowser: UIViewRepresentable {
             guard actual == fingerprint else { completionHandler(.cancelAuthenticationChallenge, nil); return }
             completionHandler(.useCredential, URLCredential(trust: trust))
         }
-        func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping (WKPermissionDecision) -> Void) { decisionHandler(.deny) }
+        func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void) { decisionHandler(.deny) }
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
             if active { failure.wrappedValue = "Companion page closed unexpectedly. Disconnect and pair again; inspect the host queue before repeating a reservation." }
         }

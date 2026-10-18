@@ -70,6 +70,14 @@ public final class BrowserRemoteRegressionTests {
       for(int i=0;i<4;i++)check(exchange(first,"POST","/pair",first.address(),null,first.code().getBytes(StandardCharsets.US_ASCII)).startsWith("HTTP/1.1 200"),"Guest capacity below four");
       check(exchange(first,"POST","/pair",first.address(),null,first.code().getBytes(StandardCharsets.US_ASCII)).startsWith("HTTP/1.1 403"),"Guest capacity unbounded");
     }
+    AtomicInteger oversizedEffects=new AtomicInteger();
+    try(BrowserRemoteServer oversized=new BrowserRemoteServer("127.0.0.1",0,new byte[0],new byte[0],new byte[0],r->{oversizedEffects.incrementAndGet();return new byte[16385];},true)){
+      oversized.start();String token=body(exchange(oversized,"POST","/pair",oversized.address(),null,oversized.code().getBytes(StandardCharsets.US_ASCII)));
+      byte[] command=new CompanionProtocol.Request(UUID.randomUUID(),"reserve","song","").encode();
+      String failed=exchange(oversized,"POST","/command",oversized.address(),token,command);
+      String retry=exchange(oversized,"POST","/command",oversized.address(),token,command);
+      check(body(failed).contains("metadata limit")&&body(failed).equals(body(retry))&&oversizedEffects.get()==1,"Oversized response allowed a duplicate side effect");
+    }
     for(byte[] bad:new byte[][]{new byte[0],new byte[1025],new byte[22]}){
       try{BrowserRemoteServer.decode(bad);throw new AssertionError("Malformed browser command accepted");}catch(IOException expected){checks++;}
     }

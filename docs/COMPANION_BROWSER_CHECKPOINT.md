@@ -29,3 +29,8 @@ YouTube remains controlled by its visible official host player. Previous/seek, F
 ## Remaining acceptance
 
 Hosted Swift/package/app compilation; Android build/lint and actual emulator checks; actual Chrome UI with TLS; exact-head nine-case iPhone smoke; full eight-case iPhone/iPad walkthrough; four native host-client combinations; mobile browser trust/certificate setup; rotation/large text; real-device audio/media/privacy and independent security review. No signing, public binary, website feature claim or production deployment changes.
+
+
+### First-head diagnostics and repair candidate
+
+Source 339b8f6 passed hosted Android APK/instrumentation assembly, lint, native sanitizer, 524 core checks and permission/notices checks. Reconstruction 39126848617 failed Swift test compilation (missing explicit throwing-parser try) and Chrome's first unverified-pairing assertion; emulator execution was skipped. Smoke 39126848616 failed the lazy AppServices initializer's isolation diagnostic. Repairs preserve every assertion, compose the host explicitly, match WebKit completion annotations, establish real-browser document/foreground readiness and retain nonsecret diagnostics. Android preparation is claimed before dispatch, and oversized replies now enter the operation ledger as bounded errors on both platforms to prevent duplicate side effects. The expanded local core suite passes 528 checks, including 49 real TLS checks. Changed-head hosted results remain pending; see the failure/repair ledger for confirmed causes versus hypotheses.

@@ -19,7 +19,8 @@ struct BrowserRemoteProtocolTests {
         let prefix = "POST /pair HTTP/1.1\r\nHost: 192.168.1.20:45732\r\nContent-Type: application/octet-stream\r\nContent-Length: 4\r\n\r\n"
         let authority = "192.168.1.20:45732"
         #expect(try BrowserRemoteProtocol.parseHTTP(Data(prefix.utf8), authority: authority) == nil)
-        let parsed = try #require(BrowserRemoteProtocol.parseHTTP(Data((prefix + "abcd").utf8), authority: authority))
+        let complete = try BrowserRemoteProtocol.parseHTTP(Data((prefix + "abcd").utf8), authority: authority)
+        let parsed = try #require(complete)
         #expect(parsed.body == Data("abcd".utf8))
         #expect(parsed.path == "/pair")
         for text in [prefix + "abcde", prefix.replacingOccurrences(of: "Content-Length: 4", with: "Content-Length: 4\r\nContent-Length: 4") + "abcd", prefix.replacingOccurrences(of: "Content-Length: 4", with: "Transfer-Encoding: chunked"), prefix.replacingOccurrences(of: authority, with: "attacker.example"), String(repeating: "x", count: 8192)] {

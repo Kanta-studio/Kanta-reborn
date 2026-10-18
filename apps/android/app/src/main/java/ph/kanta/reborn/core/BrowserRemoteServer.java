@@ -129,7 +129,7 @@ public final class BrowserRemoteServer implements AutoCloseable {
     if(guest.replies.size()>=512||guest.bytes>1024*1024-16384){guests.remove(authorization.substring(7));reply(peer,401,"text/plain",new byte[0]);return;}
     byte[] response;
     try{response=handler.apply(request);}catch(Exception e){response="{\"error\":\"Host could not complete the command. Refresh the queue before trying again.\"}".getBytes(StandardCharsets.UTF_8);}
-    if(response==null||response.length>16384)throw new IOException("Response limit");
+    if(response==null||response.length>16384)response="{\"error\":\"Host response exceeded the metadata limit. Refresh the queue before trying again.\"}".getBytes(StandardCharsets.UTF_8);
     guest.replies.put(request.id,new Reply(body,response));guest.bytes+=body.length+response.length;
     if(!closed)reply(peer,200,"application/json",response);
   }

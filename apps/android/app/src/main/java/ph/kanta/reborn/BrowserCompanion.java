@@ -12,20 +12,22 @@ final class BrowserCompanion {
   private final SessionController session;
   private final ExecutorService worker=Executors.newSingleThreadExecutor();
   private volatile BrowserRemoteServer server;
-  private long generation;
+  private volatile long generation;
+  boolean preparing;
   String status="Browser companion is off",address="",code="",fingerprint="";
   Runnable changed;
   BrowserCompanion(SessionController session){this.session=session;}
   boolean active(){return server!=null&&server.active();}
   void stop(){generation++;BrowserRemoteServer old=server;server=null;if(old!=null)old.close();
-    address="";code="";fingerprint="";status="Browser companion is off";notifyChanged();}
+    preparing=false;address="";code="";fingerprint="";status="Browser companion is off";notifyChanged();}
   private void notifyChanged(){if(changed!=null)changed.run();}
   void start(String address){
-    if(!session.foreground||!session.ready||active())return;
-    long ticket=++generation;status="Preparing private HTTPS host…";notifyChanged();
+    if(!session.foreground||!session.ready||active()||preparing)return;
+    long ticket=++generation;preparing=true;status="Preparing private HTTPS host…";notifyChanged();
     worker.execute(()->{
       BrowserRemoteServer candidate=null;
       try{
+        if(ticket!=generation)return;
         java.net.InetAddress local=java.net.InetAddress.getByAddress(CompanionProtocol.privateAddress(address));
         if(java.net.NetworkInterface.getByInetAddress(local)==null)throw new IOException("Not a local interface");
         byte[] page=asset("index.html"),script=asset("remote.js"),style=asset("remote.css");
@@ -33,7 +35,7 @@ final class BrowserCompanion {
         BrowserRemoteServer ready=candidate;
         session.main.post(()->{
           if(ticket!=generation||!session.foreground){ready.close();return;}
-          server=ready;this.address=ready.address();code=ready.code();fingerprint=ready.fingerprint();
+          preparing=false;server=ready;this.address=ready.address();code=ready.code();fingerprint=ready.fingerprint();
           status="HTTPS host ready · up to four paired guests";ready.start();notifyChanged();
           session.main.postDelayed(()->{if(ticket==generation){stop();status="Host expired. Start again for a new certificate and code.";notifyChanged();}},30*60_000);
         });

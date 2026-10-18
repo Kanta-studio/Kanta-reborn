@@ -49,7 +49,7 @@ public final class BrowserRemoteHost: ObservableObject {
                   entry.pointee.ifa_flags & UInt32(IFF_UP) != 0, entry.pointee.ifa_flags & UInt32(IFF_LOOPBACK) == 0 else { continue }
             var buffer = [CChar](repeating: 0, count: Int(NI_MAXHOST))
             guard getnameinfo(address, socklen_t(MemoryLayout<sockaddr_in>.size), &buffer, socklen_t(buffer.count), nil, 0, NI_NUMERICHOST) == 0 else { continue }
-            let value = String(cString: buffer)
+            let value = String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
             if (try? CompanionProtocol.privateAddress(value)) != nil { result.insert(value) }
         }
         return result.sorted()
@@ -193,9 +193,10 @@ public final class BrowserRemoteHost: ObservableObject {
         guard guest.replies.count < 512, guest.bytes <= 1024 * 1024 - 16384 else { guests[token] = nil; guestCount = guests.count; reply(401, Data(), "text/plain", connection, id); return }
         guard executing == nil else { reply(409, Data(), "text/plain", connection, id); return }
         let transaction = UUID(); executing = transaction
-        let response: Data
+        var response: Data
         do { response = try await handler(command) }
         catch { response = Data("{\"error\":\"Host could not complete the command. Refresh the queue before trying again.\"}".utf8) }
+        if response.count > 16384 { response = Data("{\"error\":\"Host response exceeded the metadata limit. Refresh the queue before trying again.\"}".utf8) }
         if executing == transaction { executing = nil }
         guard generation == run, response.count <= 16384, var current = guests[token], current.valid else { finish(id); return }
         current.replies[command.id] = Cached(input: request.body, output: response); current.bytes += request.body.count + response.count

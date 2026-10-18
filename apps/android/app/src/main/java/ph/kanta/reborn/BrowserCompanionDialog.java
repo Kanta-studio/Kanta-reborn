@@ -43,7 +43,7 @@ final class BrowserCompanionDialog {
     Runnable refresh=()->{
       BrowserCompanion c=session.browserCompanion;
       details.setText(c.status+(c.address.isEmpty()?"":"\n\nBrowser / app address\n"+c.address+"\n\nPairing code (private)\n"+c.code+"\n\nCertificate SHA-256\n"+c.fingerprint));
-      host.setEnabled(!found.isEmpty()&&!c.active());revoke.setEnabled(c.active());
+      host.setEnabled(!found.isEmpty()&&!c.active()&&!c.preparing);revoke.setEnabled(c.active());
     };
     session.browserCompanion.changed=refresh;
     dialog.setOnDismissListener(d->{if(session.browserCompanion.changed==refresh)session.browserCompanion.changed=null;});

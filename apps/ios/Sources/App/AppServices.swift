@@ -19,8 +19,9 @@ final class AppServices: ObservableObject {
     let partySFX: KantaPartySFXEngine
     let midiPlaybackEngine:
         AVFoundationMIDIPlaybackEngine?
-    lazy var browserCompanion: BrowserRemoteHost? = {
-        guard let controller = self.controller, let library = self.library else { return nil }
+    let browserCompanion: BrowserRemoteHost?
+
+    private static func makeBrowserCompanion(controller: LocalKaraokeController, library: BookmarkedKaraokeLibrary) -> BrowserRemoteHost {
         return BrowserRemoteHost { request in
             try Task.checkCancellation()
             switch request.action {
@@ -58,7 +59,7 @@ final class AppServices: ObservableObject {
                 "songs": songs, "queue": reservations]
             return try JSONSerialization.data(withJSONObject: response)
         }
-    }()
+    }
     let networkHost: BonjourHostAdvertiser
     let microphonePitchMonitor = MicrophonePitchMonitor()
     let diagnostics = KantaSupportDiagnostics()
@@ -148,6 +149,7 @@ final class AppServices: ObservableObject {
             self.library = library
             self.savedSets = savedSets
             self.controller = controller
+            self.browserCompanion = Self.makeBrowserCompanion(controller: controller, library: library)
             self.midiPlaybackEngine =
                 midiPlaybackEngine
             self.networkHost = BonjourHostAdvertiser(
@@ -173,6 +175,7 @@ final class AppServices: ObservableObject {
             library = nil
             savedSets = nil
             controller = nil
+            browserCompanion = nil
             midiPlaybackEngine = nil
             networkHost = BonjourHostAdvertiser()
             startupMessage =

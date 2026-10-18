@@ -44,6 +44,9 @@ jobs:
         with:
           node-version: '24'
       - name: Verify HTTPS companion in real Chrome
+        timeout-minutes: 3
+        env:
+          KANTA_BROWSER_SCREENSHOT: browser-remote.png
         run: node tools/verify-companion-browser.mjs
       - name: Verify captured browser interoperability
         run: node tools/verify-songbook-browser-interop.mjs apps/android/app/build/synthetic-songbook.json docs/evidence/website/2026-10-15/songbook.js
@@ -68,6 +71,7 @@ jobs:
             android-logcat.log
             android-runtime-stage.png
             android-runtime-camera.png
+            browser-remote.png
             emulator.log
           if-no-files-found: ignore
           retention-days: 7
