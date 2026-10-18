@@ -224,6 +224,13 @@ final class HostViewModel: ObservableObject {
         }
     }
 
+    /// Online video uses its own player; local audio must not continue underneath it.
+    func pauseForOnlineVideo() async {
+        if snapshot.transport == .playing {
+            await perform(.pause)
+        }
+    }
+
     func next() async {
         await perform(.next)
     }
