@@ -384,6 +384,11 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   void showYouTubeVideo(YouTubeVideoReference reference) {
     // This is a standalone foreground preview, not a queue reservation.
     if (!youtubeForeground || isFinishing() || isDestroyed()) return;
+    if (session.playing) {
+      Toast.makeText(this, "Pause local karaoke before opening an online video.",
+          Toast.LENGTH_LONG).show();
+      return;
+    }
     closeYouTubeVideo();
     final YouTubePreviewLifecycle.Session online = youtubeLifecycle.open(reference);
     final Dialog dialog = new Dialog(this);
