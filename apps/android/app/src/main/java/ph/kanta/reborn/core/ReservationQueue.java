@@ -26,6 +26,7 @@ public final class ReservationQueue {
   private final LinkedHashMap<UUID, Entry> requests = new LinkedHashMap<>();
 
   public synchronized Entry reserve(UUID requestId, Song song, String singer) {
+    Objects.requireNonNull(requestId, "requestId");
     if (requests.containsKey(requestId)) return requests.get(requestId);
     if (items.size() >= 1000) throw new IllegalStateException("Up Next is full");
     Entry e =
@@ -80,10 +81,14 @@ public final class ReservationQueue {
   }
 
   public synchronized void restore(List<Entry> saved) {
+    Objects.requireNonNull(saved, "saved");
     if (saved.size() > 1000) throw new IllegalArgumentException("Queue too large");
     HashSet<UUID> ids = new HashSet<>();
-    for (Entry e : saved)
+    for (Entry e : saved) {
+      if (e == null || e.id == null || e.song == null)
+        throw new IllegalArgumentException("Invalid reservation");
       if (!ids.add(e.id)) throw new IllegalArgumentException("Duplicate reservation");
+    }
     items.clear();
     items.addAll(saved);
     requests.clear();
