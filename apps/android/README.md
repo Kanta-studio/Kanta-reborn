@@ -1,5 +1,10 @@
 # KANTA Android reconstruction preview
 
+## Planned Companion Remote role and browser guests — October 18, 2026
+
+Owner-approved requirement: the supplied KANTA remote design opens inside this same app when Companion Remote is selected, with no separate remote app. Both iOS and Android must support it, plus paired browser guests entering the host's LAN address. Host/source queue ownership, authentication and explicit sensor permissions remain authoritative. This is queued behind the active work and earlier backlog; it is not implemented or released. See the [shared roadmap and original design reference](../../docs/COMPANION_REMOTE_ROADMAP.md).
+
+
 New native Java/Android Views source reconstructed from documented behavior and original first-party assets. This is not recovered original Android source or a complete feature-parity release.
 
 Implemented in source: original starter songs and scenic images; app-private MIDI/KAR/MP3/WAV import; native SF2 MIDI synthesis and platform MP3/WAV playback; folder-tree import with cancellation; tempo/pitch/volume controls; source-timed highlighted lyric fragments, adjustable type and optional Realm lights; synthesized/custom party pads and opt-in between-song music; one singer/FIFO reservation queue; saved playlists and played-session Favorites; starter remove/restore; keypad/RES and optional device-provider voice search; fullscreen/TV stage; explicit CSV/private encrypted Songbook export; offline privacy/rights notices and audio-focus handling.

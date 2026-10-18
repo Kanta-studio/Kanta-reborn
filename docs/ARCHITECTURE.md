@@ -19,6 +19,10 @@ Scoring is default off and observes dry microphone input without storing audio. 
 
 Companion commands require explicit pairing, authorization, bounded replay protection and revocation. Website descriptions conflict between older plaintext PIN control and newer encrypted Android pairing; do not implement or advertise cross-platform transport compatibility without an explicit reviewed protocol and tests.
 
+## Planned built-in and browser Companion Remote
+
+The owner-approved [Companion Remote roadmap](COMPANION_REMOTE_ROADMAP.md) defines the supplied remote design as a built-in role in both native apps, with host-address browser access for guests without KANTA. Pairing and host authorization are mandatory; both interfaces project the existing host/source owners and never create a queue. Native iOS hosting, browser transport/trust bootstrap and expanded controls remain planned. The reference is preserved in docs/design-references/companion-remote-reference.jpeg. This backlog item does not displace active PR #51 or earlier queued work.
+
 ## Build isolation
 
 Root workflows validate relevant pull requests once and validate main after merge. `reconstruction-validation.yml` owns Swift package/source guards, unsigned iOS simulator compilation and Android build/tests. `ios-smoke.yml` adds focused iPhone simulator navigation acceptance on relevant iOS pull requests; it is not a replacement for the full device walkthrough. `website-validation.yml` and `verified-downloads.yml` run focused website and download-contract checks. Feature-branch push events do not duplicate PR validation.
