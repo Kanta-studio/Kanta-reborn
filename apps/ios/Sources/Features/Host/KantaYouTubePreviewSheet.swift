@@ -11,6 +11,7 @@ struct KantaYouTubePreviewSheet: View {
     @State private var lifecycle = YouTubePreviewLifecycle()
     @State private var playerError: String?
     @State private var showInvalidLink = false
+    let localPlaybackActive: Bool
 
     var body: some View {
         NavigationStack {
@@ -41,7 +42,13 @@ struct KantaYouTubePreviewSheet: View {
                         .keyboardType(.URL)
                         .textFieldStyle(.roundedBorder)
                         .accessibilityIdentifier("youtube.preview.link")
+                    if localPlaybackActive {
+                        Text("Pause local karaoke before opening an online video.")
+                            .font(.footnote)
+                            .accessibilityIdentifier("youtube.preview.localPlaybackNotice")
+                    }
                     Button("Continue to YouTube") {
+                        guard !localPlaybackActive else { return }
                         guard let reference = YouTubeVideoReference(url: link.trimmingCharacters(in: .whitespacesAndNewlines)) else {
                             showInvalidLink = true
                             return
@@ -51,6 +58,7 @@ struct KantaYouTubePreviewSheet: View {
                         lifecycle.open(reference)
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(localPlaybackActive)
                     .alert("Invalid YouTube link", isPresented: $showInvalidLink) {
                         Button("OK", role: .cancel) {}
                     } message: {
@@ -61,6 +69,12 @@ struct KantaYouTubePreviewSheet: View {
             }
             .padding()
             .navigationTitle("Online video")
+            .onChange(of: localPlaybackActive) { _, active in
+                if active {
+                    playerOwner.retire()
+                    lifecycle.close()
+                }
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase != .active {
                     playerOwner.retire()
