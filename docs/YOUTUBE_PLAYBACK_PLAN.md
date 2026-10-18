@@ -41,3 +41,7 @@ Use the official visible embedded YouTube player, with its normal ads, controls,
 This is a queued specification, not an implemented or released feature.
 
 DNS filtering was checked: AdGuard documents that DNS filtering cannot reliably distinguish YouTube video ads from content on shared domains. Do not change device DNS or promise that a DNS provider removes in-video ads. Reference: https://adguard-dns.io/en/blog/dns-content-blocking-at-scale.html
+
+## Link-reference groundwork — October 18, 2026
+
+Candidate PR introduces separate metadata-only YouTube URL validation on both native platforms and Java regression assertions for accepted link forms, invalid IDs, duplicate video parameters, HTTP and host spoofing. It does not add a player, queue integration, persistence, Internet requests, media extraction or API credentials. iOS Swift validation is not yet wired into an explicit test target; the Android reference is included in the existing core source tree. The existing FIFO/local playback architecture remains unchanged. Compilation, current-head tests, UI acceptance, privacy review and production release are pending. Ads and standard YouTube controls must remain visible when a compliant official player is implemented later.
