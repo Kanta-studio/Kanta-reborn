@@ -84,3 +84,27 @@ The owner selected feature-batch delivery instead of a PR per helper or lifecycl
 The owner supersedes the earlier proposal to send YouTube transport commands through the local playback controller. **Local and YouTube playback engines each own their Play/Pause/Stop and player-specific controls.** A lightweight session coordinator may arbitrate shared audio focus and visibility, but must not forward YouTube commands to the MIDI/KAR decoder or mutate local transport state as a side effect of opening a video. YouTube is an explicit opt-in foreground surface with native embedded-player controls; local playback continues to own its own queue and audio DSP. If mixed-source reservations are offered in the future, the coordinator selects a source without sharing decoder state, and no second implicit queue may silently consume local reservations. The existing queue metadata groundwork does not establish a working mixed-source coordinator.
 
 The existing Android lifecycle cleanup and iOS sheet dismantling remain required. Test both independent player lifecycles, audio focus, visibility and policy compliance on real devices before release. Do not claim simultaneous playback is prevented until audio-focus arbitration is implemented and verified.
+
+## Independent-player acceptance contract (October 18, 2026)
+
+The updated owner decision supersedes earlier instructions in this document that implied YouTube Play/Pause/Next must be routed through the local host transport. **Do not implement that coupling.** The current implementation is an opt-in foreground preview, not an integrated mixed-source playback session.
+
+| Event | Local engine | YouTube engine | Coordinator / host |
+| --- | --- | --- | --- |
+| Open online preview | Preserve queue, current item and transport state | Construct only after consent and URL validation | Request audio focus separately; opening alone must not invoke local pause |
+| Close online preview | No transport command | Stop/destroy WebView or WKWebView | Release online audio ownership and invalidate callback generation |
+| Local Play/Pause/Next | Handle with existing local controller | No command | Do not consume an online reservation implicitly |
+| Online Play/Pause/Stop | No command | Official visible embedded controls only | Never dispatch commands through MIDI/KAR decoder |
+| Background / activity stop | Follow existing local lifecycle policy | Tear down visible online player; no background playback | Ignore callbacks from disposed instances |
+| Online load error or restricted video | Keep queue and current local song intact | Show recoverable error where supported | Release online focus; do not skip local FIFO |
+| Rapid online A → B | Unchanged | Destroy A before B is mounted | Generation/token guards must ignore late callbacks from A |
+
+### Required regression evidence before PR #51 exits draft
+
+1. Android: open A, replace with B, dismiss B, stop activity, then attempt late callbacks from A; no resurrected WebView, no local queue mutation.
+2. iOS: select A, background the app, return, select B; A is dismantled and cannot restart; local controls retain their previous state.
+3. Both: invalid link, repeated link, close, reopen, online load error, and local Next while online preview is open must not change local reservation identities except when local Next is explicitly invoked.
+4. Both: audio-focus arbitration must be explicitly implemented and tested before claiming that simultaneous audio is prevented. Audio focus is **not** a reason to send player transport commands across engines.
+5. Validate current PR head in Android CI, iOS CI and iOS smoke, then record physical-device embed, interruption, privacy and ads checks separately. CI alone cannot verify these external behaviors.
+
+**Current code-review observation:** Android `MainActivity.showYouTubeVideo` dismisses the previous dialog, releases the player on dismiss, and checks finishing/destroyed before opening. iOS `KantaYouTubePreviewSheet` clears its selected reference when the scene becomes inactive. Neither observation proves asynchronous stale-callback safety or audio-focus arbitration. Do not mark those requirements complete without implementation and tests.
