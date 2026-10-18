@@ -124,6 +124,12 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     youtubeForeground = true;
   }
 
+  private void reconcileOnlinePreviewWithLocalPlayback() {
+    if (session != null && session.playing && youtubeLifecycle.active() != null) {
+      closeYouTubeVideo();
+    }
+  }
+
   private void closeYouTubeVideo() {
     youtubeLifecycle.close();
     YouTubeEmbeddedPlayer previousPlayer = youtubePlayer;
@@ -279,9 +285,15 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
             Color.WHITE);
     stagePane.addView(nowPlaying);
     LinearLayout transport = row();
-    playButton = button("Play", session::toggle);
+    playButton = button("Play", () -> {
+      session.toggle();
+      reconcileOnlinePreviewWithLocalPlayback();
+    });
     addWeighted(transport, playButton);
-    nextButton = button("Next", session::next);
+    nextButton = button("Next", () -> {
+      session.next();
+      reconcileOnlinePreviewWithLocalPlayback();
+    });
     addWeighted(transport, nextButton);
     addWeighted(transport, button("Fullscreen", this::fullscreen));
     stagePane.addView(transport);
