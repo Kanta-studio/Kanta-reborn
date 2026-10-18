@@ -45,3 +45,14 @@ The Android instrumentation uses real KCP1 socket commands to reserve/start a lo
 ## Verified controller-observer repair — October 18, 2026
 
 Source `fa5dcbcf7aa070d924d86ed6c3e832af3618cebb` passed reconstruction run [39108033371](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39108033371): Swift package/test compilation and execution, unsigned simulator build, Android build/lint/domain/native sanitizers/browser interoperability and actual emulator runtime checks. The added KCP1 remote start/resume regression passed. Earlier Android-only run `39107996743` was cancelled by the superseding run, not a regression failure. Focused iPhone smoke run `39108033323` was still in progress at this checkpoint; no smoke, physical-device, signing or release result is inferred from reconstruction success.
+
+
+## Android audio ownership candidate — October 18, 2026
+
+SessionController holds only a temporary online-audio UUID and native-retirement callback. A claim is refused while karaoke is playing/preparing or microphone/monitoring is enabled. Successful claim stops effects/intermission, disables intermission auto-restart and abandons idle native focus; it does not pause local karaoke or mutate current song, reservations, settings or source bytes. The visible official WebView remains user-gesture controlled. Every explicit native focus acquisition synchronously retires the WebView before requesting focus. Enabling intermission explicitly also retires it, while passive state publication cannot reclaim online ownership.
+
+MainActivity releases by UUID after native teardown; replacement, load failure, dismissal and background release only their own lifetime. Controller revocation clears the token before invoking its native callback, so synchronous cleanup cannot recursively retire a replacement. All callbacks and native focus requests remain on the main Looper. No callback forwards YouTube transport into local karaoke.
+
+Runtime instrumentation adds effects → online → effects, stale prior-token release, online → microphone, refusal during active microphone input, intermission → online → explicit intermission, background/reopen and FIFO preservation. Existing encrypted remote start/resume checks continue to exercise actual local playback. Remote responses are not fixtures: native preview tests immediately block WebView network loads and use local HTML.
+
+All 479 domain assertions, browser interoperability and 50 Python release-tooling tests passed locally; layout/presentation guards and whitespace review passed. Native compilation/lint/emulator checks are pending on the resulting commit. This is Android coordination only; iOS audio-session/auxiliary parity, native iOS online lifecycle coverage, external focus/interruption behavior, physical audio timing and real embeds/ads still require acceptance. Reference reviewed: https://developer.android.com/media/optimize/audio-focus .

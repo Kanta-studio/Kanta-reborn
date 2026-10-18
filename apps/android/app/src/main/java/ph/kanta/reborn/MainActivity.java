@@ -131,6 +131,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   }
 
   private void closeYouTubeVideo() {
+    YouTubePreviewLifecycle.Session previousSession = youtubeLifecycle.active();
     youtubeLifecycle.close();
     YouTubeEmbeddedPlayer previousPlayer = youtubePlayer;
     youtubePlayer = null;
@@ -138,6 +139,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     Dialog previous = youtubeDialog;
     youtubeDialog = null;
     if (previous != null) previous.dismiss();
+    if (previousSession != null) session.releaseOnlineAudio(previousSession.id);
   }
 
   @Override
@@ -391,19 +393,28 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   void showYouTubeVideo(YouTubeVideoReference reference) {
     // This is a standalone foreground preview, not a queue reservation.
     if (!youtubeForeground || isFinishing() || isDestroyed()) return;
-    if (session.playing) {
-      Toast.makeText(this, "Pause local karaoke before opening an online video.",
+    if (!session.onlineAudioAllowed()) {
+      Toast.makeText(this, "Pause local karaoke and turn off microphone input before opening an online video.",
           Toast.LENGTH_LONG).show();
       return;
     }
     closeYouTubeVideo();
     final YouTubePreviewLifecycle.Session online = youtubeLifecycle.open(reference);
+    if (!session.claimOnlineAudio(online.id, () -> {
+      if (youtubeLifecycle.active() != null && youtubeLifecycle.active().id.equals(online.id)) {
+        closeYouTubeVideo();
+      }
+    })) {
+      youtubeLifecycle.close(online.id);
+      return;
+    }
     final Dialog dialog = new Dialog(this);
     youtubeDialog = dialog;
     LinearLayout layout = column();
     layout.setBackgroundColor(Color.BLACK);
     YouTubeEmbeddedPlayer player = new YouTubeEmbeddedPlayer(this, () -> {
       if (!youtubeForeground || !youtubeLifecycle.close(online.id)) return;
+      session.releaseOnlineAudio(online.id);
       dialog.dismiss();
       Toast.makeText(this, "Online video could not load. Check your connection and try again.",
           Toast.LENGTH_LONG).show();
@@ -412,11 +423,12 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     player.setTag("kanta.youtube.player");
     layout.addView(player, new LinearLayout.LayoutParams(-1, 0, 1));
     layout.addView(button("Close online video", dialog::dismiss));
-    layout.addView(text("YouTube has its own playback controls. Local karaoke controls remain independent.", 12, Color.WHITE));
+    layout.addView(text("YouTube has its own playback controls. Opening it stops effects and between-song music. Local audio actions close the online video.", 12, Color.WHITE));
     dialog.setContentView(layout);
     dialog.setOnDismissListener(ignored -> {
       youtubeLifecycle.close(online.id);
       player.release();
+      session.releaseOnlineAudio(online.id);
       if (youtubePlayer == player) youtubePlayer = null;
       if (youtubeDialog == dialog) youtubeDialog = null;
     });

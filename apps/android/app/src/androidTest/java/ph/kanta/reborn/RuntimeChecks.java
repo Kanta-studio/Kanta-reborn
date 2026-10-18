@@ -372,10 +372,22 @@ public final class RuntimeChecks extends Instrumentation {
           state(() -> session.monitor.outputs().isEmpty()),
           "Clean emulator unexpectedly exposes wired/USB hardware");
       shell("pm grant ph.kanta.reborn android.permission.RECORD_AUDIO");
-      runOnMainSync(activity::toggleMicrophone);
+      runOnMainSync(() -> {
+        YouTubeEmbeddedPlayer online = openNativePreviewFixture(
+            YouTubeVideoReference.parse("https://youtu.be/abcdefghijk"));
+        activity.toggleMicrophone();
+        check(online.released() && !session.onlineAudioActive(),
+            "Microphone focus acquisition retained online audio ownership");
+      });
       await(
           () -> session.microphone.capturing() && session.microphone.reading() != null,
           "Opt-in AudioRecord did not produce input frames: " + session.message);
+      runOnMainSync(() -> {
+        activity.showYouTubeVideo(YouTubeVideoReference.parse("https://youtu.be/abcdefghijk"));
+        check(field(activity, "youtubePlayer") == null && !session.onlineAudioActive()
+                && session.microphone.capturing(),
+            "Online opening interrupted active microphone input");
+      });
       runOnMainSync(() -> session.startMonitor(rejectedSpeaker));
       check(
           state(
@@ -511,6 +523,7 @@ public final class RuntimeChecks extends Instrumentation {
       runOnMainSync(session::stopParty);
       check(
           state(() -> session.party.activeVoices() == 0), "Party stop-all retained active voices");
+      youtubeAudioCoordinationChecks();
       runOnMainSync(session::next);
       await(
           () -> session.playing && session.current != null,
@@ -649,6 +662,19 @@ public final class RuntimeChecks extends Instrumentation {
             session.toggleIntermission();
           });
       await(() -> session.party.loopPlaying(), "Idle intermission did not start");
+      runOnMainSync(() -> {
+        YouTubeEmbeddedPlayer online = openNativePreviewFixture(
+            YouTubeVideoReference.parse("https://youtu.be/abcdefghijk"));
+        check(!session.party.loopPlaying() && !session.loopEnabled && session.onlineAudioActive(),
+            "Online opening retained intermission audio");
+        session.publish();
+        check(!online.released() && !session.party.loopPlaying(),
+            "Automatic publication restarted native audio during online preview");
+        session.toggleIntermission();
+        check(online.released() && !session.onlineAudioActive(),
+            "Explicit intermission action retained online player");
+      });
+      await(() -> session.party.loopPlaying(), "Explicit intermission restart did not play");
       runOnMainSync(() -> session.assignPad(6, loopSong));
       await(() -> !session.assigningPad, "Custom pad decode never acknowledged");
       check(
@@ -754,6 +780,44 @@ public final class RuntimeChecks extends Instrumentation {
     // Drain Dialog's asynchronous dismissal notification before the rest of the suite.
     waitForIdleSync();
     check(state(() -> field(activity, "youtubePlayer") == null), "Dismissed online player remained owned");
+  }
+
+  private void youtubeAudioCoordinationChecks() {
+    runOnMainSync(() -> {
+      java.util.List<ReservationQueue.Entry> before = session.queue.snapshot();
+      Song current = session.current;
+      session.triggerPad(0);
+      check(session.party.activeVoices() > 0, "Native effect fixture did not start");
+      YouTubeVideoReference reference = YouTubeVideoReference.parse("https://youtu.be/abcdefghijk");
+      YouTubeEmbeddedPlayer first = openNativePreviewFixture(reference);
+      YouTubePreviewLifecycle lifecycle = (YouTubePreviewLifecycle) field(activity, "youtubeLifecycle");
+      java.util.UUID prior = lifecycle.active().id;
+      check(session.onlineAudioActive() && session.party.activeVoices() == 0,
+          "Online ownership did not stop native effects");
+      YouTubeEmbeddedPlayer replacement = openNativePreviewFixture(reference);
+      session.releaseOnlineAudio(prior);
+      check(first.released() && session.onlineAudioActive() && !replacement.released(),
+          "Stale online release cleared replacement audio ownership");
+      session.publish();
+      check(!replacement.released(), "Idle publication revoked online ownership");
+      session.triggerPad(0);
+      check(replacement.released() && !session.onlineAudioActive() && session.party.activeVoices() > 0,
+          "Explicit effect did not retire online player before native output");
+      session.stopParty();
+      YouTubeEmbeddedPlayer backgrounded = openNativePreviewFixture(reference);
+      session.hostVisible(false);
+      check(backgrounded.released() && !session.onlineAudioActive(),
+          "Host foreground loss retained online audio ownership");
+      session.hostVisible(true);
+      check(!session.onlineAudioActive() && field(activity, "youtubePlayer") == null,
+          "Foreground return restored online audio without opt-in");
+      check(session.current == current && !session.playing, "Online audio handoff changed local transport");
+      java.util.List<ReservationQueue.Entry> after = session.queue.snapshot();
+      check(after.size() == before.size(), "Audio ownership consumed reservations");
+      for (int i = 0; i < before.size(); i++)
+        check(before.get(i).id.equals(after.get(i).id), "Audio ownership changed reservation identity");
+    });
+    waitForIdleSync();
   }
 
   private YouTubeEmbeddedPlayer openNativePreviewFixture(YouTubeVideoReference reference) {
