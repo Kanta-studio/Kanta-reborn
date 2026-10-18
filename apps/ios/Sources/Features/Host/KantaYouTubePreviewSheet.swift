@@ -4,6 +4,7 @@ import SwiftUI
 /// Explicit opt-in online preview. Queue integration is intentionally separate.
 @MainActor
 struct KantaYouTubePreviewSheet: View {
+    let onActivate: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var link = ""
     @State private var selected: YouTubeVideoReference?
@@ -18,7 +19,7 @@ struct KantaYouTubePreviewSheet: View {
                     Button("Stop online video") { self.selected = nil }
                         .buttonStyle(.bordered)
                 } else {
-                    Text("Online videos use YouTube/Google services, may share playback data and may show ads. Local karaoke works offline.")
+                    Text("Online videos use YouTube/Google services, may share playback data and may show ads. Local karaoke works offline. YouTube uses its own controls; local playback pauses when online video opens.")
                         .font(.footnote)
                     TextField("YouTube HTTPS video link", text: $link)
                         .textInputAutocapitalization(.never)
@@ -27,6 +28,7 @@ struct KantaYouTubePreviewSheet: View {
                         .textFieldStyle(.roundedBorder)
                         .accessibilityIdentifier("youtube.preview.link")
                     Button("Continue to YouTube") {
+                        onActivate()
                         selected = YouTubeVideoReference(url: link.trimmingCharacters(in: .whitespacesAndNewlines))
                     }
                     .buttonStyle(.borderedProminent)
