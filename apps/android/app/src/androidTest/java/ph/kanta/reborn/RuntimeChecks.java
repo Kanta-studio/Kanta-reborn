@@ -756,6 +756,18 @@ public final class RuntimeChecks extends Instrumentation {
     check(state(() -> field(activity, "youtubePlayer") == null), "Dismissed online player remained owned");
   }
 
+  private YouTubeEmbeddedPlayer openNativePreviewFixture(YouTubeVideoReference reference) {
+    activity.showYouTubeVideo(reference);
+    YouTubeEmbeddedPlayer player = (YouTubeEmbeddedPlayer) field(activity, "youtubePlayer");
+    check(player != null, "Native online preview did not open");
+    // Exercise native ownership without relying on remote responses or playable video.
+    player.setWebViewClient(new android.webkit.WebViewClient());
+    player.getSettings().setBlockNetworkLoads(true);
+    player.stopLoading();
+    player.loadData("<html><body>Native lifecycle fixture</body></html>", "text/html", "UTF-8");
+    return player;
+  }
+
   private void companionChecks() throws Exception {
     check(!state(() -> session.companion.enabled()), "Companion enabled without opt-in");
     java.util.List<String> addresses = CompanionControl.addresses();
@@ -788,6 +800,32 @@ public final class RuntimeChecks extends Instrumentation {
         check(remaining.getJSONArray("queue").length() == 1, "Companion cancellation affected another turn");
         companionRequest(channel, new CompanionProtocol.Request(java.util.UUID.randomUUID(), "cancel", remaining.getJSONArray("queue").getJSONObject(0).getString("id"), ""));
         check(state(() -> session.queue.snapshot().isEmpty()), "Companion cancellation did not reach FIFO");
+        YouTubeVideoReference online = YouTubeVideoReference.parse("https://youtu.be/abcdefghijk");
+        AtomicReference<YouTubeEmbeddedPlayer> onlinePlayer = new AtomicReference<>();
+        runOnMainSync(() -> {
+          onlinePlayer.set(openNativePreviewFixture(online));
+        });
+        companionRequest(channel, new CompanionProtocol.Request(java.util.UUID.randomUUID(), "reserve", songId, "Remote playback"));
+        check(state(() -> field(activity, "youtubePlayer") == onlinePlayer.get()),
+            "Reservation alone retired online preview");
+        companionRequest(channel, new CompanionProtocol.Request(java.util.UUID.randomUUID(), "play", "", ""));
+        await(() -> session.playing && !session.loading, "Remote local playback did not start");
+        check(state(() -> onlinePlayer.get().released() && field(activity, "youtubePlayer") == null),
+            "Remote asynchronous local start retained online preview");
+        check(state(() -> session.current != null && session.current.id.equals(songId) && session.queue.snapshot().isEmpty()),
+            "Online retirement changed remote local playback or FIFO");
+        companionRequest(channel, new CompanionProtocol.Request(java.util.UUID.randomUUID(), "pause", "", ""));
+        await(() -> !session.playing, "Remote pause did not settle");
+        runOnMainSync(() -> {
+          onlinePlayer.set(openNativePreviewFixture(online));
+        });
+        companionRequest(channel, new CompanionProtocol.Request(java.util.UUID.randomUUID(), "play", "", ""));
+        await(() -> session.playing, "Remote local resume did not start");
+        check(state(() -> onlinePlayer.get().released() && field(activity, "youtubePlayer") == null),
+            "Remote local resume retained online preview");
+        runOnMainSync(session::stop);
+        check(state(() -> field(activity, "youtubePlayer") == null),
+            "Stopping local playback reopened retired online preview");
         check(!state(() -> session.microphone.enabled() || session.cameraPreviewEnabled || session.scoringEnabled), "Companion activated a sensor or scoring");
         runOnMainSync(() -> session.hostVisible(false));
         check(!state(() -> session.companion.enabled()), "Backgrounding did not revoke companion");

@@ -221,6 +221,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
 
   private void render() {
     if (isFinishing() || isDestroyed()) return;
+    reconcileOnlinePreviewWithLocalPlayback();
     searchGeneration++;
     queryInput = null;
     results = null;
@@ -285,15 +286,9 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
             Color.WHITE);
     stagePane.addView(nowPlaying);
     LinearLayout transport = row();
-    playButton = button("Play", () -> {
-      session.toggle();
-      reconcileOnlinePreviewWithLocalPlayback();
-    });
+    playButton = button("Play", session::toggle);
     addWeighted(transport, playButton);
-    nextButton = button("Next", () -> {
-      session.next();
-      reconcileOnlinePreviewWithLocalPlayback();
-    });
+    nextButton = button("Next", session::next);
     addWeighted(transport, nextButton);
     addWeighted(transport, button("Fullscreen", this::fullscreen));
     stagePane.addView(transport);

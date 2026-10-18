@@ -214,3 +214,12 @@ PR #36 now covers the previously separate UIKit fullscreen player in the shared 
 ## PR #51 foreground player lifetime repair — October 18, 2026
 
 Source baseline: PR #51 `77f9f1078efc05cf91cc06db4fbd93780007c87e`. Source review confirms Swift 6.2/iOS 17 SwiftUI + WebKit; Java 17/Views, minSdk 26/targetSdk 36, existing Activity 1.10.1/CameraX 1.5.3 and direct system WebView. No dependency, permission, storage, search, decoder, remote-protocol, signing or workflow change. LocalKaraokeController and SessionController retain authoritative FIFO/transport. Transient preview UUIDs fence errors/dismissals; native retirement runs on the UI thread, with explicit WebKit suspension and Android terminal destroy. No measured audio latency or hardware behavior is inferred. Static/Python checks passed; hosted compilation/runtime and audio-focus coordination remain open. See `YOUTUBE_LIFECYCLE_CHECKPOINT.md`.
+
+
+## Android online preview follows authoritative playback publication — October 18, 2026
+
+Baseline: PR #51 `5c1b0f4`, whose reconstruction and focused iPhone smoke checks passed. The online/local overlap guard previously ran only after primary Play/Next button callbacks. Encrypted companion commands bypass those callbacks, and backend start acknowledgement is asynchronous, so those paths could leave a visible online player alive after local playback started.
+
+MainActivity now reconciles the preview at the start of the existing SessionController listener's render callback. All published local starts/resumes retire the online instance; primary buttons again issue only controller commands. The preview owner does not pause local transport, consume reservations or introduce a playback queue. Replacement/dismissal guards remain unchanged. This closes a controller-observation gap, not general OS audio-focus arbitration or a guarantee of zero overlapping audio frames. SFX/intermission, iOS native runtime and physical audio/session acceptance remain separate.
+
+The Android instrumentation uses real KCP1 socket commands to reserve/start a local starter while a preview is open, waits for backend start acknowledgement, verifies native preview retirement, pauses, explicitly reopens the preview, resumes remotely and verifies retirement again. Reservation alone must preserve the preview, normal FIFO consumption remains checked, and local Stop must not reopen online playback. New-head APK/lint/emulator acceptance is pending. No website, dependency, permission, persistence or remote-protocol change.
