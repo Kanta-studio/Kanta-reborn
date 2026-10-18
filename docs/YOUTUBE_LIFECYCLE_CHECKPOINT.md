@@ -93,3 +93,12 @@ Local layout, presentation, starter resources/generation and whitespace checks p
 
 
 The initial iOS audio-handoff source b3e26e5 passed all 178 Swift package tests and Android validation, but both the application and native-smoke bundle failed compilation on intermission's shadowed optional directory parameter. The parameter is renamed internally while keeping its external label. No native execution is claimed on that source. See the failure ledger; validate the corrected commit before acceptance.
+
+
+## Verified iOS audio handoff — October 18, 2026
+
+Source `6f7a0ece9e42cc500ce4f52cc414c58e5e11b58e` passed [reconstruction 39112387766](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39112387766) and [native/navigation smoke 39112387680](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39112387680). Reconstruction compiled every Swift package test target, executed all 178 Swift tests and 54 release-tooling tests, built the unsigned Release iOS simulator app and passed Android build/lint/domain/sanitizer/browser/emulator checks.
+
+Smoke job `117631072361` explicitly passed all five YouTubeEmbeddedPlayerLifecycleTests cases and testFocusedNavigationSmoke. The new intermission handoff case passed at 08:49:55 UTC (0.070 s); WebKit retirement-before-session configuration passed at 08:49:55 (0.008 s); focused navigation passed at 08:50:40 (35.553 s). The named-pass verifier accepted all six cases at 08:51:24. This closes the hosted iOS audio-arbitration implementation/coverage gap and the initializer compilation repair; no assertions were removed. The earlier failed b3e26e5 remains recorded in the failure ledger.
+
+The coordinator preserves local song/position/playback/FIFO identities, retires online ownership before native output requests, stops auxiliary audio and fences microphone permission, cancellation, foreground and stale owners. Tests establish the named domain/native behavior, not real-media zero-overlap timing. Actual SwiftUI online entry/dismissal, physical embeds/interruptions/privacy/ads and full exact-candidate iPhone/iPad release acceptance remain open. PR #51 stays draft. Next executable task: exercise the actual online-sheet entry/close/reopen/error flow through the host UI, retaining device/media acceptance as separate gates. No merge, signing, packaging, deployment or release occurred.

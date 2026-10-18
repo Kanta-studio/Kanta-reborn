@@ -549,3 +549,8 @@ PR #51 lifecycle source update (October 18, 2026): foreground native player reti
 ## PR #51 iOS audio handoff candidate — October 18
 
 Shared audio arbitration, controller-serialized online entry, auxiliary shutdown and capture/foreground/identity fencing are implemented in the working branch with domain/native regressions. Current-head hosted compilation/tests/native smoke remain required before acceptance. Next executable task: validate the candidate and repair actual failures; then exercise SwiftUI online entry/dismissal and physical embed/interruption/ads acceptance. Companion Remote redesign remains separately queued in PR #53.
+
+
+### Accepted hosted iOS audio coordination — October 18
+
+Source `6f7a0ece9e42cc500ce4f52cc414c58e5e11b58e` passed reconstruction 39112387766 (178 Swift tests, 54 tooling tests, unsigned simulator app build and Android validation) and smoke 39112387680 (all five native cases plus focused navigation, explicit named-pass gate). The iOS session/auxiliary implementation and hosted regression gap is closed. Actual SwiftUI online-sheet/media flow and physical embed/interruption/privacy/ads acceptance remain open; no zero-overlap timing, merge, signing or release is implied. See docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md for evidence and next steps.
