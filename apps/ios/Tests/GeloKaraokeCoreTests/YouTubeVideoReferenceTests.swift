@@ -24,3 +24,28 @@ import Testing
         #expect(YouTubeVideoReference(url: link) == nil)
     }
 }
+
+@Test func queueMediaSourceDefaultsToLocalForSavedReservations() throws {
+    let song = LibrarySong(id: SongID(rawValue: "local-test"), title: "Sample", mediaKind: .kar)
+    let item = QueueItem(song: song)
+    let encoded = try JSONEncoder().encode(item)
+    let restored = try JSONDecoder().decode(QueueItem.self, from: encoded)
+    #expect(restored.source == .local)
+    #expect(restored.id == item.id)
+
+    var object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+    object.removeValue(forKey: "source")
+    let legacy = try JSONSerialization.data(withJSONObject: object)
+    let decoded = try JSONDecoder().decode(QueueItem.self, from: legacy)
+    #expect(decoded.source == .local)
+}
+
+@Test func youtubeReservationSourceKeepsItsIdentity() throws {
+    let song = LibrarySong(id: SongID(rawValue: "youtube-metadata"), title: "Online video", mediaKind: .unknown, isPlayable: false)
+    let video = try #require(YouTubeVideoReference(url: "https://youtu.be/dQw4w9WgXcQ"))
+    let first = QueueItem(song: song, source: .youtube(video))
+    let second = QueueItem(song: song, source: .youtube(video))
+    #expect(first.id != second.id)
+    let restored = try JSONDecoder().decode(QueueItem.self, from: JSONEncoder().encode(first))
+    #expect(restored.source == .youtube(video))
+}
