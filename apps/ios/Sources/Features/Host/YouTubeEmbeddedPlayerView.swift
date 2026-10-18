@@ -16,6 +16,7 @@ struct YouTubeEmbeddedPlayerView: UIViewRepresentable {
         view.backgroundColor = .black
         view.scrollView.isScrollEnabled = false
         view.navigationDelegate = context.coordinator
+        view.isInspectable = false
         return view
     }
 
@@ -31,20 +32,24 @@ struct YouTubeEmbeddedPlayerView: UIViewRepresentable {
     static func dismantleUIView(_ view: WKWebView, coordinator: Coordinator) {
         view.stopLoading()
         view.loadHTMLString("", baseURL: nil)
+
         view.navigationDelegate = nil
         coordinator.loadedID = nil
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         var loadedID: String?
+        private let allowedHosts: Set<String> = [
+            "www.youtube-nocookie.com", "youtube-nocookie.com",
+            "www.youtube.com", "youtube.com"
+        ]
 
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard let url = action.request.url,
                   url.scheme == "https",
                   let host = url.host?.lowercased(),
-                  ["www.youtube-nocookie.com", "youtube-nocookie.com",
-                   "www.youtube.com", "youtube.com"].contains(host) else {
+                  allowedHosts.contains(host) else {
                 decisionHandler(.cancel)
                 return
             }
