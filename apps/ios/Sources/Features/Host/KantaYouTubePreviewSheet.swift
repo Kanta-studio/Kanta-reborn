@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 struct KantaYouTubePreviewSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @State private var link = ""
     @State private var selected: YouTubeVideoReference?
     @State private var showInvalidLink = false
@@ -45,6 +46,9 @@ struct KantaYouTubePreviewSheet: View {
             }
             .padding()
             .navigationTitle("Online video")
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { selected = nil }
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
