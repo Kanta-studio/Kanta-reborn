@@ -1174,3 +1174,8 @@ The optional `EncryptedCompanionView`/`EncryptedCompanionClient` path uses syste
 ## Fullscreen modal ownership repair
 
 The background SingingModalPresenter now retains a weak identity for only the karaoke player it creates and dismisses that player directly. UIKit's presentedViewController may refer to an ancestor's presentation, so it must never be used as permission to dismiss unrelated SwiftUI menus or sheets. The active-playback walkthrough verifies that More remains visible across redraws, then enters/exits the library without changing playback. UI harness waits for rendered controls and observed menu presentation, with bounded retries only for the idempotent open-menu action. This repair changes app presentation only; package/core source, FIFO ownership and audio semantics remain unchanged. Changed-source simulator execution remains required. Reference: https://developer.apple.com/documentation/uikit/uiviewcontroller/presentedviewcontroller .
+
+
+## PR #51 foreground player lifetime repair — October 18, 2026
+
+The online sheet owns transient preview identities and one MainActor native WebKit owner. Replacement retires the old coordinator before attachment; inactive/disappear/Stop/Done suspend and blank the WebView and invalidate callbacks. Repeated links get new native identities. LocalKaraokeController/FIFO and audio sessions are unchanged; audio-focus coordination remains open. See root `docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md`.

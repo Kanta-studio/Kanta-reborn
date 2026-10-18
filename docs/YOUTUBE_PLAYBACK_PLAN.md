@@ -108,3 +108,8 @@ The updated owner decision supersedes earlier instructions in this document that
 5. Validate current PR head in Android CI, iOS CI and iOS smoke, then record physical-device embed, interruption, privacy and ads checks separately. CI alone cannot verify these external behaviors.
 
 **Current code-review observation:** Android `MainActivity.showYouTubeVideo` dismisses the previous dialog, releases the player on dismiss, and checks finishing/destroyed before opening. iOS `KantaYouTubePreviewSheet` clears its selected reference when the scene becomes inactive. Neither observation proves asynchronous stale-callback safety or audio-focus arbitration. Do not mark those requirements complete without implementation and tests.
+
+
+## PR #51 foreground player lifetime repair — October 18, 2026
+
+The working branch now implements terminal WebView retirement and transient preview identity fences on both platforms; replacement is retired before attachment, inactive callbacks cannot reopen players, and load/process errors support explicit recovery. Static/Python checks passed. Domain and Android native runtime regressions are wired but require changed-head hosted validation. iOS native lifecycle tests, audio-focus coordination and physical-device acceptance remain gates. See `YOUTUBE_LIFECYCLE_CHECKPOINT.md`. Earlier code-review observations above describe the pre-repair baseline.

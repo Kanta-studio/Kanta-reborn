@@ -215,3 +215,8 @@ Fullscreen lifecycle hardening (PR #36): the UIKit presenter completes gate dism
 ### Fullscreen teardown waits for its child sheet
 
 When a fullscreen Search or Queue sheet is open, its HostViewController remains the fullscreen player's presented controller until UIKit completes the sheet dismissal. A fullscreen Exit request is held by the shared presentation gate while the child owns the stage. The Exit action updates the binding and directly calls `SingingModalPresenter.requestDismissal()`. The presenter must not dismiss or release its player until the gate's stage `onDismiss` restores fullscreen ownership; it observes that gate handoff and resumes teardown only then. This prevents the child-sheet dismissal callback from being mistaken for completion of the parent fullscreen dismissal. The iPhone/iPad walkthrough closes the child, exits fullscreen, waits for the unique exit control to disappear, and then verifies the Host Search can open.
+
+
+## PR #51 foreground player lifetime repair — October 18, 2026
+
+Online preview lifetime is separate from local transport/FIFO. Each selection has a distinct UUID; native owners retire the previous WebView before replacement and on foreground loss. Teardown is terminal and errors cannot affect a newer preview. iOS uses a per-sheet MainActor owner; Android MainActivity synchronously releases before Dialog replacement and blocks inactive opens. Audio-focus arbitration remains open. See `YOUTUBE_LIFECYCLE_CHECKPOINT.md` for code, tests and unvalidated gates.

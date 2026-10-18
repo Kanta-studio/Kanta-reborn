@@ -50,3 +50,44 @@ import Testing
     let restored = try JSONDecoder().decode(QueueItem.self, from: JSONEncoder().encode(first))
     #expect(restored.source == .youtube(video))
 }
+
+@Test func onlineReplacementRejectsLateFailureAndRepeatedLinkGetsNewLifetime() throws {
+    let a = try #require(YouTubeVideoReference(url: "https://youtu.be/abcdefghijk"))
+    let b = try #require(YouTubeVideoReference(url: "https://youtu.be/12345678901"))
+    var preview = YouTubePreviewLifecycle()
+    let first = preview.open(a)
+    let replacement = preview.open(b)
+    #expect(!preview.close(first.id))
+    #expect(preview.active == replacement)
+    let repeated = preview.open(b)
+    #expect(repeated.id != replacement.id)
+    #expect(!preview.close(replacement.id))
+    #expect(preview.close(repeated.id))
+    #expect(!preview.close(repeated.id))
+    let reopened = preview.open(a)
+    preview.close() // Foreground loss / dismissal is terminal for the old player.
+    #expect(!preview.close(reopened.id))
+    #expect(preview.active == nil)
+    let afterBackground = preview.open(b)
+    #expect(!preview.close(first.id))
+    #expect(preview.active == afterBackground)
+}
+
+@Test func onlineLifecycleAndInvalidLinksPreserveLocalReservations() throws {
+    let song = LibrarySong(id: SongID(rawValue: "synthetic-local"), title: "Sample", mediaKind: .kar)
+    let first = QueueItem(song: song)
+    let second = QueueItem(song: song)
+    var queue = PlaybackQueue(items: [first, second])
+    var preview = YouTubePreviewLifecycle()
+    let reference = try #require(YouTubeVideoReference(url: "https://youtu.be/abcdefghijk"))
+    let online = preview.open(reference)
+    if let invalid = YouTubeVideoReference(url: "https://example.com/abcdefghijk") { preview.open(invalid) }
+    #expect(preview.active == online)
+    #expect(queue.items.map(\.id) == [first.id, second.id])
+    preview.close()
+    preview.open(reference)
+    #expect(queue.items.map(\.id) == [first.id, second.id])
+    queue.remove(id: first.id)
+    #expect(queue.items.map(\.id) == [second.id])
+    #expect(preview.active != nil)
+}

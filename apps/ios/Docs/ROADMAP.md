@@ -541,3 +541,6 @@ this milestone publicly shipped until these are satisfied.
 - Preserve detailed CONTROL, existing queue/scoring and PR #47 capture workflow.
 - Next gate: owner-approved consolidated Core build plus opt-in UI captures;
   physical-device camera/orientation/audio acceptance before release.
+
+
+PR #51 lifecycle source update (October 18, 2026): foreground native player retirement and per-preview identity are implemented in the working branch with domain regressions. Changed-head hosted validation, iOS native lifecycle acceptance, independent audio-focus coordination and real-device embed checks remain open. This is not released YouTube playback.

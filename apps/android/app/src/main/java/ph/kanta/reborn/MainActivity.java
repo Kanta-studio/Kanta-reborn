@@ -36,6 +36,10 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   private Button playButton, nextButton;
   private final Map<String, Button> navigationButtons = new HashMap<>();
   private Dialog fullscreen, companionDialog, youtubeDialog;
+  private AlertDialog youtubeEntryDialog;
+  private YouTubeEmbeddedPlayer youtubePlayer;
+  private final YouTubePreviewLifecycle youtubeLifecycle = new YouTubePreviewLifecycle();
+  private boolean youtubeForeground;
   private CameraStage camera;
   private boolean cameraPermissionPending, microphonePermissionPending, voiceExpanded;
   private Presentation presentation;
@@ -95,6 +99,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   @Override
   protected void onStart() {
     super.onStart();
+    youtubeForeground = true;
     session.hostVisible(true);
     if (stage != null) stage.setVisualActive(fullscreen == null || !fullscreen.isShowing());
     if (fullscreenStage != null) fullscreenStage.setVisualActive(true);
@@ -105,10 +110,34 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   }
 
   @Override
+  protected void onPause() {
+    youtubeForeground = false;
+    closeYouTubeVideo();
+    if (youtubeEntryDialog != null) youtubeEntryDialog.dismiss();
+    youtubeEntryDialog = null;
+    super.onPause();
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    youtubeForeground = true;
+  }
+
+  private void closeYouTubeVideo() {
+    youtubeLifecycle.close();
+    YouTubeEmbeddedPlayer previousPlayer = youtubePlayer;
+    youtubePlayer = null;
+    if (previousPlayer != null) previousPlayer.release();
+    Dialog previous = youtubeDialog;
+    youtubeDialog = null;
+    if (previous != null) previous.dismiss();
+  }
+
+  @Override
   protected void onStop() {
     handler.removeCallbacksAndMessages(null);
-    if (youtubeDialog != null) youtubeDialog.dismiss();
-    youtubeDialog = null;
+    closeYouTubeVideo();
     if (companionDialog != null) companionDialog.dismiss();
     companionDialog = null;
     displays.unregisterDisplayListener(displayListener);
@@ -320,6 +349,8 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
 
 
   private void openYouTubeVideo() {
+    if (!youtubeForeground || isFinishing() || isDestroyed()) return;
+    if (youtubeEntryDialog != null) youtubeEntryDialog.dismiss();
     EditText input = new EditText(this);
     input.setSingleLine(true);
     input.setInputType(android.text.InputType.TYPE_CLASS_TEXT
@@ -330,7 +361,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     panel.addView(text("Optional online video. YouTube/Google may collect playback data and show ads. "
         + "Local karaoke continues to work without Internet.", 14, Color.WHITE));
     panel.addView(input);
-    new AlertDialog.Builder(this)
+    youtubeEntryDialog = new AlertDialog.Builder(this)
         .setTitle("Open YouTube video")
         .setView(panel)
         .setNegativeButton("Cancel", null)
@@ -342,24 +373,39 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
             return;
           }
           showYouTubeVideo(reference);
-        }).show();
+        }).create();
+    final AlertDialog entry = youtubeEntryDialog;
+    entry.setOnDismissListener(ignored -> {
+      if (youtubeEntryDialog == entry) youtubeEntryDialog = null;
+    });
+    entry.show();
   }
 
-  private void showYouTubeVideo(YouTubeVideoReference reference) {
+  void showYouTubeVideo(YouTubeVideoReference reference) {
     // This is a standalone foreground preview, not a queue reservation.
-    if (isFinishing() || isDestroyed()) return;
-    if (youtubeDialog != null) youtubeDialog.dismiss();
+    if (!youtubeForeground || isFinishing() || isDestroyed()) return;
+    closeYouTubeVideo();
+    final YouTubePreviewLifecycle.Session online = youtubeLifecycle.open(reference);
     final Dialog dialog = new Dialog(this);
     youtubeDialog = dialog;
     LinearLayout layout = column();
     layout.setBackgroundColor(Color.BLACK);
-    YouTubeEmbeddedPlayer player = new YouTubeEmbeddedPlayer(this);
+    YouTubeEmbeddedPlayer player = new YouTubeEmbeddedPlayer(this, () -> {
+      if (!youtubeForeground || !youtubeLifecycle.close(online.id)) return;
+      dialog.dismiss();
+      Toast.makeText(this, "Online video could not load. Check your connection and try again.",
+          Toast.LENGTH_LONG).show();
+    });
+    youtubePlayer = player;
+    player.setTag("kanta.youtube.player");
     layout.addView(player, new LinearLayout.LayoutParams(-1, 0, 1));
     layout.addView(button("Close online video", dialog::dismiss));
     layout.addView(text("YouTube has its own playback controls. Local karaoke controls remain independent.", 12, Color.WHITE));
     dialog.setContentView(layout);
     dialog.setOnDismissListener(ignored -> {
+      youtubeLifecycle.close(online.id);
       player.release();
+      if (youtubePlayer == player) youtubePlayer = null;
       if (youtubeDialog == dialog) youtubeDialog = null;
     });
     dialog.show();

@@ -75,6 +75,7 @@ public final class RuntimeChecks extends Instrumentation {
       check(
           state(() -> contains(activity.getWindow().getDecorView(), "KANTA")),
           "Native activity did not render");
+      youtubeLifecycleChecks();
       companionChecks();
       Song song = session.songs.get(0);
       LibraryRepository isolated =
@@ -692,6 +693,67 @@ public final class RuntimeChecks extends Instrumentation {
       result.putString("stream", android.util.Log.getStackTraceString(failure));
       finish(Activity.RESULT_CANCELED, result);
     }
+  }
+
+  private Object field(Object target, String name) {
+    try {
+      java.lang.reflect.Field field = target.getClass().getDeclaredField(name);
+      field.setAccessible(true);
+      return field.get(target);
+    } catch (ReflectiveOperationException failure) { throw new AssertionError(failure); }
+  }
+
+  private void youtubeLifecycleChecks() {
+    // Only native lifetime is asserted; remote responses and advertisements are not fixtures.
+    runOnMainSync(() -> {
+      session.reserve(session.songs.get(0), "Synthetic online lifecycle A");
+      session.reserve(session.songs.get(0), "Synthetic online lifecycle B");
+      java.util.List<ReservationQueue.Entry> before = session.queue.snapshot();
+      check(before.size() == 2 && !before.get(0).id.equals(before.get(1).id),
+          "Lifecycle fixture did not create distinct local reservations");
+      boolean playing = session.playing;
+      Song current = session.current;
+      YouTubeVideoReference a = YouTubeVideoReference.parse("https://youtu.be/abcdefghijk");
+      YouTubeVideoReference b = YouTubeVideoReference.parse("https://youtu.be/12345678901");
+      activity.showYouTubeVideo(a);
+      YouTubeEmbeddedPlayer first = (YouTubeEmbeddedPlayer) field(activity, "youtubePlayer");
+      android.webkit.WebViewClient stale = first.getWebViewClient();
+      activity.showYouTubeVideo(b);
+      YouTubeEmbeddedPlayer second = (YouTubeEmbeddedPlayer) field(activity, "youtubePlayer");
+      check(first.released() && first.getParent() == null, "Replacement mounted before prior online player retired");
+      check(second != first && !second.released(), "Replacement did not create a live native player");
+      stale.onRenderProcessGone(first, null);
+      check(field(activity, "youtubePlayer") == second && !second.released(), "Stale renderer callback retired replacement");
+      activity.showYouTubeVideo(b);
+      YouTubeEmbeddedPlayer repeated = (YouTubeEmbeddedPlayer) field(activity, "youtubePlayer");
+      check(second.released() && repeated != second, "Repeated link reused a native player");
+      // Exercise the real activity pause hook without depending on remote playback.
+      callActivityOnPause(activity);
+      check(repeated.released() && repeated.getParent() == null, "Activity pause retained online playback");
+      activity.showYouTubeVideo(a);
+      check(field(activity, "youtubePlayer") == null, "Late callback reopened online video while inactive");
+      callActivityOnResume(activity);
+      check(field(activity, "youtubePlayer") == null, "Foreground return automatically reopened online video");
+      activity.showYouTubeVideo(a);
+      YouTubeEmbeddedPlayer reopened = (YouTubeEmbeddedPlayer) field(activity, "youtubePlayer");
+      check(reopened != repeated && !reopened.released(), "Explicit reopen failed");
+      android.webkit.WebViewClient failedClient = reopened.getWebViewClient();
+      failedClient.onRenderProcessGone(reopened, null);
+      check(reopened.released(), "Renderer failure did not retire online player");
+      failedClient.onRenderProcessGone(reopened, null);
+      reopened.release();
+      reopened.show(b);
+      check(reopened.released(), "Released WebView accepted a late show");
+      check(session.current == current && session.playing == playing, "Online lifetime changed local transport");
+      java.util.List<ReservationQueue.Entry> after = session.queue.snapshot();
+      check(before.size() == after.size(), "Online lifetime consumed local FIFO");
+      for (int i = 0; i < before.size(); i++)
+        check(before.get(i).id.equals(after.get(i).id), "Online lifetime changed local reservation identity");
+      for (ReservationQueue.Entry entry : before) session.remove(entry.id);
+    });
+    // Drain Dialog's asynchronous dismissal notification before the rest of the suite.
+    waitForIdleSync();
+    check(state(() -> field(activity, "youtubePlayer") == null), "Dismissed online player remained owned");
   }
 
   private void companionChecks() throws Exception {

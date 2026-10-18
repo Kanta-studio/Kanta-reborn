@@ -209,3 +209,8 @@ Repository: `kanta-gelo/Kanta-reborn`, PR #36, branch `fix/ios-modal-ownership-p
 ### iOS presentation lifecycle update — 2026-10-17 candidate
 
 PR #36 now covers the previously separate UIKit fullscreen player in the shared presentation-gate candidate. The gate models Search/Queue presented inside fullscreen as a nested stage owner, restores fullscreen on child dismissal, and releases fullscreen only after UIKit's dismissal callback. The UI walkthrough adds nested Search and post-exit Search checks. Current-head CI and iPhone/iPad runtime evidence are still required; no release verification is implied.
+
+
+## PR #51 foreground player lifetime repair — October 18, 2026
+
+Source baseline: PR #51 `77f9f1078efc05cf91cc06db4fbd93780007c87e`. Source review confirms Swift 6.2/iOS 17 SwiftUI + WebKit; Java 17/Views, minSdk 26/targetSdk 36, existing Activity 1.10.1/CameraX 1.5.3 and direct system WebView. No dependency, permission, storage, search, decoder, remote-protocol, signing or workflow change. LocalKaraokeController and SessionController retain authoritative FIFO/transport. Transient preview UUIDs fence errors/dismissals; native retirement runs on the UI thread, with explicit WebKit suspension and Android terminal destroy. No measured audio latency or hardware behavior is inferred. Static/Python checks passed; hosted compilation/runtime and audio-focus coordination remain open. See `YOUTUBE_LIFECYCLE_CHECKPOINT.md`.
