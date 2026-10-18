@@ -3,15 +3,18 @@ import Foundation
 import Security
 
 /// Session-only local certificate. Private material never leaves the device or enters app backups.
-enum BrowserRemoteIdentity {
-    struct Material: Sendable { let privateKey: Data; let certificate: Data }
-    static let label = "ph.kanta.browser.session.identity"
+@_spi(Testing) public enum BrowserRemoteIdentity {
+    @_spi(Testing) public struct Material: Sendable {
+        let privateKey: Data
+        @_spi(Testing) public let certificate: Data
+    }
+    @_spi(Testing) public static let label = "ph.kanta.browser.session.identity"
     static let tag = Data(label.utf8)
-    static func remove() {
+    @_spi(Testing) public static func remove() {
         SecItemDelete([kSecClass: kSecClassCertificate, kSecAttrLabel: label] as CFDictionary)
         SecItemDelete([kSecClass: kSecClassKey, kSecAttrApplicationTag: tag] as CFDictionary)
     }
-    static func install(_ material: Material) throws -> SecIdentity {
+    @_spi(Testing) public static func install(_ material: Material) throws -> SecIdentity {
         remove()
         var error: Unmanaged<CFError>?
         guard let key = SecKeyCreateWithData(material.privateKey as CFData, [kSecAttrKeyType: kSecAttrKeyTypeRSA, kSecAttrKeyClass: kSecAttrKeyClassPrivate] as CFDictionary, &error),
@@ -58,7 +61,7 @@ enum BrowserRemoteIdentity {
         }
         throw CompanionError.invalidInput
     }
-    static func create(address: String) throws -> Material {
+    @_spi(Testing) public static func create(address: String) throws -> Material {
         _ = try CompanionProtocol.privateAddress(address)
         var error: Unmanaged<CFError>?
         guard let key = SecKeyCreateRandomKey([kSecAttrKeyType: kSecAttrKeyTypeRSA, kSecAttrKeySizeInBits: 2048] as CFDictionary, &error),

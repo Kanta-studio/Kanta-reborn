@@ -1,5 +1,5 @@
 import Foundation
-@testable import LocalNetworkControl
+@_spi(Testing) import LocalNetworkControl
 import Security
 import XCTest
 
