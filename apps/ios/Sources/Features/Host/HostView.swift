@@ -26,6 +26,7 @@ struct HostView: View {
     @ObservedObject private var settings: KantaUserSettings
     @ObservedObject private var externalStage = KantaExternalStageCoordinator.shared
     @State private var singerName = ""
+    @State private var showingYouTubePreview = false
     @StateObject private var audioInputs = KantaAudioInputDiagnostics()
     @StateObject private var intermission = KantaIntermissionMusic()
     private let partySFX: KantaPartySFXEngine
@@ -97,6 +98,9 @@ struct HostView: View {
             case .controls:
                 NavigationStack {
                     hostControls
+                        .sheet(isPresented: $showingYouTubePreview) {
+                            KantaYouTubePreviewSheet()
+                        }
                         .safeAreaInset(edge: .bottom) {
                             Button(action: openFullscreenPlayer) {
                                 Label("Open fullscreen player", systemImage: "arrow.up.left.and.arrow.down.right")
@@ -255,6 +259,9 @@ struct HostView: View {
 
     private var hostControls: some View {
         List {
+            Section("Online video") {
+                Button("Open YouTube video") { showingYouTubePreview = true }
+            }
             Section {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
