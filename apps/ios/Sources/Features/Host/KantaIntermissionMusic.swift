@@ -30,10 +30,10 @@ final class KantaIntermissionMusic: ObservableObject {
     }
 
     init(audioOwnership: KaraokeAudioOwnership, defaults: UserDefaults = .standard,
-         directory: URL? = nil) {
+         directory storageDirectory: URL? = nil) {
         self.audioOwnership = audioOwnership
         self.defaults = defaults
-        self.directory = directory ?? (FileManager.default.urls(
+        self.directory = storageDirectory ?? (FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask
         ).first ?? FileManager.default.temporaryDirectory)
             .appendingPathComponent("KANTA/Intermission", isDirectory: true)

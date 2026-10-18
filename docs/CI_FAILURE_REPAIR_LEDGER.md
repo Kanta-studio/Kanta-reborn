@@ -189,3 +189,13 @@ Reconstruction passed both native platform jobs, including Swift package/test co
 - Cause: intermission now receives the shared audio coordinator and optional isolated storage. The source guard assumed a parameterless constructor; production did not eagerly decode a track.
 - Repair: delimit the actual coordinator-injected initializer through the next private method. Preserve every lazy-decoder assertion and add native synthetic intermission handoff coverage. No test removed or suppressed.
 - Result: rerun recorded after the repair; hosted Swift and simulator validation remain required. This was a local fixture error, not a hosted CI failure.
+
+
+## iOS intermission initializer shadowing — October 18, 2026
+
+- Failed source: `b3e26e573e91aaa52fe4d52ff6ed0466270fd7ae`, reconstruction [39111947485](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39111947485), iOS job `117629764652`; native/navigation smoke [39111947495](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39111947495), job `117629764528`.
+- Fingerprint: KantaIntermissionMusic.swift:46:23, optional URL must be unwrapped for appendingPathComponent. Both application/test-bundle compilation stopped before native execution.
+- Confirmed cause: the new optional injected `directory` parameter shadows the nonoptional stored directory in the initializer's saved-track restoration. This is deterministic app-only source compilation; the file is not part of the Swift package.
+- Repair: retain the external `directory:` label but name the local argument `storageDirectory`, restoring nonoptional property lookup during track restoration. Preserve the same runtime defaults, test storage isolation, every assertion and both target source entries.
+- Other evidence on failed source: all 178 Swift package tests passed after all package targets compiled; Android validation passed. Those results do not supersede failed application/native-smoke compilation.
+- Regression gates: lazy intermission source guard, real native intermission fixture and named-pass smoke remain enabled. Corrected-source compilation/execution required; append green evidence only after it actually passes.
