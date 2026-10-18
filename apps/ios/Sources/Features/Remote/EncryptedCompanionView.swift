@@ -38,7 +38,11 @@ struct EncryptedCompanionView: View {
                     .disabled(!validPairingInput)
                 }
                 Text(client.status).font(.footnote).accessibilityIdentifier("companion.status")
-                Text("On Android 0.10 or later, open Control → Companion control and start hosting. Keep both apps on the same trusted Wi-Fi.")
+                if !client.paired && !client.busy && client.status != "Not connected" {
+                    Text("To retry, start a fresh Android pairing session and enter its new code.")
+                        .font(.caption)
+                }
+                Text("On Android 0.10 or later, open Control → Companion control and start hosting. Keep both apps on the same trusted Wi-Fi. Android hosting accepts one encrypted companion at a time.")
                     .font(.footnote)
                 Text("Enter the Android host's private IPv4 address and full 32-character hexadecimal pairing code.")
                     .font(.footnote)
