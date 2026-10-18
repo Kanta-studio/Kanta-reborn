@@ -733,10 +733,20 @@ final class SessionController {
       publish();
       return;
     }
+    if (entry.youtube != null) {
+      // Never hand a web reservation to the local file decoder.
+      message = "Online video is reserved, but host-controlled YouTube playback is not ready. "
+          + "The reservation remains in Up Next.";
+      publish();
+      return;
+    }
     prepare(entry);
   }
 
   private void prepare(ReservationQueue.Entry entry) {
+    if (entry.youtube != null) {
+      throw new IllegalArgumentException("Online media cannot enter the local decoder");
+    }
     loading = true;
     long token = ++generation;
     message = "Opening " + entry.song.title;
