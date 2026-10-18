@@ -53,3 +53,20 @@ This implementation candidate adds two platform-specific, visible YouTube embed 
 ## Player-shell privacy and lifecycle hardening — October 18, 2026
 
 Candidate hardening: iOS uses an ephemeral WebKit website data store and navigates to a blank page when the view is dismantled; Android disables popup windows and file-origin access privileges and clears WebView history during release. Both shells still enforce their existing YouTube-host navigation restrictions. These changes do not wire either player to the app, authorize background playback, implement the official IFrame command/state API, or establish FIFO, consent, error-state or physical-device acceptance. Validate the resulting PR head before merging. Do not describe the player shells as user-facing production playback.
+
+
+## Cohesive delivery batch — 2026-10-18
+
+The owner selected feature-batch delivery instead of a PR per helper or lifecycle detail. PRs #48–#50 supplied metadata validation, visible player shells, and teardown foundations, but **do not constitute working user-facing playback**. The next implementation PR must deliver a cohesive, testable vertical slice on **both platforms** before requesting final CI:
+
+1. **Explicit opt-in and link entry:** a user-facing entry surface accepts only validated YouTube video URLs; show the Internet/Google privacy notice before any player is constructed or remote content is loaded. Reject invalid links without changing local playback.
+2. **Visible player and source handoff:** mount the official visible player in an unobscured area. Switching away, replacing a video, leaving the screen, or losing authorization must stop and dismantle the old player. Never keep an offscreen audio-only player.
+3. **Authoritative mixed-source FIFO:** extend the existing host-owned reservation model with a discriminated local/YouTube source and unique reservation identity. Repeated reservations remain distinct. Play/Pause/Next and remote commands must go through the host owner, not a second web-player queue.
+4. **Failure and lifecycle handling:** reject unavailable/blocked videos, ignore stale completion callbacks, handle background/foreground, player errors and rapid Next without skipping or duplicating reservations. Local playback must still work offline.
+5. **Parity and evidence:** Swift and Java queue/source tests, Android build/tests, iOS package/build and focused UI smoke on the final head. Record manual acceptance gaps (real ad behavior, embed restrictions, physical-device audio focus) separately.
+
+**Implementation order within the batch:** map the actual iOS LocalKaraokeController and Android SessionController state transitions; implement the source contract and identity tests; connect the host owner; add native entry and visible player; exercise lifecycle and error paths; update architecture and checkpoint; then run consolidated CI. Do not create a series of tiny merged PRs for intermediate helpers. Avoid starting a second unrelated feature batch while this one is open.
+
+**Out of scope:** ad blocking, browser replacement, downloading, stream/audio extraction, hidden playback, automatic YouTube scoring, and unverified rate/pitch manipulation. Official player restrictions and advertisements remain intact.
+
+**Release gate:** CI passing means only the named automated checks passed; embedded playback, account/region restrictions, privacy disclosures, app review, and real-device behavior require separate acceptance.
