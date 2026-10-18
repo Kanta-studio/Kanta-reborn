@@ -11,12 +11,12 @@ struct YouTubeEmbeddedPlayerView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = .all
+        configuration.websiteDataStore = .nonPersistent()
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.isOpaque = false
         view.backgroundColor = .black
         view.scrollView.isScrollEnabled = false
         view.navigationDelegate = context.coordinator
-        view.isInspectable = false
         return view
     }
 
@@ -31,7 +31,7 @@ struct YouTubeEmbeddedPlayerView: UIViewRepresentable {
 
     static func dismantleUIView(_ view: WKWebView, coordinator: Coordinator) {
         view.stopLoading()
-        view.loadHTMLString("", baseURL: nil)
+        view.load(URLRequest(url: URL(string: "about:blank")!))
 
         view.navigationDelegate = nil
         coordinator.loadedID = nil
