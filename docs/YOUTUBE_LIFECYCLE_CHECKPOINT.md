@@ -24,3 +24,10 @@ PR head `92e838c` passed Android validation (including emulator runtime), unsign
 Commits `2500f0bd1b951ec3f3cbabcc5882e11cc98f61be` and `ab2e2336171694ecc7e04583336b59cad7ebe2d5` pass the authoritative HostView transport into the opt-in online preview. While local transport is playing, opening an online video is disabled; if local playback becomes active during an online preview, the native player owner retires its WebView and clears its preview identity. No local queue mutations or remote transport forwarding are introduced.
 
 This is an iOS UI/lifecycle guard, not complete audio-session arbitration: Android coordination, remote playback races, intermission/SFX, simulator runtime checks and physical-device audio interruption behavior remain open. The change has not yet been compiled or tested on its new head. Do not claim that simultaneous audio is universally prevented.
+
+
+## Verified hosted checkpoint — October 18, 2026
+
+Source `5c1b0f4eea9f92196b836a8bbf2980a5bb6793ad` passed reconstruction run [39106105837](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39106105837) and focused iPhone smoke run [39106105865](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39106105865). Reconstruction job steps confirm Swift package/test compilation, package execution, unsigned simulator application build, Android assembly/lint/domain regression, full native sanitizer gate and emulator runtime checks passed. This closes the earlier Swift Testing macro compilation failure after repair `1ca7454`; no assertions were removed. It also validates the subsequently added iOS/Android local-playing preview-entry guards on this source.
+
+This is hosted evidence for the named SHA only. The smoke test is navigation coverage, not iOS native online-player lifecycle acceptance. General audio-focus/session arbitration, Android remote/asynchronous-start preview reconciliation, iOS runtime online lifecycle coverage and physical-device embed/interruption/ads acceptance remain open. No merge, signing, packaging, deployment or release is claimed.

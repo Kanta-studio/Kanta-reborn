@@ -156,3 +156,10 @@ undefined
 - Repair: execute each close exactly once into a named Boolean before asserting the result. Preserve all stale-token, repeated-close, background and replacement assertions and production value semantics. No production, dependency, workflow or architecture change.
 - Local verification: test-layout and presentation guards, unchanged assertion count, and bounded diff/whitespace review. Swift is unavailable in this execution environment; fresh hosted package compilation and execution remain required on the repair commit. No unchanged deterministic rerun.
 - Follow-up: append green evidence only after the repaired head passes. Audio-focus coordination and native iOS lifecycle/device acceptance remain separate PR gates.
+
+
+## Verified hosted checkpoint — October 18, 2026
+
+Source `5c1b0f4eea9f92196b836a8bbf2980a5bb6793ad` passed reconstruction run [39106105837](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39106105837) and focused iPhone smoke run [39106105865](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39106105865). Reconstruction job steps confirm Swift package/test compilation, package execution, unsigned simulator application build, Android assembly/lint/domain regression, full native sanitizer gate and emulator runtime checks passed. This closes the earlier Swift Testing macro compilation failure after repair `1ca7454`; no assertions were removed. It also validates the subsequently added iOS/Android local-playing preview-entry guards on this source.
+
+This is hosted evidence for the named SHA only. The smoke test is navigation coverage, not iOS native online-player lifecycle acceptance. General audio-focus/session arbitration, Android remote/asynchronous-start preview reconciliation, iOS runtime online lifecycle coverage and physical-device embed/interruption/ads acceptance remain open. No merge, signing, packaging, deployment or release is claimed.
