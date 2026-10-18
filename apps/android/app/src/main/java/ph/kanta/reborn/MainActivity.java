@@ -296,6 +296,8 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     monitorReading = null;
     scoreReading = null;
     body.addView(text(session.message, 13, CYAN));
+    body.addView(button("YouTube video (online)", this::openYouTubeVideo));
+
     switch (tab) {
       case "My Set":
         mySet();
@@ -312,6 +314,50 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
       default:
         control();
     }
+  }
+
+
+  private void openYouTubeVideo() {
+    EditText input = new EditText(this);
+    input.setSingleLine(true);
+    input.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+        | android.text.InputType.TYPE_TEXT_VARIATION_URI);
+    input.setHint("https://www.youtube.com/watch?v=...");
+    LinearLayout panel = column();
+    panel.setPadding(dp(20), dp(8), dp(20), dp(8));
+    panel.addView(text("Optional online video. YouTube/Google may collect playback data and show ads. "
+        + "Local karaoke continues to work without Internet.", 14, Color.WHITE));
+    panel.addView(input);
+    new AlertDialog.Builder(this)
+        .setTitle("Open YouTube video")
+        .setView(panel)
+        .setNegativeButton("Cancel", null)
+        .setPositiveButton("Continue", (dialog, which) -> {
+          YouTubeVideoReference reference = YouTubeVideoReference.parse(
+              input.getText().toString().trim());
+          if (reference == null) {
+            Toast.makeText(this, "Enter a valid HTTPS YouTube video link.", Toast.LENGTH_LONG).show();
+            return;
+          }
+          showYouTubeVideo(reference);
+        }).show();
+  }
+
+  private void showYouTubeVideo(YouTubeVideoReference reference) {
+    // This is a standalone foreground preview, not a queue reservation.
+    final Dialog dialog = new Dialog(this);
+    LinearLayout layout = column();
+    layout.setBackgroundColor(Color.BLACK);
+    YouTubeEmbeddedPlayer player = new YouTubeEmbeddedPlayer(this);
+    layout.addView(player, new LinearLayout.LayoutParams(-1, 0, 1));
+    layout.addView(button("Close online video", dialog::dismiss));
+    dialog.setContentView(layout);
+    dialog.setOnDismissListener(ignored -> player.release());
+    dialog.show();
+    if (dialog.getWindow() != null) {
+      dialog.getWindow().setLayout(-1, -1);
+    }
+    player.show(reference);
   }
 
   private void voiceControls() {
