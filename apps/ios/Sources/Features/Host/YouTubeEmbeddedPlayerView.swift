@@ -11,6 +11,7 @@ struct YouTubeEmbeddedPlayerView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.allowsInlineMediaPlayback = true
         configuration.mediaTypesRequiringUserActionForPlayback = .all
+        configuration.websiteDataStore = .nonPersistent()
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.isOpaque = false
         view.backgroundColor = .black
@@ -30,21 +31,25 @@ struct YouTubeEmbeddedPlayerView: UIViewRepresentable {
 
     static func dismantleUIView(_ view: WKWebView, coordinator: Coordinator) {
         view.stopLoading()
-        view.loadHTMLString("", baseURL: nil)
+        view.load(URLRequest(url: URL(string: "about:blank")!))
+
         view.navigationDelegate = nil
         coordinator.loadedID = nil
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         var loadedID: String?
+        private let allowedHosts: Set<String> = [
+            "www.youtube-nocookie.com", "youtube-nocookie.com",
+            "www.youtube.com", "youtube.com"
+        ]
 
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                      decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             guard let url = action.request.url,
                   url.scheme == "https",
                   let host = url.host?.lowercased(),
-                  ["www.youtube-nocookie.com", "youtube-nocookie.com",
-                   "www.youtube.com", "youtube.com"].contains(host) else {
+                  allowedHosts.contains(host) else {
                 decisionHandler(.cancel)
                 return
             }
