@@ -219,3 +219,10 @@ When a fullscreen Search or Queue sheet is open, its HostViewController remains 
 ## PR #52 embedded Host restoration
 
 HostView composes a scrollable stage card, collapsed inline local Remote Control and external-display information in that order. KantaMainPlayerView retains the stage sheet owner and shared presentation gate; its embedded layout and fullscreen layout issue intents to the same HostViewModel. Direct Expand acquires fullscreen through the gate; the CONTROL-sheet path still waits for onDismiss. Library folder actions use the same existing importer and are disabled during model work. No queue, media, persistence or player ownership changes. UI screenshot and runtime acceptance remain required.
+
+
+## PR #52 Host compiler repair candidate — 2026-10-18
+
+Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
+
+The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.

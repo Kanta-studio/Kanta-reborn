@@ -139,3 +139,10 @@ undefined
 - Cause candidate: `updatePresentation()` required the presenter's view to remain attached to a window for both presentation and dismissal. UIKit can detach the presenting view during a full-screen presentation, so that guard can block the Exit dismissal path.
 - Fix commit: `fa635ab4eb33546c543ca61322a36bdb3c05ede0` moves the window attachment requirement into the presentation branch; dismissal remains available while the presenter is off-window.
 - Validation: pending fresh iPhone/iPad walkthrough and reconstruction checks on the updated head. Do not merge until both device walkthroughs pass.
+
+
+## PR #52 Host compiler repair candidate — 2026-10-18
+
+Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
+
+The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.

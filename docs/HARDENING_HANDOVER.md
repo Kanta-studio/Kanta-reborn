@@ -252,3 +252,10 @@ Android companion implementation, automated acceptance, original-byte packaging 
 ## PR #52 implementation session — 2026-10-18
 
 Implemented the documented Library/Host hierarchy in the existing PR branch: bordered stage card, cyan local Play/Pause, independent Next, Up Next, collapsed inline Remote Control and external TV information. Existing CONTROL and fullscreen paths remain available. Library empty-state Choose a Folder now invokes the bookmark-backed importer; import actions respect busy state. Root layout and presentation-contract guards pass locally. Added simulator coverage for inline expansion and Library with fresh screenshot attachments. Original owner Library/Host images are unavailable in this checkout, so pixel comparison remains blocked; implementation follows docs/UI_RESTORATION_REFERENCE.md. Linux has no Swift/Xcode simulator; hosted compilation, runtime and screenshots remain pending. No signing, merge or release.
+
+
+## PR #52 Host compiler repair candidate — 2026-10-18
+
+Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
+
+The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.
