@@ -355,6 +355,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     YouTubeEmbeddedPlayer player = new YouTubeEmbeddedPlayer(this);
     layout.addView(player, new LinearLayout.LayoutParams(-1, 0, 1));
     layout.addView(button("Close online video", dialog::dismiss));
+    layout.addView(text("YouTube controls are separate from local karaoke. Close this player to return to local playback.", 12, Color.WHITE));
     dialog.setContentView(layout);
     dialog.setOnDismissListener(ignored -> {
       player.release();
@@ -364,6 +365,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
     if (dialog.getWindow() != null) {
       dialog.getWindow().setLayout(-1, -1);
     }
+    session.pause(); // The foreground online player owns audio until dismissed.
     player.show(reference);
   }
 
