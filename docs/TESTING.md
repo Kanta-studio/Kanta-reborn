@@ -13,7 +13,7 @@ Tests and production source must describe the same behavior. Keep recovered test
 | AVFoundationPlaybackTests / AVFoundationMIDIPlaybackTests | Format rejection, controls and original starter synthesis | SwiftPM on macOS; physical audio remains separate |
 | MicrophoneScoringTests | Pitch detection and room gate | SwiftPM on macOS; microphone/device acceptance remains separate |
 | KantaUITests | Actual iOS stage/control walkthrough | Separate simulator UI run; not covered by an unsigned build |
-| KantaNativeTests | Real WKWebView owner/coordinator replacement, background, stale-callback and process-failure lifecycle | Application-hosted simulator XCTest in focused smoke; no remote media or device-audio acceptance |
+| KantaNativeTests | Real WKWebView lifecycle plus app-hosted session certificate/private-key Keychain installation and removal | Application-hosted simulator XCTest in focused smoke; no remote media or device-audio acceptance |
 | ReleaseToolingTests / starter generator | Release contracts, privacy/source guards and deterministic first-party resources | Python locally and in CI |
 | Android core regression | FIFO retry identity, Unicode search, bounded MIDI timing and encrypted exports | Gradle JavaExec |
 | Android native SoundFont | Validated SF2 references, bounded allocations, audible pitch, truncation and mutation handling | C11 ASan/UBSan host harness |

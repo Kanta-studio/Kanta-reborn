@@ -77,6 +77,8 @@ targets:
       - target: GeloKaraoke
       - package: GeloKaraokePackage
         product: GeloKaraokeCore
+      - package: GeloKaraokePackage
+        product: LocalNetworkControl
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.gelo.karaoke.nativetests
