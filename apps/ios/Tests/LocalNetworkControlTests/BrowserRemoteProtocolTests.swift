@@ -1,7 +1,7 @@
 import Foundation
 import Security
 import Testing
-@testable import LocalNetworkControl
+@_spi(Testing) @testable import LocalNetworkControl
 
 struct BrowserRemoteProtocolTests {
     @Test func boundedCommandsPreserveIdentityAndUnicode() throws {
