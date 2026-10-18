@@ -274,3 +274,8 @@ Local Java core: 524 checks passed, including 45 actual TLS checks. API 36 compi
 ## PR #51 native iOS Keychain test boundary — October 18, 2026
 
 Source checkpoint `2e67879` compiles `LocalNetworkControl` as a Swift package dependency of the XcodeGen iOS host and native XCTest. `ios-smoke.yml` builds that target in Release without enabling `@testable` on the package. The app-hosted native test therefore requires a narrowly scoped Swift SPI to call the existing session-identity Keychain implementation without changing the production build configuration or introducing a parallel identity implementation. `BrowserRemoteIdentity` remains owned by `LocalNetworkControl`; its `@_spi(Testing)` surface is test access, not a supported client API. The native test still checks exact certificate bytes, private-key retrieval and removal. The previously failed smoke run is 39129484883; changed-head acceptance is pending. No new dependency or runtime queue/audio state owner is introduced.
+
+
+## PR #51 iOS native Keychain acceptance boundary — October 18, 2026
+
+The Release test-module SPI repair compiles and passes Swift package tests at `215e02a` (reconstruction 39136036615). The unsigned simulator smoke job 39136036597 executed the new app-hosted identity test but `SecItemAdd` returned `errSecMissingEntitlement` (`-34018`). Five native WebKit and four UI smoke tests passed; the Keychain acceptance gate did not. `ios-smoke.yml` uses `CODE_SIGNING_ALLOWED=NO`; no team identity, provisioning profile, signed IPA or new release was created. An authorized entitled simulator test host and explicit entitlement inspection are required before claiming native Keychain support. Production runtime and FIFO ownership are unchanged.
