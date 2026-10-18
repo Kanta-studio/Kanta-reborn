@@ -554,3 +554,6 @@ Shared audio arbitration, controller-serialized online entry, auxiliary shutdown
 ### Accepted hosted iOS audio coordination — October 18
 
 Source `6f7a0ece9e42cc500ce4f52cc414c58e5e11b58e` passed reconstruction 39112387766 (178 Swift tests, 54 tooling tests, unsigned simulator app build and Android validation) and smoke 39112387680 (all five native cases plus focused navigation, explicit named-pass gate). The iOS session/auxiliary implementation and hosted regression gap is closed. Actual SwiftUI online-sheet/media flow and physical embed/interruption/privacy/ads acceptance remain open; no zero-overlap timing, merge, signing or release is implied. See docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md for evidence and next steps.
+
+
+PR #51 source 594cd94 passed reconstruction 39114570402 and expanded smoke 39114570339: all five native and three UI cases executed, including actual online-sheet lifecycle and paused-starter/local-resume flows. That iPhone UI acceptance gap is closed. Full candidate-matched seven-case iPhone/iPad release walkthrough, physical media/ads/interruption/privacy and signing remain open. Companion Remote redesign stays queued separately in PR #53.
