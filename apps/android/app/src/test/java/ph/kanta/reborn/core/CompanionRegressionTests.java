@@ -70,6 +70,27 @@ public final class CompanionRegressionTests {
         "Next skipped a repeated online reservation");
     check(mixed.remove(onlineTwo.id) && mixed.peek() == null,
         "Cancellation left a stale online reservation");
+    // A corrupted persisted queue must not partially replace the live queue.
+    ReservationQueue restored = new ReservationQueue();
+    ReservationQueue.Entry retained = restored.reserve(UUID.randomUUID(), local, "Singer");
+    try {
+      restored.restore(Arrays.asList(onlineOne, null));
+      throw new AssertionError("Malformed restored queue accepted");
+    } catch (IllegalArgumentException expected) {
+      check(restored.peek().id.equals(retained.id), "Invalid restore replaced live queue");
+    }
+    try {
+      restored.restore(Arrays.asList(onlineOne, onlineOne));
+      throw new AssertionError("Duplicate restored reservation accepted");
+    } catch (IllegalArgumentException expected) {
+      check(restored.peek().id.equals(retained.id), "Duplicate restore replaced live queue");
+    }
+    try {
+      restored.reserve(null, local, "Singer");
+      throw new AssertionError("Null request identity accepted");
+    } catch (NullPointerException expected) {
+      check(restored.snapshot().size() == 1, "Null request changed queue");
+    }
     mixed.reserveVideo(UUID.randomUUID(), videoMetadata, video, "");
     mixed.clear();
     check(mixed.peek() == null, "Queue clear left a stale online reservation");
