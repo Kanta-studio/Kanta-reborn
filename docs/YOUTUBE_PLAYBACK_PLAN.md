@@ -78,3 +78,9 @@ The owner selected feature-batch delivery instead of a PR per helper or lifecycl
 - Both preview surfaces are explicitly **not queue reservations** and cannot be claimed as FIFO playback or remote-controlled YouTube.
 - The current preview implementations still require compilation, UI lifecycle tests, real embed verification, and architectural integration with each host's single authoritative queue before the complete feature batch can be accepted.
 - Do not merge this draft as a finished YouTube playback feature merely because an isolated source or build check passes.
+
+## Updated playback ownership policy — October 18, 2026
+
+The owner supersedes the earlier proposal to send YouTube transport commands through the local playback controller. **Local and YouTube playback engines each own their Play/Pause/Stop and player-specific controls.** A lightweight session coordinator may arbitrate shared audio focus and visibility, but must not forward YouTube commands to the MIDI/KAR decoder or mutate local transport state as a side effect of opening a video. YouTube is an explicit opt-in foreground surface with native embedded-player controls; local playback continues to own its own queue and audio DSP. If mixed-source reservations are offered in the future, the coordinator selects a source without sharing decoder state, and no second implicit queue may silently consume local reservations. The existing queue metadata groundwork does not establish a working mixed-source coordinator.
+
+The existing Android lifecycle cleanup and iOS sheet dismantling remain required. Test both independent player lifecycles, audio focus, visibility and policy compliance on real devices before release. Do not claim simultaneous playback is prevented until audio-focus arbitration is implemented and verified.
