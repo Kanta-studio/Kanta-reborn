@@ -46,6 +46,10 @@ public final class CompanionRegressionTests {
   }
   public static int run()throws Exception{
     checks=0;
+    for(String url:new String[]{"https://youtu.be/dQw4w9WgXcQ", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://m.youtube.com/shorts/dQw4w9WgXcQ", "https://youtube.com/embed/dQw4w9WgXcQ"})
+      check(YouTubeVideoReference.parse(url)!=null,"Valid video reference rejected");
+    for(String url:new String[]{"http://youtu.be/dQw4w9WgXcQ", "https://youtu.be.evil.com/dQw4w9WgXcQ", "https://youtube.com/watch?v=invalid", "https://youtube.com/watch?v=dQw4w9WgXcQ&v=dQw4w9WgXcQ", "https://user@youtube.com/watch?v=dQw4w9WgXcQ"})
+      check(YouTubeVideoReference.parse(url)==null,"Unsafe video reference accepted");
     String code=CompanionProtocol.newCode();
     check(code.matches("[0-9a-f]{32}"),"Pair code format");
     check(!code.equals(CompanionProtocol.newCode()),"Fresh pairing entropy");
