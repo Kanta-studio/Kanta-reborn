@@ -1179,3 +1179,8 @@ The background SingingModalPresenter now retains a weak identity for only the ka
 ## PR #51 foreground player lifetime repair — October 18, 2026
 
 The online sheet owns transient preview identities and one MainActor native WebKit owner. Replacement retires the old coordinator before attachment; inactive/disappear/Stop/Done suspend and blank the WebView and invalidate callbacks. Repeated links get new native identities. LocalKaraokeController/FIFO and audio sessions are unchanged; audio-focus coordination remains open. See root `docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md`.
+
+
+## Native online-player test boundary (PR #51)
+
+KantaNativeTests compiles the unchanged Features/Host/YouTubeEmbeddedPlayerView.swift into a simulator-hosted XCTest bundle and exercises real native owner/coordinator cleanup. Release apps retain their existing testability, signing and dependency settings. The focused root smoke selects three native cases plus its existing navigation case and requires explicit pass evidence. This does not establish iOS audio-session arbitration or real YouTube/device acceptance; see ../../../docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md.

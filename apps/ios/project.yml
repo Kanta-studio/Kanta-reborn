@@ -62,6 +62,26 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SUPPORTS_MACCATALYST: NO
 
+  KantaNativeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/KantaNativeTests
+      # Compile the production component directly without enabling testability in release apps.
+      - path: Sources/Features/Host/YouTubeEmbeddedPlayerView.swift
+    dependencies:
+      - target: GeloKaraoke
+      - package: GeloKaraokePackage
+        product: GeloKaraokeCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gelo.karaoke.nativetests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: 6.0
+        IPHONEOS_DEPLOYMENT_TARGET: 17.0
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/KANTA.app/KANTA"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
   KantaUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -85,6 +105,7 @@ schemes:
       config: Debug
     test:
       targets:
+        - KantaNativeTests
         - KantaUITests
     archive:
       config: Release

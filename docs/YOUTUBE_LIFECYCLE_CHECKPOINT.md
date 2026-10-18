@@ -61,3 +61,12 @@ All 479 domain assertions, browser interoperability and 50 Python release-toolin
 ## Verified Android audio-coordination checkpoint — October 18, 2026
 
 Source `99f3898d35394a26d1879149c3f8637acd48ef56` passed reconstruction run [39108899667](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39108899667). Both Android and iOS jobs succeeded. Android native emulator execution includes the new effects/intermission/microphone/stale-owner/background/FIFO cases, plus the existing encrypted-remote start/resume cases. Swift package compilation/tests and unsigned simulator app build passed. Focused iPhone smoke run `39108899640` remained in progress at this checkpoint; its outcome is not inferred. This validates the Android candidate in hosted checks, not physical output timing, real YouTube media/ads or iOS audio-session parity. No merge/signing/release.
+
+
+## iOS native lifetime component coverage candidate — October 18, 2026
+
+`KantaNativeTests.YouTubeEmbeddedPlayerLifecycleTests` uses real WKWebView instances in an application-hosted simulator bundle. Cases verify native delegate retirement before replacement attaches, distinct repeated-video identities, stale-process callbacks not affecting replacements, background retirement with no automatic restore, exactly-once process failure and explicit reopen. No remote video, playback timing or advertisement is a fixture. The unchanged production component source is compiled directly into the test bundle, avoiding any release-app testability setting or production-only test hook.
+
+`ios-smoke.yml` retains its existing navigation test and adds the three native cases, with explicit named-pass verification. A missing native case or an earlier failure/restart keeps the gate red even if a later zero-test attempt reports success. All test assertions and prior package/UI target wiring are preserved. Full iPhone/iPad walkthrough remains separate.
+
+Local checks passed: test layout (39 Swift files), presentation guards, target/host/source/test-selection YAML review, all 54 Python release-tooling tests including four log-gate regressions, and diff whitespace. Native compilation/execution is pending on the resulting head. This advances native component evidence only; iOS audio-session coordination, actual SwiftUI sheet/media teardown timing and physical embed/interruption/privacy/ads remain open.

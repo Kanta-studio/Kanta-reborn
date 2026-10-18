@@ -1771,3 +1771,8 @@ Added CryptoKit KCP1 client codec, Network.framework foreground controller and a
 ## PR #51 foreground player lifetime repair — October 18, 2026
 
 PR #51 adds terminal native player retirement, replacement-before-attach, background cleanup and token-matched error recovery on both platforms. Domain tests and Android runtime cases are added; layout/presentation guards, 50 Python release-tooling and four generator tests pass. Changed-head hosted builds/runtime, iOS native lifecycle evidence and audio-focus coordination remain required. Exact next task: inspect cloud validation for this batch, fix any failure, then implement the independent audio-focus coordinator without transport forwarding. No merge/signing/release. See root `docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md`.
+
+
+## PR #51 native online lifetime tests — October 18, 2026
+
+Adds three hosted native WKWebView lifecycle cases and a mandatory named-pass gate to focused smoke. No production playback code is changed. Layout/presentation/YAML guards and 54 Python release-tooling tests pass locally; current-head Xcode compilation and simulator tests remain pending. iOS audio-session coordination and device media acceptance are still unfinished. Root docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md retains the authoritative coverage boundaries.

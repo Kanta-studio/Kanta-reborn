@@ -13,6 +13,7 @@ Tests and production source must describe the same behavior. Keep recovered test
 | AVFoundationPlaybackTests / AVFoundationMIDIPlaybackTests | Format rejection, controls and original starter synthesis | SwiftPM on macOS; physical audio remains separate |
 | MicrophoneScoringTests | Pitch detection and room gate | SwiftPM on macOS; microphone/device acceptance remains separate |
 | KantaUITests | Actual iOS stage/control walkthrough | Separate simulator UI run; not covered by an unsigned build |
+| KantaNativeTests | Real WKWebView owner/coordinator replacement, background, stale-callback and process-failure lifecycle | Application-hosted simulator XCTest in focused smoke; no remote media or device-audio acceptance |
 | ReleaseToolingTests / starter generator | Release contracts, privacy/source guards and deterministic first-party resources | Python locally and in CI |
 | Android core regression | FIFO retry identity, Unicode search, bounded MIDI timing and encrypted exports | Gradle JavaExec |
 | Android native SoundFont | Validated SF2 references, bounded allocations, audible pitch, truncation and mutation handling | C11 ASan/UBSan host harness |
@@ -119,3 +120,8 @@ Reconstruction validation runs for relevant app, tool and workflow changes on fe
 ## PR #43 post-merge evidence
 
 Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [39051661330](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39051661330). Website validation and verified-download contracts also passed on that main-branch commit. Unsigned IPA packaging is not automatic; an absent artifact from this merge is expected. The next release candidate still needs a candidate-SHA-matched full iPhone/iPad walkthrough and separately approved artifact packaging.
+
+
+## Focused smoke native execution proof
+
+The focused iPhone smoke selects all three KantaNativeTests.YouTubeEmbeddedPlayerLifecycleTests cases and the existing testFocusedNavigationSmoke. The native bundle compiles the unchanged production preview component into its test module; release-app testability is unchanged. `tools/verify-ios-smoke-results.py` requires explicit passed lines for all four names and rejects failed assertions or runner restarts anywhere in the log. Navigation-only or zero-test output is insufficient. Existing logs and xcresult retention remain unchanged. The full release walkthrough still covers all four UI cases on both iPhone and iPad separately; native component checks do not verify SwiftUI presentation, real videos/ads or hardware audio interruptions.
