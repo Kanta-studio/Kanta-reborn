@@ -70,3 +70,11 @@ The owner selected feature-batch delivery instead of a PR per helper or lifecycl
 **Out of scope:** ad blocking, browser replacement, downloading, stream/audio extraction, hidden playback, automatic YouTube scoring, and unverified rate/pitch manipulation. Official player restrictions and advertisements remain intact.
 
 **Release gate:** CI passing means only the named automated checks passed; embedded playback, account/region restrictions, privacy disclosures, app review, and real-device behavior require separate acceptance.
+
+
+### Implementation checkpoint (unvalidated)
+
+- iOS CONTROL now presents an opt-in online-video sheet with validated HTTPS link entry and visible player. Android exposes the equivalent opt-in preview from its control panel.
+- Both preview surfaces are explicitly **not queue reservations** and cannot be claimed as FIFO playback or remote-controlled YouTube.
+- The current preview implementations still require compilation, UI lifecycle tests, real embed verification, and architectural integration with each host's single authoritative queue before the complete feature batch can be accepted.
+- Do not merge this draft as a finished YouTube playback feature merely because an isolated source or build check passes.
