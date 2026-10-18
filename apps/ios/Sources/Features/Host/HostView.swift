@@ -63,23 +63,58 @@ struct HostView: View {
         )
     }
 
+    @State private var remoteExpanded = false
+
     var body: some View {
-        KantaMainPlayerView(
-            model: model, camera: camera, presentationGate: presentationGate,
-            backgroundsEnabled: settings.stageVisualsEnabled,
-            selectedPreset: settings.selectedVisualPreset,
-            singerName: $singerName,
-            microphoneBusy: microphonePitchMonitor.status == .running
-                || microphonePitchMonitor.status == .requestingPermission,
-            onControls: {
-                presentationGate.request(.host) { activeHostSheet = .controls }
-            },
-            onMore: onOpenNavigation,
-            onSaveSession: {
-                guard model.showingSessionSavePrompt else { return }
-                presentationGate.request(.host) { activeHostSheet = .sessionSave }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                KantaMainPlayerView(
+                    model: model, camera: camera, presentationGate: presentationGate,
+                    backgroundsEnabled: settings.stageVisualsEnabled,
+                    selectedPreset: settings.selectedVisualPreset,
+                    singerName: $singerName,
+                    microphoneBusy: microphonePitchMonitor.status == .running
+                        || microphonePitchMonitor.status == .requestingPermission,
+                    onControls: {
+                        presentationGate.request(.host) { activeHostSheet = .controls }
+                    },
+                    onMore: onOpenNavigation,
+                    onSaveSession: {
+                        guard model.showingSessionSavePrompt else { return }
+                        presentationGate.request(.host) { activeHostSheet = .sessionSave }
+                    },
+                    embedded: true,
+                    onExpand: openFullscreenPlayer
+                )
+                DisclosureGroup(isExpanded: $remoteExpanded) {
+                    InAppControlCenterView(
+                        model: model,
+                        backgroundsEnabled: $settings.stageVisualsEnabled,
+                        selectedPreset: $settings.selectedVisualPreset,
+                        singerName: $singerName,
+                        microphoneBusy: microphonePitchMonitor.status == .running
+                            || microphonePitchMonitor.status == .requestingPermission
+                    )
+                    .padding(.top, 16)
+                } label: {
+                    Label("Remote Control", systemImage: "rectangle.and.hand.point.up.left")
+                        .font(.headline)
+                }
+                .padding(18)
+                .background(Color(white: 0.07), in: RoundedRectangle(cornerRadius: 20))
+                .accessibilityIdentifier("host.remotePanel")
+
+                GeloSectionCard("External TV / Stage Display") {
+                    Text(externalStage.isPresenting ? "Extended screen active" : "No independent display detected")
+                    Text("Connect HDMI/USB-C or an AirPlay display with extended-screen support. The TV shows lyrics and backgrounds; controls stay here. Mirroring also shows this device’s controls.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
-        )
+            .padding(16)
+            .frame(maxWidth: 900)
+            .frame(maxWidth: .infinity)
+        }
+        .background(.black)
         .sheet(item: $activeHostSheet, onDismiss: {
             if dismissedHostSheet == .sessionSave {
                 model.showingSessionSavePrompt = false
@@ -126,6 +161,7 @@ struct HostView: View {
             }
         }
         .navigationTitle("Karaoke Host")
+        .navigationBarTitleDisplayMode(.large)
         .background {
             SingingFullscreenPresentation(
                 isPresented: $showingFullscreenPlayer,
@@ -248,6 +284,10 @@ struct HostView: View {
 
 
     private func openFullscreenPlayer() {
+        guard activeHostSheet != nil else {
+            presentationGate.request(.fullscreen) { showingFullscreenPlayer = true }
+            return
+        }
         pendingFullscreen = true
         presentationGate.beginDismissal(.host)
         activeHostSheet = nil

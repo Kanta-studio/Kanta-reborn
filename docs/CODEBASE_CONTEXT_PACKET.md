@@ -209,3 +209,7 @@ Repository: `kanta-gelo/Kanta-reborn`, PR #36, branch `fix/ios-modal-ownership-p
 ### iOS presentation lifecycle update — 2026-10-17 candidate
 
 PR #36 now covers the previously separate UIKit fullscreen player in the shared presentation-gate candidate. The gate models Search/Queue presented inside fullscreen as a nested stage owner, restores fullscreen on child dismissal, and releases fullscreen only after UIKit's dismissal callback. The UI walkthrough adds nested Search and post-exit Search checks. Current-head CI and iPhone/iPad runtime evidence are still required; no release verification is implied.
+
+## PR #52 restoration implementation — 2026-10-18
+
+Branch design/restore-library-host-20261018, baseline 519890b. SwiftUI/iOS 17, existing GeloVisualStyle tokens, scenic renderer and LocalKaraokeController remain authoritative. No dependency/storage/audio/network changes. Host now scrolls a bounded-width embedded stage card, collapsed inline InAppControlCenterView and external-display information; fullscreen retains the existing KantaMainPlayerView presentation path. Direct Expand requests the shared fullscreen gate; CONTROL dismissal still acknowledges UIKit/SwiftUI callbacks. Library imports use the existing bookmark-backed model, with busy-state protection on both folder entry points. No measured performance claim. New UI coverage captures the collapsed/expanded Host and disconnected Library. Local layout/presentation guards pass; Apple compilation and simulator acceptance remain pending.

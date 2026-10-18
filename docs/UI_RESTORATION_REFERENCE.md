@@ -1,6 +1,6 @@
 # KANTA pre-suspension UI restoration reference
 
-Status: design specification only; UI implementation and screenshots are pending.
+Status: native implementation candidate added; compilation, runtime screenshots and visual acceptance are pending.
 
 ## Scope and branch isolation
 
