@@ -18,3 +18,9 @@ Remaining PR gates: audio-focus arbitration without forwarding transport command
 ## Validation follow-up — October 18, 2026
 
 PR head `92e838c` passed Android validation (including emulator runtime), unsigned iOS simulator app build, and focused iPhone smoke run `39103776922`. Reconstruction run `39103777006` failed while compiling package tests: six direct mutating calls inside Swift Testing expectations expanded to immutable receivers. The test-only repair evaluates each call before asserting its Boolean result, preserving every assertion and production lifecycle behavior. Hosted compilation and package execution must validate the repair head before green status is recorded. See CI_FAILURE_REPAIR_LEDGER.md for the exact diagnostic and run/job identities.
+
+## iOS local/online audio coexistence guard
+
+Commits `2500f0bd1b951ec3f3cbabcc5882e11cc98f61be` and `ab2e2336171694ecc7e04583336b59cad7ebe2d5` pass the authoritative HostView transport into the opt-in online preview. While local transport is playing, opening an online video is disabled; if local playback becomes active during an online preview, the native player owner retires its WebView and clears its preview identity. No local queue mutations or remote transport forwarding are introduced.
+
+This is an iOS UI/lifecycle guard, not complete audio-session arbitration: Android coordination, remote playback races, intermission/SFX, simulator runtime checks and physical-device audio interruption behavior remain open. The change has not yet been compiled or tested on its new head. Do not claim that simultaneous audio is universally prevented.
