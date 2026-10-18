@@ -99,9 +99,7 @@ struct HostView: View {
                 NavigationStack {
                     hostControls
                         .sheet(isPresented: $showingYouTubePreview) {
-                            KantaYouTubePreviewSheet(onActivate: {
-                                Task { await model.pauseForOnlineVideo() }
-                            })
+                            KantaYouTubePreviewSheet()
                         }
                         .safeAreaInset(edge: .bottom) {
                             Button(action: openFullscreenPlayer) {
