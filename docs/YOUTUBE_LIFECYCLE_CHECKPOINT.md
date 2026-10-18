@@ -13,3 +13,8 @@ Pre-push checks: Swift test-layout and presentation guards passed; 50 Python rel
 Native diagnostic: the unchanged ASan/UBSan harness compiled, but LeakSanitizer cannot enumerate process tasks under this execution environment. A diagnostic rerun with leak detection disabled passed audible pitch, transposition, truncation and 2,000 mutation checks. This does not establish leak-check success; hosted CI retains its unchanged full sanitizer command.
 
 Remaining PR gates: audio-focus arbitration without forwarding transport commands, iOS native lifecycle runtime coverage, hosted changed-head checks, and physical-device embed/interruption/privacy/advertisement acceptance. This change does not claim simultaneous audio is prevented. Local/YouTube queues remain independent; the older mixed-source design is superseded by the owner decision in YOUTUBE_PLAYBACK_PLAN.md. UI restoration remains separate in PR #52.
+
+
+## Validation follow-up — October 18, 2026
+
+PR head `92e838c` passed Android validation (including emulator runtime), unsigned iOS simulator app build, and focused iPhone smoke run `39103776922`. Reconstruction run `39103777006` failed while compiling package tests: six direct mutating calls inside Swift Testing expectations expanded to immutable receivers. The test-only repair evaluates each call before asserting its Boolean result, preserving every assertion and production lifecycle behavior. Hosted compilation and package execution must validate the repair head before green status is recorded. See CI_FAILURE_REPAIR_LEDGER.md for the exact diagnostic and run/job identities.

@@ -147,3 +147,12 @@ undefined
 - Confirmed integration blocker: both branches appended independent sections to `docs/ARCHITECTURE.md`. Git reports that file as the sole merge conflict. Pull-request workflows require a mergeable PR; draft status is not excluded by the current workflow.
 - Repair: merge the current main ancestry into the existing feature branch, preserving the online-player lifecycle section and all approved library-folder, SongHub import and FluidSynth decisions. No application, workflow or assertion changes. No history rewrite or main-branch merge.
 - Verification: conflict-marker and whitespace review, test-layout and presentation guards on the resolved tree. Reconstruction and focused iPhone smoke must run on the resulting head; earlier green runs apply only to `77f9f10`. Hosted results remain pending.
+
+
+### 2026-10-18 — Swift Testing macro rejects mutating lifecycle calls
+
+- Failed run: [39103777006](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39103777006), iOS job `117605226475`, PR head `92e838c6fe7307d10eea9620832a00e5156a4038` (checkout merge `be14bbccc7b03b407ee37228db1ece3a49807fe0`). Deterministic test compilation failure; package execution never started. Android validation and focused iPhone smoke run `39103776922` passed; the unsigned iOS simulator app build also passed.
+- Confirmed cause: six `#expect` expressions in `YouTubeVideoReferenceTests.swift` directly invoked mutating `YouTubePreviewLifecycle.close(_:)`. Swift Testing expanded the receiver into an immutable `$0`, producing `cannot use mutating member on immutable value`. This is test-expression incompatibility, not evidence of a runtime lifecycle failure.
+- Repair: execute each close exactly once into a named Boolean before asserting the result. Preserve all stale-token, repeated-close, background and replacement assertions and production value semantics. No production, dependency, workflow or architecture change.
+- Local verification: test-layout and presentation guards, unchanged assertion count, and bounded diff/whitespace review. Swift is unavailable in this execution environment; fresh hosted package compilation and execution remain required on the repair commit. No unchanged deterministic rerun.
+- Follow-up: append green evidence only after the repaired head passes. Audio-focus coordination and native iOS lifecycle/device acceptance remain separate PR gates.
