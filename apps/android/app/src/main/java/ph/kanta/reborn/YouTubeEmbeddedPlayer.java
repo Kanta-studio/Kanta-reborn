@@ -15,6 +15,10 @@ final class YouTubeEmbeddedPlayer extends WebView {
     getSettings().setJavaScriptEnabled(true);
     getSettings().setMediaPlaybackRequiresUserGesture(true);
     getSettings().setDomStorageEnabled(false);
+    getSettings().setJavaScriptCanOpenWindowsAutomatically(false);
+    getSettings().setSupportMultipleWindows(false);
+    getSettings().setAllowFileAccessFromFileURLs(false);
+    getSettings().setAllowUniversalAccessFromFileURLs(false);
     getSettings().setAllowFileAccess(false);
     getSettings().setAllowContentAccess(false);
     setWebViewClient(new WebViewClient() {
@@ -49,6 +53,7 @@ final class YouTubeEmbeddedPlayer extends WebView {
   void release() {
     stopLoading();
     loadUrl("about:blank");
+    clearHistory();
     onPause();
     destroy();
     loadedId=null;
