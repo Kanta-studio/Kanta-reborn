@@ -125,3 +125,8 @@ Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [390
 ## Focused smoke native execution proof
 
 The focused iPhone smoke selects all three KantaNativeTests.YouTubeEmbeddedPlayerLifecycleTests cases and the existing testFocusedNavigationSmoke. The native bundle compiles the unchanged production preview component into its test module; release-app testability is unchanged. `tools/verify-ios-smoke-results.py` requires explicit passed lines for all four names and rejects failed assertions or runner restarts anywhere in the log. Navigation-only or zero-test output is insufficient. Existing logs and xcresult retention remain unchanged. The full release walkthrough still covers all four UI cases on both iPhone and iPad separately; native component checks do not verify SwiftUI presentation, real videos/ads or hardware audio interruptions.
+
+
+## iOS audio arbitration regression candidate
+
+The expanded native smoke requires all five YouTubeEmbeddedPlayerLifecycleTests passes and focused navigation. The added cases exercise real WebKit retirement before session configuration and isolated synthetic AVAudioPlayer intermission stop/explicit restart. Controller/domain cases cover native preparation versus online claim, cancellation/microphone changes across awaits, paused position/playback/FIFO identities, SFX/Next, stale release, foreground, failed session setup and suspension of both rendering backends. Forty Swift files remain wired to seven package suites plus two Xcode bundles. Compilation, execution and application build are separately required on the changed source; no physical media/latency result follows from these fixtures.

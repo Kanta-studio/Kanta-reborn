@@ -1,3 +1,4 @@
+import AVFoundation
 import AVFoundationMIDIPlayback
 import AVFoundationPlayback
 import Foundation
@@ -9,6 +10,8 @@ import SwiftUI
 
 @MainActor
 final class AppServices: ObservableObject {
+    let audioOwnership: KaraokeAudioOwnership
+    let intermission: KantaIntermissionMusic
     let registry: LibrarySourceRegistry?
     let library: BookmarkedKaraokeLibrary?
     let controller: LocalKaraokeController?
@@ -27,6 +30,20 @@ final class AppServices: ObservableObject {
     private var didPrepare = false
 
     init() {
+        let audioOwnership = KaraokeAudioOwnership()
+        self.audioOwnership = audioOwnership
+        let intermission = KantaIntermissionMusic(audioOwnership: audioOwnership)
+        self.intermission = intermission
+        audioOwnership.stopAuxiliaryAudio = { [weak intermission] in
+            intermission?.stopForOnlinePlayback()
+        }
+        audioOwnership.configurePlaybackSession = {
+            let session = AVAudioSession.sharedInstance()
+            if session.category != .playback || session.mode != .default {
+                try session.setCategory(.playback, mode: .default, options: [])
+            }
+            try session.setActive(true)
+        }
         let settings = KantaUserSettings()
         let sfxRoot = (FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask
@@ -83,7 +100,8 @@ final class AppServices: ObservableObject {
             let controller = LocalKaraokeController(
                 engine: routedEngine,
                 library: library,
-                partySFX: partySFX
+                partySFX: partySFX,
+                audioOwnership: audioOwnership
             )
 
             self.registry = registry
@@ -122,6 +140,12 @@ final class AppServices: ObservableObject {
                 + error.localizedDescription
         }
 
+        audioOwnership.onlineEntryAllowed = { [weak settings] in
+            settings?.vocalEffects.monitorEnabled != true
+        }
+        microphonePitchMonitor.onCaptureActivityChanged = { [weak audioOwnership] busy in
+            audioOwnership?.setMicrophoneBusy(busy)
+        }
         microphonePitchMonitor.onDiagnosticEvent = { [weak self] event in
             self?.recordMicrophoneSignal(event)
         }

@@ -544,3 +544,8 @@ this milestone publicly shipped until these are satisfied.
 
 
 PR #51 lifecycle source update (October 18, 2026): foreground native player retirement and per-preview identity are implemented in the working branch with domain regressions. Changed-head hosted validation, iOS native lifecycle acceptance, independent audio-focus coordination and real-device embed checks remain open. This is not released YouTube playback.
+
+
+## PR #51 iOS audio handoff candidate — October 18
+
+Shared audio arbitration, controller-serialized online entry, auxiliary shutdown and capture/foreground/identity fencing are implemented in the working branch with domain/native regressions. Current-head hosted compilation/tests/native smoke remain required before acceptance. Next executable task: validate the candidate and repair actual failures; then exercise SwiftUI online entry/dismissal and physical embed/interruption/ads acceptance. Companion Remote redesign remains separately queued in PR #53.

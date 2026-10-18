@@ -136,6 +136,7 @@ struct RootView: View {
             await services.prepare()
         }
         .onChange(of: scenePhase) { _, phase in
+            services.audioOwnership.setForeground(phase == .active)
             switch phase {
             case .active: services.diagnostics.setForeground(true)
             case .background: services.diagnostics.setForeground(false)

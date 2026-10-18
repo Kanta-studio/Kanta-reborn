@@ -92,4 +92,91 @@ final class YouTubeEmbeddedPlayerLifecycleTests: XCTestCase {
         XCTAssertEqual(failures, [failedSession.id])
         XCTAssertTrue(reopenedView.navigationDelegate === reopened)
     }
+
+    @MainActor
+    func testNativeAudioClaimRetiresWebViewBeforeSessionConfiguration() throws {
+        let ownership = KaraokeAudioOwnership()
+        let owner = YouTubeEmbeddedPlayerOwner()
+        let session = try makeSession()
+        let coordinator = YouTubeEmbeddedPlayerView.Coordinator(session: session) { _ in
+            XCTFail("Retired view emitted a failure")
+        }
+        let view = makeView()
+        let accepted = try ownership.claimOnlineAudio(session.id) { owner.retire() }
+        XCTAssertTrue(accepted)
+        owner.claim(coordinator)
+        coordinator.attach(view)
+        var configured = false
+        ownership.configurePlaybackSession = {
+            XCTAssertNil(view.navigationDelegate, "Native session configured before WebKit retirement")
+            configured = true
+        }
+        try ownership.prepareNativeAudio()
+        XCTAssertTrue(configured)
+        XCTAssertFalse(ownership.onlineActive)
+        coordinator.webViewWebContentProcessDidTerminate(view)
+        // Microphone permission starts also retire the native view synchronously.
+        let second = try makeSession()
+        let secondCoordinator = YouTubeEmbeddedPlayerView.Coordinator(session: second) { _ in XCTFail() }
+        ownership.configurePlaybackSession = nil
+        let reopened = try ownership.claimOnlineAudio(second.id) { owner.retire() }
+        XCTAssertTrue(reopened)
+        owner.claim(secondCoordinator)
+        secondCoordinator.attach(view)
+        ownership.setMicrophoneBusy(true)
+        XCTAssertNil(view.navigationDelegate)
+        XCTAssertFalse(ownership.onlineActive)
+    }
+
+    @MainActor
+    func testIntermissionOnlineHandoffRequiresExplicitRestart() throws {
+        let ownership = KaraokeAudioOwnership()
+        let suite = "KantaIntermissionTest-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer {
+            defaults.removePersistentDomain(forName: suite)
+            try? FileManager.default.removeItem(at: root)
+        }
+        let intermission = KantaIntermissionMusic(audioOwnership: ownership,
+            defaults: defaults, directory: root.appendingPathComponent("copied"))
+        ownership.stopAuxiliaryAudio = { [weak intermission] in intermission?.stopForOnlinePlayback() }
+        // Synthetic silence exercises real AVAudioPlayer ownership without user media.
+        let source = root.appendingPathComponent("silence.wav")
+        var bytes = Data("RIFF".utf8)
+        func u32(_ value: UInt32) {
+            var value = value.littleEndian
+            withUnsafeBytes(of: &value) { bytes.append(contentsOf: $0) }
+        }
+        func u16(_ value: UInt16) {
+            var value = value.littleEndian
+            withUnsafeBytes(of: &value) { bytes.append(contentsOf: $0) }
+        }
+        u32(36 + 44_100 * 2); bytes.append(Data("WAVEfmt ".utf8)); u32(16)
+        u16(1); u16(1); u32(44_100); u32(88_200); u16(2); u16(16)
+        bytes.append(Data("data".utf8)); u32(44_100 * 2)
+        bytes.append(Data(repeating: 0, count: 44_100 * 2))
+        try bytes.write(to: source)
+        try intermission.importMusic(source)
+        intermission.activate()
+        intermission.setEnabled(true)
+        defer { intermission.deactivate() }
+        XCTAssertTrue(intermission.isPlaying)
+        let onlineID = UUID()
+        var retired = 0
+        let accepted = try ownership.claimOnlineAudio(onlineID) { retired += 1 }
+        XCTAssertTrue(accepted)
+        XCTAssertFalse(intermission.enabled)
+        XCTAssertFalse(intermission.isPlaying)
+        intermission.sync(.playing)
+        intermission.sync(.stopped)
+        XCTAssertFalse(intermission.isPlaying, "Snapshot polling restarted intermission over online playback")
+        XCTAssertTrue(ownership.ownsOnlineAudio(onlineID))
+        intermission.setEnabled(true)
+        XCTAssertEqual(retired, 1)
+        XCTAssertTrue(intermission.isPlaying)
+        XCTAssertFalse(ownership.onlineActive)
+    }
+
 }

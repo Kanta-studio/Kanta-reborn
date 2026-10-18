@@ -28,7 +28,9 @@ struct HostView: View {
     @State private var singerName = ""
     @State private var showingYouTubePreview = false
     @StateObject private var audioInputs = KantaAudioInputDiagnostics()
-    @StateObject private var intermission = KantaIntermissionMusic()
+    @ObservedObject private var intermission: KantaIntermissionMusic
+    private let controller: LocalKaraokeController?
+    private let audioOwnership: KaraokeAudioOwnership
     private let partySFX: KantaPartySFXEngine
     private let diagnostics: KantaSupportDiagnostics
     @State private var showControlCenter =
@@ -44,6 +46,9 @@ struct HostView: View {
         self.presentationGate = presentationGate
         self.navigationSheetPresented = navigationSheetPresented
         self.onOpenNavigation = onOpenNavigation
+        controller = services.controller
+        audioOwnership = services.audioOwnership
+        _intermission = ObservedObject(wrappedValue: services.intermission)
         partySFX = services.partySFX
         diagnostics = services.diagnostics
         _networkHost = ObservedObject(
@@ -99,7 +104,8 @@ struct HostView: View {
                 NavigationStack {
                     hostControls
                         .sheet(isPresented: $showingYouTubePreview) {
-                            KantaYouTubePreviewSheet(localPlaybackActive: model.snapshot.transport == .playing)
+                            KantaYouTubePreviewSheet(localPlaybackActive: model.snapshot.transport == .playing,
+                                controller: controller, audioOwnership: audioOwnership)
                         }
                         .safeAreaInset(edge: .bottom) {
                             Button(action: openFullscreenPlayer) {

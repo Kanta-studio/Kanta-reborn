@@ -180,3 +180,12 @@ Source `99f3898d35394a26d1879149c3f8637acd48ef56` passed reconstruction run [391
 Source `2302703481810824d75b0ae9a4b84b417a6c39ac` passed reconstruction run [39109936325](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39109936325) and native/navigation smoke run [39109936327](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39109936327), job `117623681797`. The retained log explicitly reports passes for `testForegroundLossRetiresNativeViewAndDoesNotRestoreIt`, `testProcessFailureRetiresExactlyOnceAndOwnerCanReopen`, `testReplacementRetiresOldNativeViewBeforeAttachingNext`, and the unchanged `testFocusedNavigationSmoke`. The new named-pass verifier also succeeded. Thus the new Xcode target compiled and all three native cases actually executed; this is not a zero-test or navigation-only green.
 
 Reconstruction passed both native platform jobs, including Swift package/test compilation/execution, unsigned iOS simulator build and Android build/lint/domain/sanitizer/emulator acceptance. This closes the native WebKit component coverage candidate. It does not establish SwiftUI sheet/real-media timing, iOS shared audio-session and auxiliary coordination, physical embeds/interruption/privacy/advertisements, signing or release. Those PR #51 gates remain open; the Companion Remote design/roadmap stays separate in PR #53.
+
+
+## Local source-contract fixture repair — October 18, 2026
+
+- Baseline: PR #51 `5d25f62`, uncommitted iOS audio-handoff candidate.
+- Observed: local ReleaseToolingTests ran 54 tests, with one error in test_saved_intermission_track_does_not_decode_on_host_entry: IndexError while splitting the removed literal `init() {` signature.
+- Cause: intermission now receives the shared audio coordinator and optional isolated storage. The source guard assumed a parameterless constructor; production did not eagerly decode a track.
+- Repair: delimit the actual coordinator-injected initializer through the next private method. Preserve every lazy-decoder assertion and add native synthetic intermission handoff coverage. No test removed or suppressed.
+- Result: rerun recorded after the repair; hosted Swift and simulator validation remain required. This was a local fixture error, not a hosted CI failure.

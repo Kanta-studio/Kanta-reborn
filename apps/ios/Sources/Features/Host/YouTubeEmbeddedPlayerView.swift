@@ -8,6 +8,7 @@ import UIKit
 struct YouTubeEmbeddedPlayerView: UIViewRepresentable {
     let session: YouTubePreviewLifecycle.Session
     let owner: YouTubeEmbeddedPlayerOwner
+    var audioOwnership: KaraokeAudioOwnership? = nil
     let onFailure: (UUID) -> Void
 
     func makeUIView(context: Context) -> WKWebView {
@@ -20,12 +21,20 @@ struct YouTubeEmbeddedPlayerView: UIViewRepresentable {
         view.isOpaque = false
         view.backgroundColor = .black
         view.scrollView.isScrollEnabled = false
+        guard audioOwnership?.ownsOnlineAudio(session.id) != false else {
+            context.coordinator.retire()
+            return view
+        }
         owner.claim(context.coordinator)
         context.coordinator.attach(view)
         return view
     }
 
     func updateUIView(_ view: WKWebView, context: Context) {
+        guard audioOwnership?.ownsOnlineAudio(session.id) != false else {
+            context.coordinator.retire()
+            return
+        }
         context.coordinator.load(session, in: view)
     }
 
