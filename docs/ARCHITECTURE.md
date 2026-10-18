@@ -21,7 +21,7 @@ Companion commands require explicit pairing, authorization, bounded replay prote
 
 ## Planned built-in and browser Companion Remote
 
-The owner-approved [Companion Remote roadmap](COMPANION_REMOTE_ROADMAP.md) defines the supplied remote design as a built-in role in both native apps, with host-address browser access for guests without KANTA. Pairing and host authorization are mandatory; both interfaces project the existing host/source owners and never create a queue. Native iOS hosting, browser transport/trust bootstrap and expanded controls remain planned. The reference is preserved in docs/design-references/companion-remote-reference.jpeg. Owner instruction now includes this implementation in PR #51; PR #52 remains separate. The reference import itself implements no remote behavior.
+The owner-approved [Companion Remote roadmap](COMPANION_REMOTE_ROADMAP.md) defines the supplied remote design as a built-in role in both native apps, with host-address browser access for guests without KANTA. Pairing and host authorization are mandatory; both interfaces project the existing host/source owners and never create a queue. Native iOS hosting, browser transport/trust bootstrap and expanded controls remain planned. The reference is preserved in docs/design-references/companion-remote-reference.jpeg. The owner moved this implementation into PR #51 on October 18. The initial planning-only status is superseded by the candidate described below.
 
 ## Build isolation
 
@@ -288,3 +288,14 @@ Source `6f7a0ece9e42cc500ce4f52cc414c58e5e11b58e` passed reconstruction 39112387
 
 
 The PR #51 online-sheet UI candidate adds two actual host-navigation/foreground/paused-starter flows, retaining separate native/component coverage. Stable control identifiers and explicit link-keyboard dismissal do not change audio/FIFO ownership. Smoke requires eight named passes; full release walkthrough requires all seven UI cases. See YOUTUBE_LIFECYCLE_CHECKPOINT.md for scope, source and pending hosted/device evidence.
+
+
+## PR #51 HTTPS companion candidate — October 18, 2026
+
+Both platforms now have explicit Host / Companion Remote entry. BrowserRemoteHost (iOS) and BrowserCompanion → BrowserRemoteServer (Android) serve independent bundled copies of the same first-party HTML/CSS/JS on the selected private interface, HTTPS port 45732. The browser interface is also embedded inside each app. Assets are checked byte-for-byte across platforms, without a native cross-platform build/runtime dependency.
+
+TLS uses a fresh, one-day, self-signed RSA-2048/SHA-256 certificate with an IP subject alternative name per hosting session. No private key or certificate is bundled or uploaded. iOS uses Security/Network.framework and device-only Keychain entries cleaned on stop/next initialization; Android uses in-memory JCA/JSSE. Native clients require an exact host SHA-256 certificate fingerprint: iOS WebKit server-trust delegate, Android per-request HttpsURLConnection trust manager for both resources and a bounded WebView command bridge. No accept-all SSL handler or plaintext downgrade is installed. Browser guests must verify the actual certificate fingerprint out of band against the host before entering its pairing code; browser warning acceptance alone proves no identity. Real Safari/Chrome trust/bootstrap usability and independent security review remain gates.
+
+The separate KBR1 capability contract uses HTTPS POST with bounded KCP1-style binary command fields; it does not change KCP1 framing or make the old iOS plaintext host encrypted. A five-minute random 128-bit pairing code grants a random 256-bit per-guest bearer token. Up to four guests, ten-minute sessions, three rejected pairing attempts, thirty-minute foreground hosting, strict Host/Origin checks, no CORS, 8 KiB headers, 1 KiB request bodies, 16 KiB replies and no-store/CSP/frame/sensor restrictions bound the surface. Each guest pins completed operation identities and input bytes without eviction, capped at 512 replies/1 MiB; conflicting identity reuse is rejected. Disconnect/revocation never stops host playback. Backgrounding revokes hosting and clients; neither automatically reconnects.
+
+Adapters dispatch into the existing LocalKaraokeController and SessionController. Search returns at most ten metadata results; queue projections include at most ten reservations, with stable distinct identities. Play/Pause/Next/Stop, reserve and cancellation target only the local engine. No media/files, microphone/camera access, online transport or second FIFO is exposed. Unsupported YouTube, Previous/seek, Favorites, Host Cam and FX controls remain labelled unavailable. See COMPANION_BROWSER_CHECKPOINT.md for source/tests and acceptance limits.

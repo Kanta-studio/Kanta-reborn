@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 EXPECTED = frozenset({
+    "KantaUITests.KantaVisualWalkthroughUITests testBrowserCompanionRoleAndInputRejection",
     "KantaUITests.KantaVisualWalkthroughUITests testOnlinePreviewEntryCloseReopenAndForegroundLifecycle",
     "KantaUITests.KantaVisualWalkthroughUITests testOnlinePreviewPreservesPausedStarterAndLocalResume",
     "KantaNativeTests.YouTubeEmbeddedPlayerLifecycleTests testNativeAudioClaimRetiresWebViewBeforeSessionConfiguration",

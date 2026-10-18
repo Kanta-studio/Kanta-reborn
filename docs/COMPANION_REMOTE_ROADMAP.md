@@ -1,8 +1,8 @@
 # Companion Remote — built-in apps and browser access
 
-**Owner-approved roadmap requirement — October 18, 2026. Status: planned, not implemented or released.**
+**Owner-approved requirement — October 18, 2026. PR #51 candidate implementation; hosted native/browser acceptance and physical-device review pending. Not released.**
 
-The owner moved implementation into PR #51 on October 18, 2026. PR #53 supplies this preserved reference; PR #52 remains the separate Library/Host restoration. This supersedes earlier queue-behind-#51 wording. Implementation and acceptance remain pending; existing green YouTube checks do not validate companion additions.
+The owner moved the built-in and browser remote implementation into PR #51. PR #53 preserves the original reference and planning provenance. Library/Host restoration stays isolated in PR #52. See [implementation and trust boundary](COMPANION_BROWSER_CHECKPOINT.md).
 
 ## Approved experience and reference
 
@@ -68,4 +68,4 @@ The YouTube mode remains bound to the official visible host player, its separate
 
 ## Acceptance boundary
 
-This roadmap and reference are the requested deliverable. No native screen, browser endpoint, secure browser pairing, permission expansion or cross-platform host compatibility is implemented by this documentation update. Preserve existing working companion behavior until the planned adapters pass source, native/runtime, interoperability, security and physical-device acceptance.
+The original PR #53 contained documentation/reference only. PR #51 now contains a candidate HTTPS host on each native platform and the locally served remote inside each app or a browser. Search, reservations, cancellation, Play/Pause/Next/Stop are implemented. YouTube transport, Previous/seek, Favorites, camera and FX remain explicitly unavailable through this adapter. Hosted build/browser/runtime, four native host-client combinations, real mobile browser trust setup and independent security/device review remain separate acceptance gates. Existing KCP1 and legacy entry points are retained.

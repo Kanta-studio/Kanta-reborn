@@ -26,6 +26,9 @@ targets:
       - path: BG/BUNDLED
         type: folder
         buildPhase: resources
+      - path: Resources/CompanionRemote
+        type: folder
+        buildPhase: resources
       - path: Resources/StarterKaraoke
         type: folder
         buildPhase: resources

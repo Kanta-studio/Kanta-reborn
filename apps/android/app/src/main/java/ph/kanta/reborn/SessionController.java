@@ -16,6 +16,7 @@ final class SessionController {
   }
 
   final CompanionControl companion;
+  final BrowserCompanion browserCompanion;
   final ReservationQueue queue = new ReservationQueue();
   final ExecutorService io = Executors.newSingleThreadExecutor();
   final ExecutorService preparation = Executors.newSingleThreadExecutor();
@@ -95,6 +96,7 @@ final class SessionController {
   SessionController(Context context) {
     this.context = context;
     companion = new CompanionControl(this);
+    browserCompanion = new BrowserCompanion(this);
     monitor =
         new MicrophoneMonitor(
             context, this::publish, notice -> message = notice, this::inputReading);
@@ -567,6 +569,7 @@ final class SessionController {
     if (!visible) {
       revokeOnlineAudio();
       companion.stop();
+      browserCompanion.stop();
       monitor.stop();
       microphone.stop();
       party.stopAll();

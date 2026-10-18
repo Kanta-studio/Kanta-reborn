@@ -77,6 +77,7 @@ public final class RuntimeChecks extends Instrumentation {
           "Native activity did not render");
       youtubeLifecycleChecks();
       companionChecks();
+      browserCompanionChecks();
       Song song = session.songs.get(0);
       LibraryRepository isolated =
           new LibraryRepository(getTargetContext().createDeviceProtectedStorageContext());
@@ -902,6 +903,72 @@ public final class RuntimeChecks extends Instrumentation {
     }
     runOnMainSync(() -> session.companion.startHost("0.0.0.0"));
     check(!state(() -> session.companion.enabled()), "Wildcard companion listener accepted");
+  }
+
+  private void browserCompanionChecks() throws Exception {
+    check(!state(() -> session.browserCompanion.active()), "Browser hosting enabled without opt-in");
+    String address=CompanionControl.addresses().get(0);
+    runOnMainSync(() -> session.browserCompanion.start(address));
+    await(() -> !session.browserCompanion.code.isEmpty(), "HTTPS host did not start");
+    AtomicReference<String> origin=new AtomicReference<>(),code=new AtomicReference<>(),pin=new AtomicReference<>();
+    runOnMainSync(() -> {origin.set(session.browserCompanion.address);code.set(session.browserCompanion.code);pin.set(session.browserCompanion.fingerprint);});
+    javax.net.ssl.SSLContext tls=javax.net.ssl.SSLContext.getInstance("TLS");
+    tls.init(null,new javax.net.ssl.TrustManager[]{new javax.net.ssl.X509TrustManager(){
+      public java.security.cert.X509Certificate[] getAcceptedIssuers(){return new java.security.cert.X509Certificate[0];}
+      public void checkClientTrusted(java.security.cert.X509Certificate[] c,String a)throws java.security.cert.CertificateException{throw new java.security.cert.CertificateException();}
+      public void checkServerTrusted(java.security.cert.X509Certificate[] chain,String auth)throws java.security.cert.CertificateException{
+        try{chain[0].checkValidity();StringBuilder actual=new StringBuilder();for(byte b:java.security.MessageDigest.getInstance("SHA-256").digest(chain[0].getEncoded()))actual.append(String.format(java.util.Locale.ROOT,"%02x",b&255));
+          if(!actual.toString().equals(pin.get()))throw new java.security.cert.CertificateException("Wrong host pin");
+        }catch(java.security.GeneralSecurityException e){throw new java.security.cert.CertificateException(e);}
+      }
+    }},new java.security.SecureRandom());
+    String token=browserHttp(tls,origin.get(),"/pair","",code.get().getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+    check(token.matches("[a-f0-9]{64}"),"HTTPS host did not issue a scoped token");
+    CompanionProtocol.Request search=new CompanionProtocol.Request(java.util.UUID.randomUUID(),"search","Morning","");
+    org.json.JSONObject found=new org.json.JSONObject(browserHttp(tls,origin.get(),"/command",token,search.encode()));
+    check(found.getInt("version")==1&&found.getString("source").equals("local"),"Missing browser capability contract");
+    String song=found.getJSONArray("songs").getJSONObject(0).getString("id");
+    CompanionProtocol.Request reserve=new CompanionProtocol.Request(java.util.UUID.randomUUID(),"reserve",song,"Browser guest");
+    String first=browserHttp(tls,origin.get(),"/command",token,reserve.encode());
+    check(first.equals(browserHttp(tls,origin.get(),"/command",token,reserve.encode())),"HTTPS replay response changed");
+    check(state(() -> session.queue.snapshot().size()==1),"HTTPS retry reserved twice");
+    browserHttp(tls,origin.get(),"/command",token,new CompanionProtocol.Request(java.util.UUID.randomUUID(),"reserve",song,"Second turn").encode());
+    check(state(() -> session.queue.snapshot().size()==2),"HTTPS intentional duplicate was suppressed");
+    String reservation=new org.json.JSONObject(first).getJSONArray("queue").getJSONObject(0).getString("id");
+    browserHttp(tls,origin.get(),"/command",token,new CompanionProtocol.Request(java.util.UUID.randomUUID(),"cancel",reservation,"").encode());
+    check(state(() -> session.queue.snapshot().size()==1),"HTTPS cancellation changed the wrong queue");
+    browserHttp(tls,origin.get(),"/command",token,new CompanionProtocol.Request(java.util.UUID.randomUUID(),"play","","").encode());
+    await(() -> session.playing&&!session.loading,"HTTPS Play did not reach native audio");
+    check(state(() -> session.queue.snapshot().isEmpty()),"HTTPS Play did not consume authoritative FIFO");
+    browserHttp(tls,origin.get(),"/command",token,new CompanionProtocol.Request(java.util.UUID.randomUUID(),"pause","","").encode());
+    check(!state(() -> session.playing),"HTTPS Pause did not reach native audio");
+    byte[] stop=new CompanionProtocol.Request(java.util.UUID.randomUUID(),"next","","").encode();
+    System.arraycopy("stop".getBytes(java.nio.charset.StandardCharsets.US_ASCII),0,stop,18,4);
+    browserHttp(tls,origin.get(),"/command",token,stop);
+    check(state(() -> session.current==null),"HTTPS Stop did not reach native audio");
+    check(!state(() -> session.microphone.enabled()||session.cameraPreviewEnabled),"HTTPS companion activated a sensor");
+    runOnMainSync(() -> session.hostVisible(false));
+    check(!state(() -> session.browserCompanion.active()),"Background did not revoke HTTPS host");
+    boolean rejected=false;try{browserHttp(tls,origin.get(),"/command",token,search.encode());}catch(Exception expected){rejected=true;}
+    check(rejected,"Revoked HTTPS guest retained access");
+    runOnMainSync(() -> session.hostVisible(true));
+    check(!state(() -> session.browserCompanion.active()),"Returning restarted HTTPS hosting");
+  }
+
+  private String browserHttp(javax.net.ssl.SSLContext tls,String origin,String path,String token,byte[] body)throws Exception {
+    javax.net.ssl.HttpsURLConnection connection=(javax.net.ssl.HttpsURLConnection)new java.net.URL(origin+path).openConnection();
+    try{
+      connection.setSSLSocketFactory(tls.getSocketFactory());connection.setConnectTimeout(4000);connection.setReadTimeout(4000);
+      connection.setRequestMethod("POST");connection.setRequestProperty("Origin",origin);connection.setRequestProperty("Content-Type","application/octet-stream");
+      if(!token.isEmpty())connection.setRequestProperty("Authorization","Bearer "+token);
+      connection.setDoOutput(true);connection.setFixedLengthStreamingMode(body.length);
+      try(java.io.OutputStream output=connection.getOutputStream()){output.write(body);}
+      check(connection.getResponseCode()==200,"HTTPS browser request rejected");
+      try(java.io.InputStream input=connection.getInputStream();java.io.ByteArrayOutputStream result=new java.io.ByteArrayOutputStream()){
+        byte[] buffer=new byte[4096];int count;while((count=input.read(buffer))!=-1){result.write(buffer,0,count);if(result.size()>16384)throw new IOException("Oversized HTTPS response");}
+        return result.toString("UTF-8");
+      }
+    }finally{connection.disconnect();}
   }
 
   private org.json.JSONObject companionRequest(CompanionProtocol.Channel channel, CompanionProtocol.Request request) throws Exception {

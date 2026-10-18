@@ -317,6 +317,31 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
     }
 
     @MainActor
+    func testBrowserCompanionRoleAndInputRejection() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        app.launch()
+        XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
+        openMenu(in: app, expecting: "Companion Remote")
+        app.buttons["Companion Remote"].tap()
+        let browser = app.buttons["browser.companion.open"]
+        waitForRendered(browser, in: app)
+        browser.tap()
+        let hostAddress = app.textFields["browser.host.address"]
+        let host = app.buttons["browser.host.start"]
+        let remote = app.buttons["browser.remote.open"]
+        XCTAssertTrue(hostAddress.waitForExistence(timeout: waitSeconds))
+        XCTAssertFalse(host.isEnabled, "Hosting must not start without explicit valid input")
+        XCTAssertFalse(remote.isEnabled)
+        XCTAssertTrue(app.staticTexts["Browser companion is off"].exists)
+        hostAddress.tap()
+        hostAddress.typeText("0.0.0.0")
+        XCTAssertFalse(host.isEnabled, "Wildcard hosting must be rejected before networking")
+        XCTAssertFalse(app.buttons["browser.host.stop"].exists)
+        capture("browser-companion-input-rejection", app)
+    }
+
+    @MainActor
     func testEncryptedCompanionPairingScreenAndInputRejection() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"

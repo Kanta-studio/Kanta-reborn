@@ -1,8 +1,8 @@
 # KANTA Android reconstruction preview
 
-## Planned Companion Remote role and browser guests — October 18, 2026
+## Companion Remote candidate in PR #51 — October 18, 2026
 
-Owner-approved requirement: the supplied KANTA remote design opens inside this same app when Companion Remote is selected, with no separate remote app. Both iOS and Android must support it, plus paired browser guests entering the host's LAN address. Host/source queue ownership, authentication and explicit sensor permissions remain authoritative. Implementation is now in PR #51 by owner instruction; it is not implemented or released. See the [shared roadmap and original design reference](../../docs/COMPANION_REMOTE_ROADMAP.md).
+Owner-approved requirement: the supplied KANTA remote design opens inside this same app when Companion Remote is selected, with no separate remote app. Both iOS and Android must support it, plus paired browser guests entering the host's LAN address. Host/source queue ownership, authentication and explicit sensor permissions remain authoritative. The owner moved implementation into PR #51. HTTPS hosting and a shared locally served browser/built-in remote are now candidate source; native/browser/device acceptance is pending and this is not released. Expanded unsupported controls remain explicitly unavailable. See the [shared roadmap and original design reference](../../docs/COMPANION_REMOTE_ROADMAP.md).
 
 
 New native Java/Android Views source reconstructed from documented behavior and original first-party assets. This is not recovered original Android source or a complete feature-parity release.

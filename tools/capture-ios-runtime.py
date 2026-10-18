@@ -15,6 +15,7 @@ OUT = Path("runtime-captures")
 SUITE_TIMEOUT_SECONDS = 1080
 EXPECTED_TESTS = frozenset({
     "testFocusedNavigationSmoke",
+    "testBrowserCompanionRoleAndInputRejection",
     "testOnlinePreviewEntryCloseReopenAndForegroundLifecycle",
     "testOnlinePreviewPreservesPausedStarterAndLocalResume",
     "testStarterPlaybackAndControls",

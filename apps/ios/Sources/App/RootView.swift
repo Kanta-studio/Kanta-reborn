@@ -137,6 +137,7 @@ struct RootView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             services.audioOwnership.setForeground(phase == .active)
+            if phase != .active { services.browserCompanion?.stop() }
             switch phase {
             case .active: services.diagnostics.setForeground(true)
             case .background: services.diagnostics.setForeground(false)
@@ -162,7 +163,7 @@ struct RootView: View {
             }
             .navigationTitle("More")
         case .library: LibraryView(services: services)
-        case .remote: RemoteView()
+        case .remote: RemoteView(browserHost: services.browserCompanion)
         case .settings: KantaSettingsView(services: services)
         case .legal: LegalDisclosureView()
         case .icloud: ICloudBackupView(services: services)
