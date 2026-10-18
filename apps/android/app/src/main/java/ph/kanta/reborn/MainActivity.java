@@ -35,7 +35,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   private TextView nowPlaying, microphoneReading, monitorReading, scoreReading;
   private Button playButton, nextButton;
   private final Map<String, Button> navigationButtons = new HashMap<>();
-  private Dialog fullscreen, companionDialog;
+  private Dialog fullscreen, companionDialog, youtubeDialog;
   private CameraStage camera;
   private boolean cameraPermissionPending, microphonePermissionPending, voiceExpanded;
   private Presentation presentation;
@@ -107,6 +107,8 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
   @Override
   protected void onStop() {
     handler.removeCallbacksAndMessages(null);
+    if (youtubeDialog != null) youtubeDialog.dismiss();
+    youtubeDialog = null;
     if (companionDialog != null) companionDialog.dismiss();
     companionDialog = null;
     displays.unregisterDisplayListener(displayListener);
@@ -345,14 +347,19 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
 
   private void showYouTubeVideo(YouTubeVideoReference reference) {
     // This is a standalone foreground preview, not a queue reservation.
+    if (youtubeDialog != null) youtubeDialog.dismiss();
     final Dialog dialog = new Dialog(this);
+    youtubeDialog = dialog;
     LinearLayout layout = column();
     layout.setBackgroundColor(Color.BLACK);
     YouTubeEmbeddedPlayer player = new YouTubeEmbeddedPlayer(this);
     layout.addView(player, new LinearLayout.LayoutParams(-1, 0, 1));
     layout.addView(button("Close online video", dialog::dismiss));
     dialog.setContentView(layout);
-    dialog.setOnDismissListener(ignored -> player.release());
+    dialog.setOnDismissListener(ignored -> {
+      player.release();
+      if (youtubeDialog == dialog) youtubeDialog = null;
+    });
     dialog.show();
     if (dialog.getWindow() != null) {
       dialog.getWindow().setLayout(-1, -1);
