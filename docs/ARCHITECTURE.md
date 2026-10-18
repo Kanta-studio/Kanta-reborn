@@ -281,3 +281,6 @@ Local layout, presentation, starter resources/generation and whitespace checks p
 ### Accepted hosted iOS audio coordination — October 18
 
 Source `6f7a0ece9e42cc500ce4f52cc414c58e5e11b58e` passed reconstruction 39112387766 (178 Swift tests, 54 tooling tests, unsigned simulator app build and Android validation) and smoke 39112387680 (all five native cases plus focused navigation, explicit named-pass gate). The iOS session/auxiliary implementation and hosted regression gap is closed. Actual SwiftUI online-sheet/media flow and physical embed/interruption/privacy/ads acceptance remain open; no zero-overlap timing, merge, signing or release is implied. See docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md for evidence and next steps.
+
+
+The PR #51 online-sheet UI candidate adds two actual host-navigation/foreground/paused-starter flows, retaining separate native/component coverage. Stable control identifiers and explicit link-keyboard dismissal do not change audio/FIFO ownership. Smoke requires eight named passes; full release walkthrough requires all seven UI cases. See YOUTUBE_LIFECYCLE_CHECKPOINT.md for scope, source and pending hosted/device evidence.

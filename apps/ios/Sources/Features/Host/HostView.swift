@@ -126,6 +126,7 @@ struct HostView: View {
                                     presentationGate.beginDismissal(.host)
                                     activeHostSheet = nil
                                 }
+                                .accessibilityIdentifier("controls.done")
                             }
                         }
                 }
@@ -267,6 +268,7 @@ struct HostView: View {
         List {
             Section("Online video") {
                 Button("Open YouTube video") { showingYouTubePreview = true }
+                    .accessibilityIdentifier("youtube.preview.open")
             }
             Section {
                 Button {

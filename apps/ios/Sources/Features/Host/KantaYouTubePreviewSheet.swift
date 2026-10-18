@@ -7,6 +7,7 @@ struct KantaYouTubePreviewSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @State private var link = ""
+    @FocusState private var linkFocused: Bool
     @StateObject private var playerOwner = YouTubeEmbeddedPlayerOwner()
     @State private var lifecycle = YouTubePreviewLifecycle()
     @State private var playerError: String?
@@ -33,6 +34,7 @@ struct KantaYouTubePreviewSheet: View {
                     Button("Stop online video") {
                         closePreview()
                     }
+                        .accessibilityIdentifier("youtube.preview.stop")
                         .buttonStyle(.bordered)
                 } else {
                     Text("Online videos use YouTube/Google services, may share playback data and may show ads. Local karaoke works offline. YouTube has separate playback controls. Effects and intermission music stop when you open a video. Local audio actions close it. Stop microphone capture and monitoring first.")
@@ -44,6 +46,9 @@ struct KantaYouTubePreviewSheet: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
+                        .focused($linkFocused)
+                        .submitLabel(.done)
+                        .onSubmit { linkFocused = false }
                         .textFieldStyle(.roundedBorder)
                         .accessibilityIdentifier("youtube.preview.link")
                     if localPlaybackActive {
@@ -52,6 +57,7 @@ struct KantaYouTubePreviewSheet: View {
                             .accessibilityIdentifier("youtube.preview.localPlaybackNotice")
                     }
                     Button("Continue to YouTube") {
+                        linkFocused = false
                         guard !localPlaybackActive else { return }
                         guard let reference = YouTubeVideoReference(url: link.trimmingCharacters(in: .whitespacesAndNewlines)) else {
                             showInvalidLink = true
@@ -61,6 +67,7 @@ struct KantaYouTubePreviewSheet: View {
                         openPreview(reference)
                     }
                     .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("youtube.preview.continue")
                     .disabled(localPlaybackActive || opening != nil || controller == nil)
                     .alert("Invalid YouTube link", isPresented: $showInvalidLink) {
                         Button("OK", role: .cancel) {}
@@ -91,6 +98,7 @@ struct KantaYouTubePreviewSheet: View {
                         closePreview()
                         dismiss()
                     }
+                    .accessibilityIdentifier("youtube.preview.done")
                 }
             }
         }

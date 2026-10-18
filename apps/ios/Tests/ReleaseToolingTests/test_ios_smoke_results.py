@@ -24,9 +24,14 @@ class IOSSmokeResultsTests(unittest.TestCase):
         self.assertEqual(self.verify(self.passing_log(GATE.EXPECTED)), set(GATE.EXPECTED))
 
     def test_navigation_only_cannot_hide_missing_native_execution(self):
-        cases = [case for case in GATE.EXPECTED if case.startswith("KantaUITests.")]
+        cases = [case for case in GATE.EXPECTED if case.endswith(" testFocusedNavigationSmoke")]
         with self.assertRaisesRegex(ValueError, "Missing XCTest passes"):
             self.verify(self.passing_log(cases))
+
+    def test_previous_smoke_cases_cannot_hide_missing_online_screen_execution(self):
+        previous_cases = [case for case in GATE.EXPECTED if " testOnlinePreview" not in case]
+        with self.assertRaisesRegex(ValueError, "Missing XCTest passes"):
+            self.verify(self.passing_log(previous_cases))
 
     def test_zero_test_restart_does_not_erase_prior_failure(self):
         text = ("Restarting after unexpected exit\nExecuted 0 tests, with 0 failures\n"

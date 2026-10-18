@@ -11,9 +11,12 @@ import signal
 import subprocess
 
 OUT = Path("runtime-captures")
-# Four full UI walkthroughs can exceed the combined XCTest per-case limit.
+# The full UI suite needs a bounded deadline separate from per-case limits.
 SUITE_TIMEOUT_SECONDS = 1080
 EXPECTED_TESTS = frozenset({
+    "testFocusedNavigationSmoke",
+    "testOnlinePreviewEntryCloseReopenAndForegroundLifecycle",
+    "testOnlinePreviewPreservesPausedStarterAndLocalResume",
     "testStarterPlaybackAndControls",
     "testMainMenuButtonsAndScreens",
     "testEncryptedCompanionPairingScreenAndInputRejection",

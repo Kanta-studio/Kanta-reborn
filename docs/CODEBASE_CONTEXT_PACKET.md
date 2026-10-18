@@ -255,3 +255,10 @@ Local layout, presentation, starter resources/generation and whitespace checks p
 ### Accepted hosted iOS audio coordination — October 18
 
 Source `6f7a0ece9e42cc500ce4f52cc414c58e5e11b58e` passed reconstruction 39112387766 (178 Swift tests, 54 tooling tests, unsigned simulator app build and Android validation) and smoke 39112387680 (all five native cases plus focused navigation, explicit named-pass gate). The iOS session/auxiliary implementation and hosted regression gap is closed. Actual SwiftUI online-sheet/media flow and physical embed/interruption/privacy/ads acceptance remain open; no zero-overlap timing, merge, signing or release is implied. See docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md for evidence and next steps.
+
+
+## Online-sheet UI acceptance context — October 18, 2026
+
+Baseline PR #51 24db7a1 contains source 6f7a0ec with accepted controller/native audio coordination. Actual UI entry is Stage CONTROL -> HostView's nested online sheet -> KantaYouTubePreviewSheet -> transient lifecycle/serialized controller claim -> WKWebView. The sheet owns only presentation; cancellation, foreground and ownership checks fence its asynchronous claim. AppServices owns shared services, while LocalKaraokeController still owns transport/FIFO.
+
+This batch adds stable control identifiers and keyboard dismissal plus two real XCUIApplication flows: invalid/valid entry, stop/reopen, background cleanup, dismissal/reentry and paused-original-starter preservation/resume. Synthetic video metadata has no autoplay; an external request must yield visible player controls or a recoverable native load error. Neither accepted outcome proves playable media/ads. Existing native process-failure and handoff tests remain strict. Keep all previous smoke cases and require both new named UI passes; no injected fake player, test launch bypass, extra sensor permission or dependency. Full release walkthrough/device/media gates remain separate.

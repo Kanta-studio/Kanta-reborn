@@ -167,6 +167,138 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
     }
 
     @MainActor
+    func testOnlinePreviewEntryCloseReopenAndForegroundLifecycle() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        app.launch()
+        openOnlinePreview(in: app)
+        let field = app.textFields["youtube.preview.link"]
+        field.tap()
+        field.typeText("invalid\n")
+        app.buttons["youtube.preview.continue"].tap()
+        let invalid = app.alerts["Invalid YouTube link"]
+        XCTAssertTrue(invalid.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.webViews.firstMatch.exists, "Invalid input constructed a web player")
+        invalid.buttons["OK"].tap()
+        field.tap()
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 7))
+        field.typeText("https://youtu.be/abcdefghijk\n")
+        requestOnlinePreview(in: app, evidence: "online-first-open")
+        closeOnlineAttempt(in: app)
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.webViews.firstMatch.exists, "Stop left a native web view attached")
+        requestOnlinePreview(in: app, evidence: "online-explicit-reopen")
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(field.waitForExistence(timeout: waitSeconds), "Foreground return restored an old player")
+        XCTAssertFalse(app.buttons["youtube.preview.stop"].exists)
+        XCTAssertFalse(app.webViews.firstMatch.exists)
+        XCTAssertTrue(app.buttons["youtube.preview.continue"].isEnabled)
+        capture("online-foreground-requires-explicit-reopen", app)
+        app.buttons["youtube.preview.done"].tap()
+        XCTAssertTrue(app.buttons["youtube.preview.open"].waitForExistence(timeout: 10))
+        app.buttons["youtube.preview.open"].tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["youtube.preview.continue"].isEnabled)
+        XCTAssertFalse(app.webViews.firstMatch.exists)
+        app.buttons["youtube.preview.done"].tap()
+        app.buttons["controls.done"].tap()
+        let search = app.buttons["stage.search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        XCTAssertTrue(app.buttons["stage.keypad.0"].waitForExistence(timeout: 10))
+        app.buttons["Cancel"].tap()
+    }
+
+    @MainActor
+    func testOnlinePreviewPreservesPausedStarterAndLocalResume() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        app.launch()
+        openMenu(in: app, expecting: "Song Library")
+        app.buttons["Song Library"].tap()
+        let play = app.buttons["starter.play.morning-light"]
+        XCTAssertTrue(play.waitForExistence(timeout: waitSeconds))
+        for _ in 0..<5 where !play.isHittable { app.swipeUp() }
+        XCTAssertTrue(play.isHittable)
+        play.tap()
+        app.buttons["navigation.done"].tap()
+        let transport = app.buttons["stage.playPause"]
+        expectation(for: NSPredicate(format: "label == 'Pause' AND enabled == true"), evaluatedWith: transport)
+        waitForExpectations(timeout: waitSeconds)
+        transport.tap()
+        expectation(for: NSPredicate(format: "label == 'Play'"), evaluatedWith: transport)
+        waitForExpectations(timeout: 5)
+        let song = app.staticTexts["stage.currentSong"]
+        let pausedTitle = song.label
+        XCTAssertTrue(pausedTitle.contains("Morning Light"))
+        openOnlinePreview(in: app)
+        let field = app.textFields["youtube.preview.link"]
+        field.tap()
+        field.typeText("https://youtu.be/abcdefghijk\n")
+        requestOnlinePreview(in: app, evidence: "online-preserves-paused-starter")
+        app.buttons["youtube.preview.done"].tap()
+        XCTAssertTrue(app.buttons["controls.done"].waitForExistence(timeout: 10))
+        app.buttons["controls.done"].tap()
+        XCTAssertTrue(transport.waitForExistence(timeout: 10))
+        XCTAssertEqual(transport.label, "Play", "Opening online playback changed local transport")
+        XCTAssertEqual(song.label, pausedTitle, "Opening online playback replaced the local song")
+        XCTAssertFalse(app.webViews.firstMatch.exists)
+        transport.tap()
+        expectation(for: NSPredicate(format: "label == 'Pause'"), evaluatedWith: transport)
+        waitForExpectations(timeout: 5)
+        capture("online-dismissed-local-starter-resumes", app)
+        transport.tap()
+    }
+
+    @MainActor
+    private func openOnlinePreview(in app: XCUIApplication) {
+        let controls = app.buttons["stage.controls"]
+        XCTAssertTrue(controls.waitForExistence(timeout: waitSeconds))
+        controls.tap()
+        let online = app.buttons["youtube.preview.open"]
+        XCTAssertTrue(online.waitForExistence(timeout: 10))
+        XCTAssertTrue(online.isHittable)
+        online.tap()
+        XCTAssertTrue(app.textFields["youtube.preview.link"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.webViews.firstMatch.exists, "Online content loaded before explicit consent")
+    }
+
+    @MainActor
+    private func requestOnlinePreview(in app: XCUIApplication, evidence: String) {
+        let proceed = app.buttons["youtube.preview.continue"]
+        XCTAssertTrue(proceed.isEnabled)
+        proceed.tap()
+        let stop = app.buttons["youtube.preview.stop"]
+        let error = app.staticTexts["youtube.preview.error"]
+        // External availability is not a media fixture. Both paths must leave a usable screen.
+        let deadline = Date().addingTimeInterval(waitSeconds)
+        while Date() < deadline {
+            if stop.exists && stop.isHittable && app.webViews.firstMatch.exists {
+                capture(evidence + "-native-player", app)
+                return
+            }
+            if error.exists && proceed.exists && proceed.isEnabled {
+                XCTAssertTrue(error.label.contains("Online video could not load"), "Native claim failed instead of a recoverable external-load error")
+                XCTAssertFalse(app.webViews.firstMatch.exists)
+                capture(evidence + "-external-load-error", app)
+                return
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        capture(evidence + "-missing-outcome", app)
+        XCTFail("Online entry reached neither visible native player controls nor a recoverable external-load error")
+    }
+
+    @MainActor
+    private func closeOnlineAttempt(in app: XCUIApplication) {
+        let stop = app.buttons["youtube.preview.stop"]
+        if stop.exists { stop.tap() }
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.webViews.firstMatch)
+        waitForExpectations(timeout: 10)
+    }
+
+    @MainActor
     func testMainMenuButtonsAndScreens() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
