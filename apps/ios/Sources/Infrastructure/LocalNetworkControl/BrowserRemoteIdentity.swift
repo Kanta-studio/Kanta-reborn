@@ -16,13 +16,47 @@ enum BrowserRemoteIdentity {
         var error: Unmanaged<CFError>?
         guard let key = SecKeyCreateWithData(material.privateKey as CFData, [kSecAttrKeyType: kSecAttrKeyTypeRSA, kSecAttrKeyClass: kSecAttrKeyClassPrivate] as CFDictionary, &error),
               let certificate = SecCertificateCreateWithData(nil, material.certificate as CFData) else { throw CompanionError.invalidInput }
-        guard SecItemAdd([kSecClass: kSecClassKey, kSecValueRef: key, kSecAttrApplicationTag: tag,
-                          kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly] as CFDictionary, nil) == errSecSuccess else { throw CompanionError.invalidInput }
-        guard SecItemAdd([kSecClass: kSecClassCertificate, kSecValueRef: certificate, kSecAttrLabel: label,
-                          kSecAttrAccessible: kSecAttrAccessibleWhenUnlockedThisDeviceOnly] as CFDictionary, nil) == errSecSuccess else { remove(); throw CompanionError.invalidInput }
-        var value: CFTypeRef?
-        guard SecItemCopyMatching([kSecClass: kSecClassIdentity, kSecAttrLabel: label, kSecReturnRef: true] as CFDictionary, &value) == errSecSuccess, let value else { remove(); throw CompanionError.invalidInput }
-        return value as! SecIdentity
+        var keyAttributes: [CFString: Any] = [
+            kSecClass: kSecClassKey, kSecValueRef: key, kSecAttrApplicationTag: tag
+        ]
+        var certificateAttributes: [CFString: Any] = [
+            kSecClass: kSecClassCertificate, kSecValueRef: certificate, kSecAttrLabel: label
+        ]
+        #if !os(macOS)
+        keyAttributes[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        certificateAttributes[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        #endif
+        let keyStatus = SecItemAdd(keyAttributes as CFDictionary, nil)
+        guard keyStatus == errSecSuccess else {
+            throw NSError(domain: NSOSStatusErrorDomain, code: Int(keyStatus),
+                          userInfo: [NSLocalizedDescriptionKey: "Could not install the session key"])
+        }
+        let certificateStatus = SecItemAdd(certificateAttributes as CFDictionary, nil)
+        guard certificateStatus == errSecSuccess else {
+            remove()
+            throw NSError(domain: NSOSStatusErrorDomain, code: Int(certificateStatus),
+                          userInfo: [NSLocalizedDescriptionKey: "Could not install the session certificate"])
+        }
+        var matches: CFTypeRef?
+        let lookupStatus = SecItemCopyMatching([
+            kSecClass: kSecClassIdentity, kSecMatchLimit: kSecMatchLimitAll, kSecReturnRef: true
+        ] as CFDictionary, &matches)
+        if lookupStatus == errSecSuccess, let identities = matches as? [SecIdentity] {
+            for identity in identities {
+                var installedCertificate: SecCertificate?
+                guard SecIdentityCopyCertificate(identity, &installedCertificate) == errSecSuccess,
+                      let installedCertificate else { continue }
+                if SecCertificateCopyData(installedCertificate) as Data == material.certificate {
+                    return identity
+                }
+            }
+        }
+        remove()
+        guard lookupStatus == errSecSuccess else {
+            throw NSError(domain: NSOSStatusErrorDomain, code: Int(lookupStatus),
+                          userInfo: [NSLocalizedDescriptionKey: "Could not locate the session identity"])
+        }
+        throw CompanionError.invalidInput
     }
     static func create(address: String) throws -> Material {
         _ = try CompanionProtocol.privateAddress(address)
