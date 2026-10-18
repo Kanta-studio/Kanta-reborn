@@ -118,6 +118,17 @@ struct KantaMainPlayerView: View {
 
     private var embeddedPlayer: some View {
         VStack(spacing: 18) {
+            HStack {
+                Button(action: onMore) { Image(systemName: "chevron.left").frame(width: 44, height: 44) }
+                    .accessibilityLabel("More")
+                Text("Karaoke Host").font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Button(action: onControls) {
+                    Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("CONTROL")
+                .accessibilityIdentifier("stage.controls")
+            }
             VStack(alignment: .leading, spacing: 14) {
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top) { nowSinging; Spacer(); stageActions }
@@ -153,14 +164,14 @@ struct KantaMainPlayerView: View {
             .background(Color(white: 0.06), in: RoundedRectangle(cornerRadius: 24))
             .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.15)))
             HStack {
-                moreButton
+                if let notice = model.sessionNotice {
+                    Text(notice).font(.caption).foregroundStyle(.secondary)
+                }
                 Spacer()
                 if model.showingSessionSavePrompt {
                     Button("Save session", action: onSaveSession)
                         .accessibilityIdentifier("stage.saveSession")
                 }
-                Button(action: onControls) { Label("CONTROL", systemImage: "slider.horizontal.3") }
-                    .accessibilityIdentifier("stage.controls")
             }
         }
         .foregroundStyle(.white)
