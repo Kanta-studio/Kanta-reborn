@@ -99,7 +99,7 @@ struct HostView: View {
                 NavigationStack {
                     hostControls
                         .sheet(isPresented: $showingYouTubePreview) {
-                            KantaYouTubePreviewSheet()
+                            KantaYouTubePreviewSheet(localPlaybackActive: model.snapshot.transport == .playing)
                         }
                         .safeAreaInset(edge: .bottom) {
                             Button(action: openFullscreenPlayer) {
