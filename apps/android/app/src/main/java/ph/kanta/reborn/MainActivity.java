@@ -347,6 +347,7 @@ public final class MainActivity extends androidx.activity.ComponentActivity {
 
   private void showYouTubeVideo(YouTubeVideoReference reference) {
     // This is a standalone foreground preview, not a queue reservation.
+    if (isFinishing() || isDestroyed()) return;
     if (youtubeDialog != null) youtubeDialog.dismiss();
     final Dialog dialog = new Dialog(this);
     youtubeDialog = dialog;
