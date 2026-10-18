@@ -7,6 +7,7 @@ struct KantaYouTubePreviewSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var link = ""
     @State private var selected: YouTubeVideoReference?
+    @State private var showInvalidLink = false
 
     var body: some View {
         NavigationStack {
@@ -27,10 +28,18 @@ struct KantaYouTubePreviewSheet: View {
                         .textFieldStyle(.roundedBorder)
                         .accessibilityIdentifier("youtube.preview.link")
                     Button("Continue to YouTube") {
-                        selected = YouTubeVideoReference(url: link.trimmingCharacters(in: .whitespacesAndNewlines))
+                        guard let reference = YouTubeVideoReference(url: link.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+                            showInvalidLink = true
+                            return
+                        }
+                        selected = reference
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(YouTubeVideoReference(url: link.trimmingCharacters(in: .whitespacesAndNewlines)) == nil)
+                    .alert("Invalid YouTube link", isPresented: $showInvalidLink) {
+                        Button("OK", role: .cancel) {}
+                    } message: {
+                        Text("Enter a valid HTTPS YouTube video URL.")
+                    }
                 }
                 Spacer()
             }
