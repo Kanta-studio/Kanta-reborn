@@ -52,6 +52,11 @@ def verify():
         'real playback walkthrough': 'func testStarterPlaybackAndControls()' in test,
         'library dismissal then search coverage': 'Search did not present the keypad after library dismissal' in test,
         'stage search accessibility identifier': 'stage.search' in stage,
+        'library dismissal does not auto-open save session': (
+            'onChange(of: navigationSheetPresented)' in host
+            and 'model.showingSessionSavePrompt' in host
+            and 'withAnimation' not in host.split('model.showingSessionSavePrompt', 1)[-1]
+        ),
     }
     for name, passed in checks.items():
         print(('PASS' if passed else 'FAIL') + ': ' + name)
