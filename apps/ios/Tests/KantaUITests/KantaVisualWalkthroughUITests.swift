@@ -1,333 +1,73 @@
-import XCTest
-
-/// Actual starter playback and separate explicitly labeled demo interaction tests.
-final class KantaVisualWalkthroughUITests: XCTestCase {
-    private let waitSeconds: TimeInterval = 25
-    override func setUp() async throws {
-        continueAfterFailure = false
-        await MainActor.run { XCUIDevice.shared.orientation = .portrait }
-    }
-
-    override func tearDown() async throws {
-        await MainActor.run { XCUIDevice.shared.orientation = .portrait }
-    }
-
-    @MainActor
-    func testStarterPlaybackAndControls() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
-        app.launch()
-        capture("01-real-main-stage", app)
-        openMenu(in: app, expecting: "Song Library")
-        let library = app.buttons["Song Library"]
-        waitForRendered(library, in: app)
-        library.tap()
-        let title = app.staticTexts["Morning Light"].firstMatch
-        XCTAssertTrue(title.waitForExistence(timeout: waitSeconds))
-        for _ in 0..<8 where !title.isHittable { app.swipeUp() }
-        capture("02-real-starter-library", app)
-        let play = app.buttons["starter.play.morning-light"]
-        for _ in 0..<5 where !play.isHittable { app.swipeUp() }
-        XCTAssertTrue(play.isHittable)
-        play.tap()
-        app.buttons["Done"].firstMatch.tap()
-        let transport = app.buttons["stage.playPause"]
-        XCTAssertTrue(transport.waitForExistence(timeout: 10))
-        expectation(for: NSPredicate(format: "enabled == true AND label == 'Pause'"), evaluatedWith: transport)
-        waitForExpectations(timeout: waitSeconds)
-        let currentSong = app.staticTexts["stage.currentSong"]
-        expectation(for: NSPredicate(format: "label CONTAINS %@", "Morning Light"), evaluatedWith: currentSong)
-        waitForExpectations(timeout: waitSeconds)
-        capture("03-real-starter-playing", app)
-        transport.tap()
-        expectation(for: NSPredicate(format: "label == 'Play'"), evaluatedWith: transport)
-        waitForExpectations(timeout: 5)
-        capture("04-real-paused", app)
-        transport.tap()
-        expectation(for: NSPredicate(format: "label == 'Pause'"), evaluatedWith: transport)
-        waitForExpectations(timeout: 5)
-        capture("05-real-resumed", app)
-        openMenu(in: app, expecting: "Song Library")
-        let deadline = Date().addingTimeInterval(1)
-        while Date() < deadline {
-            XCTAssertTrue(app.buttons["Song Library"].exists, "Playback updates dismissed the menu")
-            XCTAssertTrue(app.buttons["Done"].firstMatch.exists, "Playback replaced navigation sheet")
-            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
-        }
-        capture("real-menu-stays-open-during-playback", app)
-        app.buttons["Song Library"].tap()
-        XCTAssertTrue(app.buttons["Done"].firstMatch.waitForExistence(timeout: 5))
-        app.buttons["Done"].firstMatch.tap()
-        // LibraryView sets its navigation title to "Library", not "Song Library".
-        // Wait for the actual presented navigation host to leave the hierarchy.
-        let libraryNavigation = app.navigationBars["Library"]
-        let dismissed = NSPredicate(format: "exists == false")
-        expectation(for: dismissed, evaluatedWith: libraryNavigation)
-        waitForExpectations(timeout: 10)
-        XCTAssertFalse(app.sliders["Song position"].exists)
-        XCTAssertFalse(app.buttons["Previous song"].exists)
-        XCTAssertFalse(app.navigationBars["Save to Favorites"].exists,
-                       "A completed session must not replace Library dismissal with a save sheet")
-        let search = app.buttons["stage.search"]
-        XCTAssertTrue(search.waitForExistence(timeout: 10))
-        let keypadZero = app.buttons["stage.keypad.0"]
-        if !search.isHittable {
-            capture("search-blocked-after-library", app)
-            let hierarchy = app.debugDescription
-            let attachment = XCTAttachment(string: hierarchy)
-            attachment.name = "search-blocked-accessibility-hierarchy"
-            attachment.lifetime = .keepAlways
-            add(attachment)
-            XCTFail("Search is blocked after leaving the library; accessibility hierarchy attached")
-            return
-        }
-        search.tap()
-        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10),
-                      "Search did not present the keypad after library dismissal")
-        capture("06-real-search-overlay", app)
-        app.buttons["Cancel"].tap()
-        let saveSession = app.buttons["stage.saveSession"]
-        if saveSession.exists {
-            saveSession.tap()
-            XCTAssertTrue(app.navigationBars["Save to Favorites"].waitForExistence(timeout: 5),
-                          "The deferred session must remain available for explicit saving")
-            app.buttons["Don't Save"].tap()
-            let saveSheetGone = NSPredicate(format: "exists == false")
-            expectation(for: saveSheetGone, evaluatedWith: app.navigationBars["Save to Favorites"])
-            waitForExpectations(timeout: 10)
-        }
-        app.buttons["stage.controls"].tap()
-        capture("07-real-controls", app)
-        for index in 0..<3 {
-            app.swipeUp()
-            capture("08-real-controls-\(index)", app)
-        }
-        let openFullscreen = app.buttons["controls.openFullscreen"]
-        XCTAssertTrue(
-            openFullscreen.waitForExistence(timeout: waitSeconds),
-            "The fullscreen action must remain available in the CONTROL bottom action area"
-        )
-        XCTAssertTrue(openFullscreen.isHittable)
-        openFullscreen.tap()
-        let fullscreenExit = app.buttons["fullscreen.exit"]
-        XCTAssertTrue(fullscreenExit.waitForExistence(timeout: waitSeconds))
-        let fullscreenSearch = app.buttons["stage.search"]
-        XCTAssertTrue(fullscreenSearch.waitForExistence(timeout: waitSeconds))
-        fullscreenSearch.tap()
-        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Search did not present inside fullscreen")
-        app.buttons["Cancel"].tap()
-        let fullscreenSearchDismissed = NSPredicate(format: "exists == false")
-        expectation(for: fullscreenSearchDismissed, evaluatedWith: keypadZero)
-        waitForExpectations(timeout: waitSeconds)
-
-        XCTAssertTrue(fullscreenExit.isHittable)
-        fullscreenExit.tap()
-        let fullscreenPlayerDismissed = NSPredicate(format: "exists == false")
-        expectation(for: fullscreenPlayerDismissed, evaluatedWith: fullscreenExit)
-        waitForExpectations(timeout: waitSeconds)
-
-        let stageSearchReady = NSPredicate(format: "exists == true AND hittable == true")
-        expectation(for: stageSearchReady, evaluatedWith: search)
-        waitForExpectations(timeout: waitSeconds)
-        search.tap()
-        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Stage Search must present after the fullscreen player has fully dismissed")
-        app.buttons["Cancel"].tap()
-    }
-
-    @MainActor
-    func testRestoredHostInlineRemoteAndLibrary() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
-        app.launch()
-        XCTAssertTrue(app.staticTexts["NOW SINGING"].waitForExistence(timeout: waitSeconds))
-        capture("restored-host-stage", app)
-        let panel = app.disclosureTriangles["host.remotePanel"]
-        let fallbackPanel = app.buttons["host.remotePanel"]
-        let remote = panel.exists ? panel : fallbackPanel
-        for _ in 0..<4 where !remote.isHittable { app.swipeUp() }
-        XCTAssertTrue(remote.isHittable)
-        capture("restored-host-remote-collapsed", app)
-        remote.tap()
-        XCTAssertTrue(app.textFields["Search song title or code"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.navigationBars["CONTROL"].exists, "Inline remote must not present a sheet")
-        XCTAssertTrue(app.buttons["stage.playPause"].exists, "Expansion must preserve the stage")
-        capture("restored-host-remote-expanded", app)
-        remote.tap()
-        for _ in 0..<4 where !app.buttons["More"].isHittable { app.swipeDown() }
-        openMenu(in: app, expecting: "Song Library")
-        app.buttons["Song Library"].tap()
-        XCTAssertTrue(app.buttons["library.addFolder"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["library.chooseFolder"].exists)
-        capture("restored-library-empty", app)
-    }
-
-    @MainActor
-    func testFocusedNavigationSmoke() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
-        app.launch()
-        let search = app.buttons["stage.search"]
-        XCTAssertTrue(search.waitForExistence(timeout: waitSeconds))
-        search.tap()
-        let keypad = app.buttons["stage.keypad.0"]
-        XCTAssertTrue(keypad.waitForExistence(timeout: 10), "Stage Search must open the keypad")
-        app.buttons["Cancel"].tap()
-        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: keypad)
-        waitForExpectations(timeout: 10)
-
-        app.buttons["stage.controls"].tap()
-        for _ in 0..<3 { app.swipeUp() }
-        let fullscreen = app.buttons["controls.openFullscreen"]
-        XCTAssertTrue(fullscreen.waitForExistence(timeout: waitSeconds))
-        XCTAssertTrue(fullscreen.isHittable)
-        fullscreen.tap()
-        let exit = app.buttons["fullscreen.exit"]
-        XCTAssertTrue(exit.waitForExistence(timeout: waitSeconds))
-        exit.tap()
-        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: exit)
-        waitForExpectations(timeout: waitSeconds)
-        XCTAssertTrue(search.waitForExistence(timeout: 10))
-        search.tap()
-        XCTAssertTrue(keypad.waitForExistence(timeout: 10),
-                      "Stage Search must work after fullscreen dismissal")
-        app.buttons["Cancel"].tap()
-    }
-
-    @MainActor
-    func testMainMenuButtonsAndScreens() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
-        for destination in ["Song Library", "KANTA Songbook", "Settings",
-                            "Companion Remote", "iCloud Save", "Legal & Privacy"] {
-            app.launch()
-            XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
-            openMenu(in: app, expecting: destination)
-            let button = app.buttons[destination].firstMatch
-            XCTAssertTrue(button.waitForExistence(timeout: 5))
-            waitForRendered(button, in: app)
-            button.tap()
-            capture("menu-" + destination, app)
-            app.terminate()
-        }
-    }
-
-    @MainActor
-    func testEncryptedCompanionPairingScreenAndInputRejection() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
-        app.launch()
-        XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
-        openMenu(in: app, expecting: "Companion Remote")
-        let remote = app.buttons["Companion Remote"]
-        waitForRendered(remote, in: app)
-        remote.tap()
-        let encrypted = app.buttons["companion.open"]
-        waitForRendered(encrypted, in: app)
-        encrypted.tap()
-        let address = app.textFields["companion.address"]
-        let code = app.secureTextFields["companion.code"]
-        let connect = app.buttons["companion.connect"]
-        XCTAssertTrue(address.waitForExistence(timeout: waitSeconds))
-        XCTAssertTrue(code.exists)
-        XCTAssertFalse(connect.isEnabled)
-        capture("companion-encrypted-pairing", app)
-        address.tap()
-        address.typeText("8.8.8.8")
-        code.tap()
-        code.typeText("000102030405060708090a0b0c0d0e0f")
-        XCTAssertFalse(connect.isEnabled, "Public IPv4 addresses must be rejected before networking")
-        XCTAssertTrue(app.staticTexts["Enter the Android host's private IPv4 address and full 32-character hexadecimal pairing code."]
-            .waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["Disconnect"].exists)
-        capture("companion-invalid-address-rejected", app)
-    }
-
-    @MainActor
-    func testDemoKeypadCancelAndRepeatedIntentionalReservations() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["KANTA_DEMO_MODE"] = "1"
-        app.launch()
-        let queue = app.buttons["Queue"]
-        XCTAssertTrue(queue.waitForExistence(timeout: waitSeconds))
-        XCTAssertEqual(queue.value as? String, "2 reservations")
-        app.buttons["stage.search"].tap()
-        for digit in 0...9 { XCTAssertTrue(app.buttons["stage.keypad.\(digit)"].exists) }
-        app.buttons["Cancel"].tap()
-        XCTAssertEqual(queue.value as? String, "2 reservations")
-        // The same song may legitimately be reserved twice in two separate flows.
-        for count in 3...4 {
-            app.buttons["stage.search"].tap()
-            app.buttons["stage.keypad.Clear"].tap()
-            for key in ["0", "0", "3"] { app.buttons["stage.keypad." + key].tap() }
-            let result = app.buttons["Select Tadhana"]
-            XCTAssertTrue(result.waitForExistence(timeout: 10))
-            let enabled = NSPredicate(format: "enabled == true")
-            expectation(for: enabled, evaluatedWith: result)
-            waitForExpectations(timeout: 10)
-            result.tap()
-            capture("demo-selected-song-\(count)", app)
-            app.buttons["stage.reserve"].doubleTap()
-            let updated = NSPredicate(format: "value == %@", "\(count) reservations")
-            expectation(for: updated, evaluatedWith: queue)
-            waitForExpectations(timeout: 10)
-            expectation(for: NSPredicate(format: "exists == false"),
-                        evaluatedWith: app.buttons["stage.reserve"])
-            waitForExpectations(timeout: 5)
-        }
-        XCUIDevice.shared.orientation = .landscapeLeft
-        let window = app.windows.firstMatch
-        let deadline = Date().addingTimeInterval(waitSeconds)
-        while window.frame.width <= window.frame.height && Date() < deadline {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
-        }
-        XCTAssertGreaterThan(window.frame.width, window.frame.height)
-        waitForRendered(app.buttons["stage.search"], in: app)
-        app.buttons["stage.search"].tap()
-        waitForRendered(app.buttons["stage.keypad.0"], in: app)
-        capture("demo-landscape-keypad-before-hit-test", app)
-        XCTAssertTrue(app.buttons["stage.keypad.0"].isHittable)
-        XCTAssertTrue(app.buttons["stage.reserve"].isHittable)
-        capture("demo-landscape-keypad", app)
-        XCUIDevice.shared.orientation = .portrait
-    }
-
-    @MainActor
-    private func openMenu(in app: XCUIApplication, expecting destination: String) {
-        let more = app.buttons["More"].firstMatch
-        waitForRendered(more, in: app)
-        let item = app.buttons[destination].firstMatch
-        XCTAssertTrue(more.isHittable, "More is obstructed before opening: " + destination)
-        more.tap()
-        if !item.waitForExistence(timeout: 10) {
-            capture("menu-did-not-present", app)
-            XCTFail("More did not present the requested menu item: " + destination)
-        }
-    }
-
-    @MainActor
-    private func waitForRendered(_ element: XCUIElement, in app: XCUIApplication) {
-        XCTAssertTrue(element.waitForExistence(timeout: waitSeconds))
-        let deadline = Date().addingTimeInterval(waitSeconds)
-        var stable = 0
-        while Date() < deadline {
-            let frame = element.frame
-            let window = app.windows.firstMatch.frame
-            let valid = frame.origin.x.isFinite && frame.origin.y.isFinite
-                && frame.width.isFinite && frame.height.isFinite
-                && frame.width > 0 && frame.height > 0 && frame.intersects(window)
-            stable = valid ? stable + 1 : 0
-            if stable >= 3 { return }
-            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
-        }
-        capture("unrendered-control", app)
-        XCTFail("Control has no stable visible frame: " + element.identifier)
-    }
-
-    @MainActor
-    private func capture(_ name: String, _ app: XCUIApplication) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = name
-        attachment.lifetime = .keepAlways
-        add(attachment)
-    }
-}
+*** Begin Patch
+*** Update File: apps/ios/Tests/KantaUITests/KantaVisualWalkthroughUITests.swift
+@@
+     @MainActor
+-    func testRestoredHostInlineRemoteAndLibrary() throws {
+-        let app = XCUIApplication()
+-        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+-        app.launch()
+-        XCTAssertTrue(app.staticTexts["NOW SINGING"].waitForExistence(timeout: waitSeconds))
+-        capture("restored-host-stage", app)
+-        let panel = app.disclosureTriangles["host.remotePanel"]
+-        let fallbackPanel = app.buttons["host.remotePanel"]
+-        let remote = panel.exists ? panel : fallbackPanel
+-        for _ in 0..<4 where !remote.isHittable { app.swipeUp() }
+-        XCTAssertTrue(remote.isHittable)
+-        capture("restored-host-remote-collapsed", app)
+-        remote.tap()
+-        XCTAssertTrue(app.textFields["Search song title or code"].waitForExistence(timeout: 5))
+-        XCTAssertFalse(app.navigationBars["CONTROL"].exists, "Inline remote must not present a sheet")
+-        XCTAssertTrue(app.buttons["stage.playPause"].exists, "Expansion must preserve the stage")
+-        capture("restored-host-remote-expanded", app)
+-        remote.tap()
+-        for _ in 0..<4 where !app.buttons["More"].isHittable { app.swipeDown() }
+-        openMenu(in: app, expecting: "Song Library")
+-        app.buttons["Song Library"].tap()
+-        XCTAssertTrue(app.buttons["library.addFolder"].waitForExistence(timeout: 5))
+-        XCTAssertTrue(app.buttons["library.chooseFolder"].exists)
+-        capture("restored-library-empty", app)
+-    }
++    // Helper: wait until element is hittable or fail
++    private func waitForHittable(_ element: XCUIElement, timeout: TimeInterval = 8) -> Bool {
++        let predicate = NSPredicate(format: "exists == true AND hittable == true")
++        let exp = expectation(for: predicate, evaluatedWith: element, handler: nil)
++        let result = XCTWaiter().wait(for: [exp], timeout: timeout)
++        return result == .completed
++    }
++
++    @MainActor
++    func testRestoredHostInlineRemoteAndLibrary() throws {
++        let app = XCUIApplication()
++        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
++        app.launch()
++
++        XCTAssertTrue(app.staticTexts["NOW SINGING"].waitForExistence(timeout: waitSeconds))
++        capture("restored-host-stage", app)
++
++        // Prefer accessibility identifier-based lookups to avoid fragile element-type queries.
++        let remotePanel = app.otherElements["host.remotePanel"]
++        // Fallback for legacy builds that might expose the panel as a button
++        let remoteElement = remotePanel.exists ? remotePanel : app.buttons["host.remotePanel"]
++
++        XCTAssertTrue(waitForHittable(remoteElement), "Remote panel must become hittable")
++        capture("restored-host-remote-collapsed", app)
++
++        remoteElement.tap()
++
++        XCTAssertTrue(app.textFields["Search song title or code"].waitForExistence(timeout: 5))
++        // Ensure CONTROL did not open as an overlay (inline expansion expected)
++        XCTAssertFalse(app.navigationBars["CONTROL"].exists, "Inline remote must not present a sheet")
++        XCTAssertTrue(app.buttons["stage.playPause"].waitForExistence(timeout: 3), "Stage controls must remain present")
++        capture("restored-host-remote-expanded", app)
++
++        // Collapse remote and navigate to the library
++        remoteElement.tap()
++        XCTAssertTrue(waitForHittable(app.buttons["More"], timeout: 6))
++        openMenu(in: app, expecting: "Song Library")
++        app.buttons["Song Library"].tap()
++
++        XCTAssertTrue(app.buttons["library.addFolder"].waitForExistence(timeout: 5))
++        XCTAssertTrue(app.buttons["library.chooseFolder"].exists)
++        capture("restored-library-empty", app)
++    }
+*** End Patch
