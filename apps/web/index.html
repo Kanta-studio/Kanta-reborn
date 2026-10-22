@@ -1,24 +1,13 @@
 <!doctype html>
 <html lang="en"><head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-L0QV01MWR4"></script>
 <script>
-  (function(w,d,t,u,o)
-  {
-    w[u]=w[u]||[],
-    o.ts=(new Date).getTime();
-    var n=d.createElement(t);
-    n.src="https://bat.bing.net/bat.js?ti="+o.ti+("uetq"!=u?"&q="+u:""),
-    n.async=1,
-    n.onload=n.onreadystatechange=function()
-    {
-      var s=this.readyState;
-      s&&"loaded"!==s&&"complete"!== s||(o.q=w[u], w[u]=new UET(o), w[u].push("pageLoad"), n.onload=n.onreadystatechange=null)
-    };
-    var i=d.getElementsByTagName(t)[0];
-    i.parentNode.insertBefore(n,i);
-  })(window, document, "script", "uetq", {
-    ti:"355061891",
-    enableAutoSpaTracking:true
-  });
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-L0QV01MWR4');
 </script>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Offline-first karaoke for Android, iPhone and iPad. Recovered testing builds, original starter songs and your own music library.">
