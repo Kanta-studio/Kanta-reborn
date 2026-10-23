@@ -178,8 +178,10 @@ admission gate.
 - No simulator, device, or hosted-CI run was performed for this document.
 - Timing accuracy, scoring feel, monitoring latency, SF2 rendering quality and route behaviour
   on real hardware are **GAP-UNVERIFIED** for both platforms.
-- Test counts are static: Android has 167 + 13 assertion checks in two framework-free runners
-  (`CoreRegressionTests.java`, `CompanionRegressionTests.java`); iOS has 168 Swift Testing cases
+- Test counts are static: Android has 167 + 17 assertion-check call sites in two framework-free
+  runners (`CoreRegressionTests.java`, `CompanionRegressionTests.java`; four of the companion
+  checks are second statements on a shared line, so naive line-based counting under-reports them);
+  iOS has 168 Swift Testing cases
   across six targets plus UI tests. Coverage of the *audio timing* paths is not asserted here.
 - Suggested next step (per issue #32): build a shared fixture set (one SF2, three KAR, expected
   note/lyric timelines) and a cross-platform golden comparison before changing either engine.
