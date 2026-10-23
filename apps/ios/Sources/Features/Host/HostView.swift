@@ -75,6 +75,8 @@ struct HostView: View {
         ZStack {
             hostContent
         }
+        // Embedded Stage Search/Queue and Host panels share one presenter; keep
+        // this as the only HostView sheet to avoid competing iPad presentations.
         .sheet(item: $activeHostSheet, onDismiss: {
             let dismissedOwner = dismissedHostSheet?.presentationOwner
                 ?? (presentationGate.owner == .stage ? .stage : .host)
