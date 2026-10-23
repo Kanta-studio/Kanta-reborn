@@ -27,6 +27,11 @@ class VercelDeployWorkflowTests(unittest.TestCase):
         self.assertIn('vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN"', self.source)
         self.assertNotIn("vercel deploy --prod --token=", self.source)
 
+    def test_cli_runs_from_repository_root_for_configured_project_root(self):
+        self.assertNotIn("working-directory: apps/web", self.source)
+        self.assertIn("the Vercel project's configured Root Directory is apps/web", self.source)
+        self.assertIn("apps/web/apps/web", self.source)
+
     def test_validation_gates_deployment_and_prs_never_deploy(self):
         self.assertIn("needs: validate", self.source)
         self.assertIn("if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'", self.source)

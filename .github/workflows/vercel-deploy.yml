@@ -37,9 +37,6 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: apps/web
     env:
       VERCEL_ORG_ID: team_6rrG5QXBI00wEFufnjKSJLWj
       VERCEL_PROJECT_ID: prj_OG4AuuRqXOY9EAPRJuSvnT3UXvA6
@@ -61,6 +58,8 @@ jobs:
         run: npm install --global "vercel@${VERCEL_CLI_VERSION}"
       - name: Confirm Vercel CLI version
         run: vercel --version
+      # Run from the repository root: the Vercel project's configured Root Directory is apps/web.
+      # Running inside apps/web makes Vercel resolve the project path as apps/web/apps/web.
       - name: Pull existing production project settings
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
       - name: Build production output

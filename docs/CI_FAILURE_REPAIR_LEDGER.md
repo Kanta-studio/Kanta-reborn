@@ -183,3 +183,18 @@ The fullscreen and session-save repair commits recorded above were folded into `
 
 
 **Validation checkpoint (2026-10-24):** the Vercel deployment-contract validation job passed in [run 40006046506](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046506), and website validation including the deployment-contract regression test passed in [run 40006046535](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046535). Both runs checked source SHA `e30515834d36e35944ed9ec72d97700f4947ddf8`. At this checkpoint, full reconstruction run [40006046552](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046552) and unsigned archive run [40006046467](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046467) were still running; their results are not inferred from the green website checks. No production deploy was attempted by a PR run, and production HTTP checks remain red. This ledger note is documentation-only and does not claim the candidate is production-verified.
+
+
+## Vercel root-directory duplication after the first repair (2026-10-24)
+
+**Fingerprint:** main deployment run [40007708835](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40007708835), job [120599848754](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40007708835/job/120599848754).
+
+**Observed result:** validation passed, Vercel CLI 65.2.0 installed, project credentials and existing project were verified, `vercel pull` succeeded, and `vercel build` exited successfully. The deploy step failed with: `The provided path “~/work/Kanta-reborn/Kanta-reborn/apps/web/apps/web” does not exist.`
+
+**Root cause:** the workflow set `working-directory: apps/web` while the existing Vercel project already declares `apps/web` as its Root Directory. Vercel resolved that path twice. The CLI commands must run from the repository root so the configured project Root Directory is applied once.
+
+**Repair:** remove the job-wide `working-directory`, execute pull/build/deploy from repository root, document why this is required, and add a regression test forbidding the nested working directory. Keep the explicit project IDs, pinned CLI, non-interactive prebuilt deployment, validation gate, and PR deployment exclusion.
+
+**Verification gate:** PR checks must pass before merge. After merge, inspect the new main deploy job and verify production `/ads.txt` and `/sitemap.xml` return HTTP 200. Do not treat a successful `vercel build` as deployment success.
+
+**Status:** repair candidate; the failed main deployment did not change production.
