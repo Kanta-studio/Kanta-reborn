@@ -23,13 +23,21 @@ def verify():
             and 'func request(_ requested: Owner' in root),
         'host receives navigation presentation state': 'navigationSheetPresented: activeNavigation != nil' in root and 'navigationSheetPresented' in host,
         'single authoritative navigation state': 'navigationPresentation' not in root and 'navigationTransition' not in root,
-        'host uses one sheet coordinator': '.sheet(item: $activeHostSheet' in host and 'showingHostControls' not in host,
+        'host uses one sheet coordinator': (
+            '.sheet(item: $activeHostSheet' in host
+            and '.sheet(item: $activeStageSheet' not in host
+            and 'showingHostControls' not in host
+        ),
         'stage uses one sheet coordinator': '.sheet(item: $activeStageSheet' in stage and 'showingSearch' not in stage and 'showingQueue' not in stage,
-        'embedded Search/Queue sheets are hosted by stable Host parent': (
-            '.sheet(item: $activeStageSheet' in host
+        'embedded Stage and Host panels share one root sheet identity': (
+            '.sheet(item: $activeHostSheet' in host
+            and 'case .stageSearch:' in host
+            and 'case .stageQueue:' in host
+            and '.sheet(item: $activeStageSheet' not in host
             and 'setEmbeddedStageSheet' in host
             and 'setEmbeddedStageSheet' in stage
-            and 'KantaStageSheetContent' in host
+            and 'stageSheetContent(_ sheet: KantaStageSheet)' in host
+            and 'presentationGate.completeDismissal(dismissedOwner)' in host
             and 'ZStack {\n            hostContent' in host
         ),
         'fullscreen Search/Queue keep a separate child presenter': (
