@@ -161,3 +161,25 @@ The fullscreen and session-save repair commits recorded above were folded into `
 - Focused iOS smoke: [run 39211154912](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39211154912) (PR head) / green on `main` via `ios-smoke.yml` (PR #42).
 
 **Status:** the affected `candidate` records above are now `verified` for the runtime/fullscreen/session-save fingerprints on the `main` head, by the green runs listed. This documentation-only commit does not alter production behavior and does not by itself validate a new SHA's source; it records the already-green merged head. Physical-device audio/camera/performance acceptance and signing/release remain separate open gates.
+
+
+## Vercel production deploy workflow — non-interactive project targeting (2026-10-24)
+
+**Fingerprint:** workflow `KANTA Vercel deploy`, deploy step; `Command `vercel deploy` requires confirmation. Use option "--yes" to confirm.`
+
+**First observed runs:** push run [40000554394](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40000554394) and manual run [40000568782](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40000568782), both on main SHA `6f335c224689cdc73d97a5bdd3695d55ab35aecb`. Both installed Vercel CLI 65.2.0 and failed at the deploy command before creating a deployment. The production routes remained HTTP 404.
+
+**Cause:** the workflow called `vercel deploy --prod --token=… apps/web/` without non-interactive confirmation and without explicit organization/project IDs. The observed failure is the CLI's confirmation guard; whether it could then select or create the intended project was not established. Do not fix this by adding `--yes` to the bare command.
+
+**Candidate repair:** bind the workflow to the existing verified team/project IDs, pin CLI 65.2.0, run `vercel pull --yes --environment=production`, `vercel build --prod`, then `vercel deploy --prebuilt --prod --yes`. Serialize production deploys, require the website/deployment-contract validation job, skip deploy on pull requests, and trigger production only from main or manual dispatch. The token remains a GitHub Actions secret. No new Vercel project or alias is created.
+
+**Regression:** `tools/tests/test_vercel_deploy_workflow.py` checks explicit target IDs, CLI pinning, non-interactive commands, prebuilt deployment, validation dependency, PR exclusion and concurrency. Website validation must run this test when the deploy workflow changes.
+
+**Validation:** `candidate` until the PR's workflow and website checks pass, the main-branch production deploy succeeds on the intended existing project, and both production `/ads.txt` and `/sitemap.xml` return HTTP 200. A preview build, successful CLI invocation without HTTP checks, or an unsigned native artifact does not verify this repair.
+
+**Recurrence rule:** inspect the complete Vercel CLI error and project metadata first. Never deploy with an implicit project-selection prompt, create a replacement project, or move production aliases merely to make CI green.
+
+**Status:** `candidate`.
+
+
+**Validation checkpoint (2026-10-24):** the Vercel deployment-contract validation job passed in [run 40006046506](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046506), and website validation including the deployment-contract regression test passed in [run 40006046535](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046535). Both runs checked source SHA `e30515834d36e35944ed9ec72d97700f4947ddf8`. At this checkpoint, full reconstruction run [40006046552](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046552) and unsigned archive run [40006046467](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046467) were still running; their results are not inferred from the green website checks. No production deploy was attempted by a PR run, and production HTTP checks remain red. This ledger note is documentation-only and does not claim the candidate is production-verified.
