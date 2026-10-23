@@ -199,3 +199,14 @@ The fullscreen and session-save repair commits recorded above were folded into `
 **Repair candidate:** HostView owns embedded sheet identity and presents it from the stable scroll-container host. Embedded requests still acquire the shared `KantaPresentationGate`; fullscreen Search/Queue remain child sheets of the UIKit fullscreen host. A shared content view prevents behavior drift. The fullscreen Search ID is now `stage.search.fullscreen`, distinct from the embedded `stage.search`. Added regression assertions and static architecture guards.
 
 **Validation status:** candidate branch `fix/ipad-stage-sheet-host-20261024`; no hosted result exists yet for this branch. Do not mark repaired until current-head reconstruction and the complete iPhone/iPad walkthrough both pass.
+
+
+### Recurrence — iPad embedded Search still not presented after scroll-container move (2026-10-24)
+
+**Evidence:** [PR #58 walkthrough run 40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013), source SHA `24c406f4b515ad8d47d58482163f71b29e8d3ec5`. The iPhone walkthrough passed; the iPad walkthrough failed `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke` and `testStarterPlaybackAndControls` because `stage.keypad.0` never appeared after embedded Search. The unsigned app/UI tests compiled, so this is not a compile failure.
+
+**Root-cause finding:** the first repair moved the embedded `.sheet` to `hostContent` but left the root `HostView` `.sheet` active for CONTROL/session-save/Favorites. SwiftUI therefore still had two sheet modifiers in the same Host hierarchy. The failure log does not expose the exact presenter internals; competing presentation ownership is the strongest actionable source-level explanation.
+
+**Repair candidate:** use one root `HostView` sheet identity for both embedded Stage Search/Queue and Host panels. Route typed Stage intents into `HostSheet.stageSearch`/`stageQueue`, map each sheet to its `KantaPresentationGate.Owner`, and release that owner only from the shared `onDismiss`. Keep fullscreen Search/Queue under the UIKit fullscreen host. Preserve the existing device assertions and accessibility identities.
+
+**Validation:** implementation is being validated on the existing PR #58 branch. Do not mark fixed until reconstruction validation and the full iPhone/iPad walkthrough pass on the exact updated head.
