@@ -25,6 +25,22 @@ def verify():
         'single authoritative navigation state': 'navigationPresentation' not in root and 'navigationTransition' not in root,
         'host uses one sheet coordinator': '.sheet(item: $activeHostSheet' in host and 'showingHostControls' not in host,
         'stage uses one sheet coordinator': '.sheet(item: $activeStageSheet' in stage and 'showingSearch' not in stage and 'showingQueue' not in stage,
+        'embedded Search/Queue sheets are hosted by stable Host parent': (
+            '.sheet(item: $activeStageSheet' in host
+            and 'setEmbeddedStageSheet' in host
+            and 'setEmbeddedStageSheet' in stage
+            and 'KantaStageSheetContent' in host
+            and 'ZStack {\n            hostContent' in host
+        ),
+        'fullscreen Search/Queue keep a separate child presenter': (
+            'fullscreenPlayer' in stage
+            and '.sheet(item: $activeStageSheet' in stage
+            and 'KantaStageSheetContent' in stage
+        ),
+        'fullscreen Search has a unique accessibility identity': (
+            'stage.search.fullscreen' in stage
+            and 'stage.search.fullscreen' in test
+        ),
         'fullscreen reuses host presentation gate': (
             'presentationGate: presentationGate' in host
             and 'presentationGate: presentationGate' in fullscreen_presenter
