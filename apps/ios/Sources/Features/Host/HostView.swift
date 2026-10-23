@@ -292,10 +292,10 @@ struct HostView: View {
         } label: {
             Label("Remote Control", systemImage: "rectangle.and.hand.point.up.left")
                 .font(.headline)
+                .accessibilityIdentifier("host.remotePanel.toggle")
         }
         .padding(18)
         .background(Color(white: 0.07), in: RoundedRectangle(cornerRadius: 20))
-        .accessibilityIdentifier("host.remotePanel")
     }
 
     private func openFullscreenPlayer() {
