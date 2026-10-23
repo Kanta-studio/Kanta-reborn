@@ -14,6 +14,7 @@ struct HostView: View {
     @State private var dismissedHostSheet: HostSheet?
     @State private var activeHostSheet: HostSheet? =
         ProcessInfo.processInfo.environment["KANTA_CONTROL_EXPANDED"] == "1" ? .controls : nil
+    @State private var activeStageSheet: KantaStageSheet?
 
     private enum HostSheet: String, Identifiable {
         case controls, sessionSave, favorites
@@ -66,7 +67,9 @@ struct HostView: View {
     @State private var remoteExpanded = false
 
     var body: some View {
-        hostContent
+        ZStack {
+            hostContent
+        }
         .sheet(item: $activeHostSheet, onDismiss: {
             if dismissedHostSheet == .sessionSave {
                 model.showingSessionSavePrompt = false
@@ -252,6 +255,22 @@ struct HostView: View {
             .frame(maxWidth: .infinity)
         }
         .background(.black)
+        // Present embedded Search/Queue from the stable Host scroll container.
+        .sheet(item: $activeStageSheet, onDismiss: {
+            presentationGate.completeDismissal(.stage)
+        }) { sheet in
+            KantaStageSheetContent(
+                sheet: sheet,
+                model: model,
+                singerName: $singerName,
+                microphoneBusy: microphonePitchMonitor.status == .running
+                    || microphonePitchMonitor.status == .requestingPermission,
+                onClose: {
+                    presentationGate.beginDismissal(.stage)
+                    activeStageSheet = nil
+                }
+            )
+        }
     }
 
     private var embeddedStage: some View {
@@ -274,7 +293,8 @@ struct HostView: View {
                 presentationGate.request(.host) { activeHostSheet = .sessionSave }
             },
             embedded: true,
-            onExpand: openFullscreenPlayer
+            onExpand: openFullscreenPlayer,
+            setEmbeddedStageSheet: { activeStageSheet = $0 }
         )
     }
 
