@@ -139,3 +139,19 @@ undefined
 - Cause candidate: `updatePresentation()` required the presenter's view to remain attached to a window for both presentation and dismissal. UIKit can detach the presenting view during a full-screen presentation, so that guard can block the Exit dismissal path.
 - Fix commit: `fa635ab4eb33546c543ca61322a36bdb3c05ede0` moves the window attachment requirement into the presentation branch; dismissal remains available while the presenter is off-window.
 - Validation: pending fresh iPhone/iPad walkthrough and reconstruction checks on the updated head. Do not merge until both device walkthroughs pass.
+
+## 2026-10-23 — Green validation follow-up for the fullscreen/presentation-gate batch (issues #35, #37, #40)
+
+The fullscreen and session-save repair commits recorded above were folded into `main` by the merged presentation-gate rework (PR #36, squash `59258ee`) and the subsequent split/gating CI work (PRs #41, #42, #43). The full-screen presenter in `main` is byte-identical to the last candidate repair `fa635ab`, so the earlier `candidate`/`pending` validation lines are recorded here as resolved by the green runs on the merged head; the historical failure text is intentionally left intact.
+
+**Fingerprint (superseded candidates):** `KantaVisualWalkthroughUITests.testStarterPlaybackAndControls` (Search blocked after Library; `fullscreen.exit` remaining after Exit) and the automated-failure issues filed by `automated-failure-triage` on `ios-runtime-artifacts` / `reconstruction validation` during the Oct 17 repair window.
+
+**Repairs carried into `main`:** the single-sheet navigation/host coordinators, the gate-owned UIKit fullscreen dismissal (`SingingFullscreenPresentation.swift`), the dismissal-callback window-attachment fix, and the session-save presentation guard (this batch). All are present at `main` head.
+
+**Validation evidence on the merged head (first green run per workflow):**
+- iOS runtime + unsigned device IPA: [run 39048322380](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39048322380) — `ios-runtime` succeeded on `main`@`59258ee`, artifacts `KANTA-personal-unsigned`, `ios-runtime-evidence`, `ios-iphone-runtime-evidence` retained.
+- Full iPhone/iPad visual walkthrough: [run 39311286326](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39311286326) — `visual-walkthrough` succeeded on `main`@`56f10c50` (scheduled release walkthrough), artifacts `ios-runtime-evidence`, `ios-iphone-runtime-evidence`.
+- Reconstruction validation (package tests + unsigned simulator build + Android): [run 39711445284](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39711445284) — succeeded on `main`@`3cbdba8`.
+- Focused iOS smoke: [run 39211154912](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39211154912) (PR head) / green on `main` via `ios-smoke.yml` (PR #42).
+
+**Status:** the affected `candidate` records above are now `verified` for the runtime/fullscreen/session-save fingerprints on the `main` head, by the green runs listed. This documentation-only commit does not alter production behavior and does not by itself validate a new SHA's source; it records the already-green merged head. Physical-device audio/camera/performance acceptance and signing/release remain separate open gates.
