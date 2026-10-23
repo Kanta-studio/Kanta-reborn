@@ -1,0 +1,18 @@
+name: KANTA Vercel deploy
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/vercel-deploy.yml'
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - run: npm install -g vercel@latest
+      - run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} apps/web/
