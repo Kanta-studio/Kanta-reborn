@@ -1,27 +1,25 @@
 {
-  "repository": "kanta-gelo/Kanta-reborn",
-  "packagingRun": 38886416353,
-  "verifiedAt": "2026-10-16",
-  "retentionDays": 30,
+  "repository": "usermalik20-del/Kanta-reborn",
+  "verifiedAt": "2026-10-23",
+  "retentionDays": 7,
   "signInRequired": true,
   "android": {
-    "source": "d777334eec73996116fdf2c01d97ac73a3a53958",
-    "run": 38885716463,
-    "artifact": 12040160062,
+    "source": "e30515834d36e35944ed9ec72d97700f4947ddf8",
+    "run": 40006046552,
+    "artifact": 12525230083,
     "signed": "debug",
     "version": "0.10.0-reconstruction",
-    "runtimeChecks": 139,
-    "applicationBytes": 26974938,
-    "sha256": "7743d1994c500b472f86829ea041307303f0f908d0e5505b788c35ca76026d3d"
+    "artifactName": "android-reconstruction-checks",
+    "sha256": "5c2fc40a00fb478849c1498e5a19a17b83ec799f9a475cc878c78c849563732e"
   },
   "ios": {
-    "source": "3c12a1fb962ac956250a8f238c01eace13f560d2",
-    "run": 38806377805,
-    "artifact": 12038684955,
+    "source": "7980e55277de3123ff385a1a6f310e006cbced57",
+    "run": 40008049016,
+    "artifact": 12524853214,
     "signed": false,
     "personalSigningRequired": true,
     "icloudAvailable": false,
-    "applicationBytes": 24818257,
-    "sha256": "a3ebe254a87d5e58888acf8e0334de3490d55cfc51eb3f42547e94281866427d"
+    "artifactName": "KANTA-personal-unsigned",
+    "sha256": "676711ca313f2bb6acbbd06c499a8327ba7e4315c5fea4a05d4f243303eb0d75"
   }
 }

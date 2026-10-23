@@ -159,11 +159,11 @@ def main():
     assert "script-src 'self'" in headers["Content-Security-Policy"]
 
     manifest = json.loads((WEB / "downloads.json").read_text(encoding="utf-8"))
-    assert manifest["repository"] == "kanta-gelo/Kanta-reborn"
-    assert manifest["signInRequired"] is True and manifest["retentionDays"] == 30
+    assert manifest["repository"] == "usermalik20-del/Kanta-reborn"
+    assert manifest["signInRequired"] is True and manifest["retentionDays"] == 7
     for platform, filename in (("android", "android.html"), ("ios", "ios-download.html")):
         build = manifest[platform]
-        expected = "/actions/runs/" + str(manifest["packagingRun"]) + "/artifacts/" + str(build["artifact"])
+        expected = "https://github.com/" + manifest["repository"] + "/actions/runs/" + str(build["run"]) + "/artifacts/" + str(build["artifact"])
         assert expected in (WEB / filename).read_text(encoding="utf-8"), filename + " artifact differs from manifest"
     assert manifest["ios"]["signed"] is False and manifest["ios"]["personalSigningRequired"]
     assert not manifest["ios"]["icloudAvailable"]
