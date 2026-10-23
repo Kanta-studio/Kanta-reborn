@@ -104,7 +104,7 @@ Reconstruction validation runs for relevant app, tool and workflow changes on sa
 - `reconstruction-validation.yml` remains the required PR source, Swift package, simulator-build, and Android validation gate. It does not execute the long XCTest UI walkthrough.
 - `ios-runtime-artifacts.yml` builds the unsigned personal-signing IPA only on manual dispatch. Its success proves packaging, not simulator interactions, signing, or installability.
 - `ios-visual-walkthrough.yml` runs the full four-case XCTest walkthrough separately on both iPhone and iPad, with screenshots, recordings and failure diagnostics. It is manually dispatchable, scheduled weekly (Tuesday 03:00 Asia/Manila; Monday 19:00 UTC), and triggered by `ios-rc-*` tags. It does not run on ordinary pull requests or documentation commits.
-- A release candidate requires a successful visual walkthrough on the **exact candidate SHA**; weekly or unrelated-commit green evidence cannot substitute for release acceptance. CI does not sign, publish or deploy.
+- A release candidate requires a successful visual walkthrough on the **exact candidate SHA**; weekly or unrelated-commit green evidence cannot substitute for release acceptance. CI does not sign or publish production application downloads. The separate Vercel workflow deploys the public website only after its own validation job succeeds.
 - `ios-smoke.yml` runs `testFocusedNavigationSmoke` on an iPhone simulator for relevant iOS PR changes. It checks Search, fullscreen dismissal and Search recovery. This is not the full iPhone/iPad release walkthrough.
 - This split deliberately prevents the expensive walkthrough from blocking ordinary merges while keeping the full iPhone/iPad visual acceptance mandatory for release.
 
@@ -119,3 +119,13 @@ Reconstruction validation runs for relevant app, tool and workflow changes on sa
 ## PR #43 post-merge evidence
 
 Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [39051661330](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39051661330). Website validation and verified-download contracts also passed on that main-branch commit. Unsigned IPA packaging is not automatic; an absent artifact from this merge is expected. The next release candidate still needs a candidate-SHA-matched full iPhone/iPad walkthrough. Packaging runs automatically alongside; no separate approval label is required.
+
+
+## Production Vercel deployment
+
+- `.github/workflows/vercel-deploy.yml` runs website and deployment-contract validation on same-repository pull requests; its deployment job is skipped for every pull request.
+- Main pushes affecting `apps/web/**` or the deployment workflow, and manual dispatch from `main`, run validation before production deployment. The workflow is serialized so two deployments cannot race to assign the production alias.
+- The deployment binds explicitly to the existing GeloTech Vercel team and `kanta-public` project IDs. It must not create a new project or infer a target from interactive defaults.
+- The Vercel CLI is pinned to `65.2.0`. The job pulls the existing production project configuration, builds a prebuilt production output, then uploads that output with non-interactive confirmation. `VERCEL_TOKEN` is only a GitHub Actions secret; it must never be committed or printed.
+- The static contract test checks the explicit target, pinned CLI, validation dependency, PR deploy exclusion, non-interactive commands, and deployment concurrency. Website validation runs it whenever the deployment workflow changes.
+- A successful Vercel CLI job is not sufficient by itself: verify `/ads.txt` and `/sitemap.xml` return HTTP 200 on the production hostname after deployment. A preview URL is not production acceptance.

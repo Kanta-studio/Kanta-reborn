@@ -6,12 +6,16 @@ on:
     paths:
       - 'apps/web/**'
       - 'tools/verify-website.py'
+      - 'tools/tests/test_vercel_deploy_workflow.py'
+      - '.github/workflows/vercel-deploy.yml'
       - '.github/workflows/website-validation.yml'
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - 'apps/web/**'
       - 'tools/verify-website.py'
+      - 'tools/tests/test_vercel_deploy_workflow.py'
+      - '.github/workflows/vercel-deploy.yml'
       - '.github/workflows/website-validation.yml'
 permissions:
   contents: read
@@ -26,4 +30,5 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - run: python3 tools/verify-website.py
+      - run: python3 -m unittest tools.tests.test_vercel_deploy_workflow
       - run: node --check apps/web/songbook.js
