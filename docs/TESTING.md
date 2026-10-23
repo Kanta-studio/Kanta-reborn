@@ -97,7 +97,7 @@ The presentation contract guard checks that the UIKit fullscreen presenter acqui
 
 ## Automatic workflow triggers and release boundary
 
-Reconstruction validation runs for relevant app, tool and workflow changes on feature/main pushes and pull requests. iOS runtime, website and verified-download contract checks also run on relevant feature-branch pushes so a PR does not need a manually applied label to start. iOS simulator walkthroughs follow relevant same-repository pull requests and successful main reconstruction runs. Website validation runs for relevant website changes. Verified-download contract tests run automatically; packaging the fixed, previously accepted IPA/APK artifacts still requires owner dispatch or the packaging label. No workflow signs, merges, deploys or publishes production downloads automatically.
+Reconstruction validation runs for relevant app, tool and workflow changes on same-repository pull requests and main pushes. Website validation runs for relevant website changes on main pushes and same-repository pull requests, and can also be started by manual dispatch. It deliberately does not run on ordinary feature-branch pushes; the pull-request event is the feature-branch validation trigger, avoiding duplicate CI for the same change. Verified-download contract checks follow their workflow's relevant pull-request/main triggers. The full iPhone/iPad walkthrough remains a separate acceptance gate and must pass on the exact release-candidate SHA. Packaging previously accepted IPA/APK inputs still requires the owner-approved dispatch or packaging label. No workflow signs, merges, deploys or publishes production downloads automatically.
 
 ## CI separation: fast validation, unsigned artifacts and visual acceptance
 
