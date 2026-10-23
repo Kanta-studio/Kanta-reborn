@@ -10,7 +10,7 @@ import plistlib
 import urllib.request
 import zipfile
 
-REPO = "kanta-gelo/Kanta-reborn"
+REPO = "usermalik20-del/Kanta-reborn"
 BUILDS = {
     "android": {"run": 38885716463, "artifact": 12039807731, "source": "d777334eec73996116fdf2c01d97ac73a3a53958"},
     "ios": {"run": 38806377805, "artifact": 12007058242, "source": "3c12a1fb962ac956250a8f238c01eace13f560d2"},
