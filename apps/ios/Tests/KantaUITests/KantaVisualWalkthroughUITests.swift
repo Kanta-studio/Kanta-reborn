@@ -111,7 +111,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         openFullscreen.tap()
         let fullscreenExit = app.buttons["fullscreen.exit"]
         XCTAssertTrue(fullscreenExit.waitForExistence(timeout: waitSeconds))
-        let fullscreenSearch = app.buttons["stage.search"]
+        let fullscreenSearch = app.buttons["stage.search.fullscreen"]
         XCTAssertTrue(fullscreenSearch.waitForExistence(timeout: waitSeconds))
         fullscreenSearch.tap()
         XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Search did not present inside fullscreen")
@@ -268,6 +268,10 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         XCTAssertTrue(queue.waitForExistence(timeout: waitSeconds))
         XCTAssertEqual(queue.value as? String, "2 reservations")
         app.buttons["stage.search"].tap()
+        XCTAssertTrue(
+            app.buttons["stage.keypad.0"].waitForExistence(timeout: 10),
+            "Embedded Stage Search must present its keypad on the active iPad/iPhone window"
+        )
         for digit in 0...9 { XCTAssertTrue(app.buttons["stage.keypad.\(digit)"].exists) }
         app.buttons["Cancel"].tap()
         XCTAssertEqual(queue.value as? String, "2 reservations")
