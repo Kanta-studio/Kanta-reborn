@@ -268,6 +268,9 @@ struct HostView: View {
             onMore: onOpenNavigation,
             onSaveSession: {
                 guard model.showingSessionSavePrompt else { return }
+                // Keep the pending save available without stacking a Host sheet
+                // over navigation or another active Host presentation.
+                guard !navigationSheetPresented && activeHostSheet == nil else { return }
                 presentationGate.request(.host) { activeHostSheet = .sessionSave }
             },
             embedded: true,

@@ -55,6 +55,7 @@ def verify():
         'library dismissal leaves session save opt-in': (
             'onSaveSession: {' in host
             and 'guard model.showingSessionSavePrompt else { return }' in host
+            and 'guard !navigationSheetPresented && activeHostSheet == nil else { return }' in host
             and 'presentationGate.request(.host) { activeHostSheet = .sessionSave }' in host
             and 'A completed session must not replace Library dismissal with a save sheet' in test
             and 'The deferred session must remain available for explicit saving' in test
