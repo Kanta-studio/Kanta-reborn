@@ -12,8 +12,8 @@ import zipfile
 
 REPO = "usermalik20-del/Kanta-reborn"
 BUILDS = {
-    "android": {"run": 38885716463, "artifact": 12039807731, "source": "d777334eec73996116fdf2c01d97ac73a3a53958"},
-    "ios": {"run": 38806377805, "artifact": 12007058242, "source": "3c12a1fb962ac956250a8f238c01eace13f560d2"},
+    "android": {"run": 40006046552, "artifact": 12525230083, "source": "e30515834d36e35944ed9ec72d97700f4947ddf8"},
+    "ios": {"run": 40008049016, "artifact": 12524853214, "source": "7980e55277de3123ff385a1a6f310e006cbced57"},
 }
 LIMIT = 128 * 1024 * 1024
 
