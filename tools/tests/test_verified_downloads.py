@@ -18,7 +18,7 @@ class DownloadContracts(unittest.TestCase):
         self.assertEqual(manifest["retentionDays"], 7)
         for platform, page in (("android", "android.html"), ("ios", "ios-download.html")):
             build = manifest[platform]
-            link = f"https://github.com/{manifest[\"repository\"]}/actions/runs/{build[\"run\"]}/artifacts/{build[\"artifact\"]}"
+            link = "https://github.com/" + manifest["repository"] + "/actions/runs/" + str(build["run"]) + "/artifacts/" + str(build["artifact"])
             self.assertIn(link, (root / "apps/web" / page).read_text())
     def test_failed_or_moved_source_is_rejected(self):
         expected = module.BUILDS["android"]
