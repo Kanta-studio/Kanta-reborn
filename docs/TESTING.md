@@ -97,25 +97,27 @@ The presentation contract guard checks that the UIKit fullscreen presenter acqui
 
 ## Automatic workflow triggers and release boundary
 
-Reconstruction validation runs for relevant app, tool and workflow changes on same-repository pull requests and main pushes. Website validation runs for relevant website changes on main pushes and same-repository pull requests, and can also be started by manual dispatch. It deliberately does not run on ordinary feature-branch pushes; the pull-request event is the feature-branch validation trigger, avoiding duplicate CI for the same change. Verified-download contract and packaging checks run on their relevant pull-request and main triggers without any approval label. The full iPhone/iPad walkthrough runs on iOS pull requests, main pushes, weekly and on manual dispatch, and must pass on the exact release-candidate SHA before that SHA is treated as accepted. No workflow signs or publishes production downloads automatically.
+Reconstruction validation runs for relevant app, tool and workflow changes on same-repository pull requests and main pushes. Website validation runs for relevant website changes on main pushes and same-repository pull requests, and can also be started manually. Feature-branch validation uses the pull-request event rather than duplicate ordinary branch-push runs.
+
+The verified-download contract tests run automatically on relevant pull requests and main pushes. The packaging job is **manual-dispatch only on main** because it produces a reusable cross-platform bundle and must not run merely because its own workflow or contract tests changed. The full visual walkthrough also runs when `tools/prepare-verified-downloads.py` changes, so a package-gate change can be validated against the exact source SHA before that SHA is eligible for packaging. Dispatch accepts an optional full source SHA; otherwise it uses the selected main ref. It requires the newest matching main-branch runs for reconstruction validation, the unsigned iOS device archive, and the complete iPhone/iPad walkthrough to have succeeded on that exact SHA. It then discovers artifacts from those runs, rejects expired or mismatched artifacts, and validates their source/run identity, digests, archive structure and application metadata. It never signs, publishes a GitHub Release or deploys production downloads. An expired/missing artifact is a hard failure, not permission to reuse an unrelated build.
 
 ## CI separation: fast validation, unsigned artifacts and visual acceptance
 
-- `reconstruction-validation.yml` remains the required PR source, Swift package, simulator-build, and Android validation gate. It does not execute the long XCTest UI walkthrough.
-- `ios-runtime-artifacts.yml` builds the unsigned personal-signing IPA only on manual dispatch. Its success proves packaging, not simulator interactions, signing, or installability.
-- `ios-visual-walkthrough.yml` runs the full four-case XCTest walkthrough separately on both iPhone and iPad, with screenshots, recordings and failure diagnostics. It is manually dispatchable, scheduled weekly (Tuesday 03:00 Asia/Manila; Monday 19:00 UTC), and triggered by `ios-rc-*` tags. It does not run on ordinary pull requests or documentation commits.
-- A release candidate requires a successful visual walkthrough on the **exact candidate SHA**; weekly or unrelated-commit green evidence cannot substitute for release acceptance. CI does not sign, publish or deploy.
-- `ios-smoke.yml` runs `testFocusedNavigationSmoke` on an iPhone simulator for relevant iOS PR changes. It checks Search, fullscreen dismissal and Search recovery. This is not the full iPhone/iPad release walkthrough.
-- This split deliberately prevents the expensive walkthrough from blocking ordinary merges while keeping the full iPhone/iPad visual acceptance mandatory for release.
+- `reconstruction-validation.yml` owns source guards, Swift package tests, unsigned simulator compilation, Android build/lint/domain checks and Android emulator checks.
+- `ios-runtime-artifacts.yml` builds the unsigned personal-signing IPA for relevant iOS/tool changes on pull requests and main. It does not sign or publish the app.
+- `ios-visual-walkthrough.yml` runs the complete XCTest walkthrough separately on iPhone and iPad for relevant iOS pull requests and main pushes, changes to `tools/prepare-verified-downloads.py`, as well as weekly, manually and on `ios-rc-*` tags. A green result is release evidence only for that exact SHA.
+- `ios-smoke.yml` runs the focused iPhone navigation smoke on relevant iOS PR changes. It does not replace the full iPhone/iPad walkthrough.
+- `verified-downloads.yml` runs contract tests automatically, while its packaging job is manually dispatched on main and requires successful exact-SHA reconstruction, unsigned IPA and full iPhone/iPad walkthrough evidence.
+- Simulator builds and unsigned archives do not establish signing, physical-device audio quality or production deployment. No automated workflow signs or publishes production downloads.
 
 ## GitHub Actions cost controls (October 2026)
 
-- Feature branches are validated by the pull-request event only; ordinary feature-branch pushes do not duplicate the reconstruction, website or download-contract jobs. Main pushes retain post-merge verification.
-- The unsigned personal-signing IPA archive is manually dispatched only; compilation, Swift package tests and the unsigned simulator build remain in normal reconstruction CI. Do not interpret an unbuilt IPA as a release artifact.
-- Full iPhone/iPad visual walkthrough runs automatically on iOS pull requests and main pushes, plus weekly and on release-candidate tags. A release candidate must pass both devices on its exact SHA.
-- Failure triage is manually dispatchable with a failed run ID; it no longer starts a skipped workflow for every successful validation. Investigators can still inspect exact job logs and report failures.
-- The separate focused iOS simulator smoke PR must be validated before merge. Workflow YAML changes require checking triggers and required status checks; do not remove an equivalent passing gate when editing them.
+- Feature branches are validated by the pull-request event only; ordinary feature-branch pushes do not duplicate reconstruction, website or download-contract jobs. Main pushes retain post-merge verification.
+- Unsigned IPA generation is separated from the package-bundling job. The archive workflow runs only for relevant iOS/tool changes; the verified-download bundler runs only when deliberately dispatched after release acceptance.
+- Full iPhone/iPad walkthroughs run automatically on relevant iOS pull requests and main pushes, on verified-download packager changes, plus weekly and on release-candidate tags. Both devices must pass on the exact candidate SHA.
+- Failure triage remains manually dispatchable with a failed run ID; it does not launch after every successful validation.
+- Workflow YAML changes require checking triggers and required status checks. Keep immutable action pins and preserve all source/test assertions when correcting workflows.
 
 ## PR #43 post-merge evidence
 
-Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [39051661330](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39051661330). Website validation and verified-download contracts also passed on that main-branch commit. Unsigned IPA packaging is not automatic; an absent artifact from this merge is expected. The next release candidate still needs a candidate-SHA-matched full iPhone/iPad walkthrough. Packaging runs automatically alongside; no separate approval label is required.
+Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [39051661330](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39051661330). Website validation and verified-download contracts also passed on that main-branch commit. This is a historical checkpoint; current packaging is manual-dispatch only and requires exact-SHA reconstruction, unsigned IPA and full iPhone/iPad walkthrough evidence. A missing package on an ordinary push is expected.

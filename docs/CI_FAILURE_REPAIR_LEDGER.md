@@ -161,3 +161,15 @@ The fullscreen and session-save repair commits recorded above were folded into `
 - Focused iOS smoke: [run 39211154912](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39211154912) (PR head) / green on `main` via `ios-smoke.yml` (PR #42).
 
 **Status:** the affected `candidate` records above are now `verified` for the runtime/fullscreen/session-save fingerprints on the `main` head, by the green runs listed. This documentation-only commit does not alter production behavior and does not by itself validate a new SHA's source; it records the already-green merged head. Physical-device audio/camera/performance acceptance and signing/release remain separate open gates.
+
+## 2026-10-24 — Verified-download packaging used expired pinned artifacts
+
+**Fingerprint:** Verified download packaging run [39992413302](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413302), source SHA `81148475474742cf417d386ff4713b44cf58df0e`. The contract-test job passed; the package job failed in `Preserve validated application bytes` while requesting artifact metadata, ending in HTTP 404.
+
+**Root cause:** `tools/prepare-verified-downloads.py` hard-coded artifact/run IDs from the October 15–16 builds. Those source artifact IDs are no longer accessible, so a successful contract suite could not produce a fresh bundle. The workflow also ran the packaging job on push/PR changes to its own workflow and tests, even though those events should validate contracts rather than regenerate downloads.
+
+**Repair candidate:** replace static IDs with discovery from the exact requested main SHA. Require the newest matching main runs for reconstruction validation, unsigned iOS archive and full iPhone/iPad walkthrough to be successful; locate the named Android/iOS artifacts in those exact runs; reject expired or cross-run artifacts; verify IPA source/run metadata and existing checksums; keep application bytes unchanged. Restrict packaging to manual dispatch on main while retaining automatic contract tests for relevant PR/main changes. Update architecture/testing documentation to make the release gate explicit.
+
+**Regression coverage:** latest run status/conclusion, exact SHA and main-branch identity, artifact run identity/expiry/ambiguity, full-walkthrough prerequisite, APK/IPA structure, IPA checksum/source metadata and authorization-header removal on storage redirects.
+
+**Validation status:** repair candidate is on `fix/verified-downloads-current-sha-20261024`. CI is pending; do not mark this failure repaired until the branch contract job passes and the resulting workflow behavior is verified.
