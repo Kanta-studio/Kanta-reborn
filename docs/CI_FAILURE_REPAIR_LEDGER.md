@@ -189,3 +189,13 @@ The fullscreen and session-save repair commits recorded above were folded into `
 **Repair candidate:** split the six destinations into two bounded test cases (three screens each), keep fresh-launch isolation, require both cases in `tools/capture-ios-runtime.py`, and make the runner explicitly fail on missing tests, execution-timeout messages and `TEST EXECUTE FAILED`.
 
 **Validation status:** fixes are on `fix/verified-downloads-current-sha-20261024` alongside the exact-SHA verified-download repair. PR #57 contract tests passed on the earlier head; the updated full iPhone/iPad walkthrough, unsigned IPA and reconstruction jobs are pending. Do not claim the UI repair is complete until the new head passes both devices.
+
+## 2026-10-24 — iPad Stage Search/Queue sheet not presented
+
+**Evidence:** [full walkthrough #39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824), source SHA `49e3f8ea111cf985c9e768e1d0a9a2a5d17bbc7b`. The iPhone portion completed. On the iPad Pro 11-inch simulator, three cases failed after tapping the embedded `stage.search` control because `stage.keypad.0` never appeared: `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke`, and `testStarterPlaybackAndControls`. The failure-time hierarchy showed the Host stage and Search button but no presented Stage sheet. Native reconstruction compilation/tests had passed on the candidate.
+
+**Actionable source finding:** embedded Search/Queue presentation was owned by a `.sheet` modifier on `KantaMainPlayerView`, a child inside HostView's `ScrollView`. The runtime log does not expose the gate's owner state, so the precise platform presentation failure is not yet proven; the child-attached presenter is the strongest source-level hypothesis and is being removed.
+
+**Repair candidate:** HostView owns embedded sheet identity and presents it from the stable scroll-container host. Embedded requests still acquire the shared `KantaPresentationGate`; fullscreen Search/Queue remain child sheets of the UIKit fullscreen host. A shared content view prevents behavior drift. The fullscreen Search ID is now `stage.search.fullscreen`, distinct from the embedded `stage.search`. Added regression assertions and static architecture guards.
+
+**Validation status:** candidate branch `fix/ipad-stage-sheet-host-20261024`; no hosted result exists yet for this branch. Do not mark repaired until current-head reconstruction and the complete iPhone/iPad walkthrough both pass.
