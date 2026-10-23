@@ -161,3 +161,31 @@ The fullscreen and session-save repair commits recorded above were folded into `
 - Focused iOS smoke: [run 39211154912](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39211154912) (PR head) / green on `main` via `ios-smoke.yml` (PR #42).
 
 **Status:** the affected `candidate` records above are now `verified` for the runtime/fullscreen/session-save fingerprints on the `main` head, by the green runs listed. This documentation-only commit does not alter production behavior and does not by itself validate a new SHA's source; it records the already-green merged head. Physical-device audio/camera/performance acceptance and signing/release remain separate open gates.
+
+## 2026-10-24 — Verified-download packaging used expired pinned artifacts
+
+**Fingerprint:** Verified download packaging run [39992413302](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413302), source SHA `81148475474742cf417d386ff4713b44cf58df0e`. The contract-test job passed; the package job failed in `Preserve validated application bytes` while requesting artifact metadata, ending in HTTP 404.
+
+**Root cause:** `tools/prepare-verified-downloads.py` hard-coded artifact/run IDs from the October 15–16 builds. Those source artifact IDs are no longer accessible, so a successful contract suite could not produce a fresh bundle. The workflow also ran the packaging job on push/PR changes to its own workflow and tests, even though those events should validate contracts rather than regenerate downloads.
+
+**Recurrence:** after the repository name was corrected in commit [380acd1](https://github.com/usermalik20-del/Kanta-reborn/commit/380acd18c9a38613b6e54c6edbfbf73a5276dc74), main run [39993458953](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39993458953) failed at the same artifact lookup with HTTP 404. This confirms the repository-name correction was necessary but insufficient; the pinned artifact IDs themselves are stale.
+
+**Repair candidate:** replace static IDs with discovery from the exact requested main SHA. Require the newest matching main runs for reconstruction validation, unsigned iOS archive and full iPhone/iPad walkthrough to be successful; locate the named Android/iOS artifacts in those exact runs; reject expired or cross-run artifacts; verify IPA source/run metadata and existing checksums; keep application bytes unchanged. Restrict packaging to manual dispatch on main while retaining automatic contract tests for relevant PR/main changes. Update architecture/testing documentation to make the release gate explicit.
+
+**Regression coverage:** latest run status/conclusion, exact SHA and main-branch identity, artifact run identity/expiry/ambiguity, full-walkthrough prerequisite, APK/IPA structure, IPA checksum/source metadata and authorization-header removal on storage redirects.
+
+**Validation status:** repair candidate is on `fix/verified-downloads-current-sha-20261024`. CI is pending; do not mark this failure repaired until the branch contract job passes and the resulting workflow behavior is verified.
+
+## 2026-10-24 — iPhone walkthrough failed on duplicate remote accessibility IDs and menu-suite timeout
+
+**Evidence:** Main walkthrough [run 39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296), SHA `81148475474742cf417d386ff4713b44cf58df0e`; iPhone evidence artifact [12518549843](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296/artifacts/12518549843). The iPhone result bundle and `iphone-tests.log` show two independent failures.
+
+**Root cause A — duplicate accessibility identity:** `HostView.inlineRemote` placed `.accessibilityIdentifier("host.remotePanel")` on the whole SwiftUI `DisclosureGroup`. After expansion, SwiftUI exposed that identifier on the toggle and numerous descendants (Songbook, voice controls, reservations, preset controls and add/remove buttons). The second tap of the saved XCTest query therefore matched multiple buttons and failed at `KantaVisualWalkthroughUITests.swift:155`.
+
+**Repair candidate:** move the identifier onto the disclosure label only as `host.remotePanel.toggle`; query that unique button and assert its count remains one before and after expansion. This scopes the identifier to the interactive control instead of the container.
+
+**Root cause B — test-case timeout:** `testMainMenuButtonsAndScreens` launched the app six times and navigated six destinations in one XCTest case. Simulator startup was slow enough that the case exceeded XCTest's 120-second allowance while still progressing through the menu list.
+
+**Repair candidate:** split the six destinations into two bounded test cases (three screens each), keep fresh-launch isolation, require both cases in `tools/capture-ios-runtime.py`, and make the runner explicitly fail on missing tests, execution-timeout messages and `TEST EXECUTE FAILED`.
+
+**Validation status:** fixes are on `fix/verified-downloads-current-sha-20261024` alongside the exact-SHA verified-download repair. PR #57 contract tests passed on the earlier head; the updated full iPhone/iPad walkthrough, unsigned IPA and reconstruction jobs are pending. Do not claim the UI repair is complete until the new head passes both devices.
