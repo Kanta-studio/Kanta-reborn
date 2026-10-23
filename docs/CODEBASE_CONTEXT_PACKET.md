@@ -209,3 +209,14 @@ Repository: `kanta-gelo/Kanta-reborn`, PR #36, branch `fix/ios-modal-ownership-p
 ### iOS presentation lifecycle update — 2026-10-17 candidate
 
 PR #36 now covers the previously separate UIKit fullscreen player in the shared presentation-gate candidate. The gate models Search/Queue presented inside fullscreen as a nested stage owner, restores fullscreen on child dismissal, and releases fullscreen only after UIKit's dismissal callback. The UI walkthrough adds nested Search and post-exit Search checks. Current-head CI and iPhone/iPad runtime evidence are still required; no release verification is implied.
+
+## PR #52 restoration implementation — 2026-10-18
+
+Branch design/restore-library-host-20261018, baseline 519890b. SwiftUI/iOS 17, existing GeloVisualStyle tokens, scenic renderer and LocalKaraokeController remain authoritative. No dependency/storage/audio/network changes. Host now scrolls a bounded-width embedded stage card, collapsed inline InAppControlCenterView and external-display information; fullscreen retains the existing KantaMainPlayerView presentation path. Direct Expand requests the shared fullscreen gate; CONTROL dismissal still acknowledges UIKit/SwiftUI callbacks. Library imports use the existing bookmark-backed model, with busy-state protection on both folder entry points. No measured performance claim. New UI coverage captures the collapsed/expanded Host and disconnected Library. Local layout/presentation guards pass; Apple compilation and simulator acceptance remain pending.
+
+
+## PR #52 Host compiler repair candidate — 2026-10-18
+
+Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
+
+The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.

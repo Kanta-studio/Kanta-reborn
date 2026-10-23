@@ -1766,3 +1766,10 @@ Current repository: `kanta-gelo/Kanta-reborn`. The active root workflow compiles
 ## October 16 — encrypted Android-host controller candidate
 
 Added CryptoKit KCP1 client codec, Network.framework foreground controller and a separate encrypted pairing/control screen. Existing LocalKaraokeController and Android SessionController remain queue authorities; source media, sensors, audio, dependencies and Apple signing identity are unchanged. Legacy Bonjour/PIN remains explicitly plaintext. No secure iOS hosting is claimed. Generation fences, socket cancellation/deadlines, one outstanding request, strict peer metadata bounds and no reconnect preserve revocation and retry boundaries. Independent Python vectors, adversarial codec tests and production Java TCP peer regression cases are wired into LocalNetworkControlTests. The full iOS validation job now supports a focused iOS label and pinned Java fixture compilation. Preliminary local layout, 50 release tests, four starter tests and resource guard passed; Swift/app/socket cloud checks remain pending. Scratch lacks Swift and javac. No publication, merge, new IPA, physical pair, independent audit or website change is claimed in this candidate entry.
+
+
+## PR #52 Host compiler repair candidate — 2026-10-18
+
+Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
+
+The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.

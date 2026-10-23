@@ -14,6 +14,8 @@ struct KantaMainPlayerView: View {
     var onControls: () -> Void = {}
     var onMore: () -> Void = {}
     var onSaveSession: () -> Void = {}
+    var embedded = false
+    var onExpand: () -> Void = {}
     @Environment(\.scenePhase) private var scenePhase
     @State private var activeStageSheet: StageSheet?
 
@@ -24,6 +26,38 @@ struct KantaMainPlayerView: View {
     @State private var transportBusy = false
 
     var body: some View {
+        Group {
+            if embedded { embeddedPlayer } else { fullscreenPlayer }
+        }
+        .sheet(item: $activeStageSheet, onDismiss: {
+            presentationGate.completeDismissal(.stage)
+        }) { sheet in
+            switch sheet {
+            case .search:
+                KantaStageSearchView(model: model, singerName: $singerName,
+                                     microphoneBusy: microphoneBusy,
+                                     onClose: { presentationGate.beginDismissal(.stage); activeStageSheet = nil })
+                    .padding(12)
+                    .background(GeloVisualStyle.pageBackground)
+                    .preferredColorScheme(.dark)
+                    .presentationDetents([.large])
+            case .queue:
+                queueSheet
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { camera.stop() }
+        }
+        .onDisappear { camera.stop() }
+        .alert("Camera BGV", isPresented: Binding(
+            get: { camera.message != nil },
+            set: { if !$0 { camera.message = nil } }
+        )) {
+            Button("OK", role: .cancel) { camera.message = nil }
+        } message: { Text(camera.message ?? "") }
+    }
+
+    private var fullscreenPlayer: some View {
         GeometryReader { geometry in
             let wide = geometry.size.width > geometry.size.height
             ZStack {
@@ -80,36 +114,89 @@ struct KantaMainPlayerView: View {
             .foregroundStyle(.white)
         }
         .background(.black)
-        .sheet(item: $activeStageSheet, onDismiss: {
-            presentationGate.completeDismissal(.stage)
-        }) { sheet in
-            switch sheet {
-            case .search:
-                GeometryReader { geometry in
-                    KantaStageSearchView(model: model, singerName: $singerName,
-                                         microphoneBusy: microphoneBusy,
-                                         onClose: { presentationGate.beginDismissal(.stage); activeStageSheet = nil })
-                        .padding(12)
-                        .frame(maxWidth: 760, maxHeight: .infinity)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(GeloVisualStyle.pageBackground)
+    }
+
+    private var embeddedPlayer: some View {
+        VStack(spacing: 18) {
+            HStack {
+                Button(action: onMore) { Image(systemName: "chevron.left").frame(width: 44, height: 44) }
+                    .accessibilityLabel("More")
+                Text("Karaoke Host").font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Button(action: onControls) {
+                    Image(systemName: "slider.horizontal.3").frame(width: 44, height: 44)
                 }
-                .preferredColorScheme(.dark)
-                .presentationDetents([.large])
-            case .queue:
-                queueSheet
+                .accessibilityLabel("CONTROL")
+                .accessibilityIdentifier("stage.controls")
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top) { nowSinging; Spacer(); stageActions }
+                    VStack(alignment: .leading, spacing: 12) { nowSinging; stageActions }
+                }
+                ZStack {
+                    stageBackground.accessibilityHidden(true)
+                    LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .top, endPoint: .bottom)
+                        .allowsHitTesting(false)
+                    Group {
+                        if model.hasLyrics {
+                            KaraokeLyricBlock(page: model.lyricPage)
+                        } else {
+                            Text("Search a song, reserve it, then tap Play.")
+                                .font(.title3.bold()).multilineTextAlignment(.center)
+                        }
+                    }
+                    .padding(20)
+                    VStack { Spacer(); HStack { Spacer(); KantaStageWatermark() }.padding(12) }
+                        .allowsHitTesting(false)
+                }
+                .frame(minHeight: 280)
+                .clipShape(RoundedRectangle(cornerRadius: 18))
+                HStack { playButton; Spacer(); nextButton; Spacer(); queueButton }
+                if let next = model.snapshot.queue.first {
+                    Text("Up Next · " + next.song.title)
+                        .font(.subheadline).foregroundStyle(.secondary)
+                } else {
+                    Text("Up Next · No reservations").font(.subheadline).foregroundStyle(.secondary)
+                }
+            }
+            .padding(16)
+            .background(Color(white: 0.06), in: RoundedRectangle(cornerRadius: 24))
+            .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.15)))
+            HStack {
+                if let notice = model.sessionNotice {
+                    Text(notice).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                if model.showingSessionSavePrompt {
+                    Button("Save session", action: onSaveSession)
+                        .accessibilityIdentifier("stage.saveSession")
+                }
             }
         }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .background { camera.stop() }
+        .foregroundStyle(.white)
+    }
+
+    private var nowSinging: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("NOW SINGING").font(.caption.weight(.bold)).tracking(2)
+                .foregroundStyle(GeloVisualStyle.cyan)
+            Text(model.snapshot.nowPlaying?.title ?? "Your stage is ready")
+                .font(.title2.bold()).fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("stage.currentSong")
+            if let artist = model.snapshot.nowPlaying?.artist {
+                Text(artist).font(.subheadline).foregroundStyle(.secondary)
+            }
         }
-        .onDisappear { camera.stop() }
-        .alert("Camera BGV", isPresented: Binding(
-            get: { camera.message != nil },
-            set: { if !$0 { camera.message = nil } }
-        )) {
-            Button("OK", role: .cancel) { camera.message = nil }
-        } message: { Text(camera.message ?? "") }
+    }
+
+    private var stageActions: some View {
+        HStack(spacing: 12) {
+            searchButton
+            cameraButton
+            stageButton("Expand", icon: "arrow.up.left.and.arrow.down.right", action: onExpand)
+                .accessibilityIdentifier("stage.expand")
+        }
     }
 
     @ViewBuilder private var stageBackground: some View {
@@ -194,7 +281,8 @@ struct KantaMainPlayerView: View {
         } label: {
             Image(systemName: model.snapshot.transport == .playing ? "pause.fill" : "play.fill")
                 .font(.system(size: 26, weight: .bold)).frame(width: 62, height: 62)
-                .background(GeloVisualStyle.accent.opacity(0.35), in: Circle())
+                .foregroundStyle(.black)
+                .background(GeloVisualStyle.cyan, in: Circle())
                 .overlay(Circle().stroke(.white.opacity(0.9), lineWidth: 2))
                 .shadow(color: GeloVisualStyle.accent, radius: 10)
         }

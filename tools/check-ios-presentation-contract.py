@@ -52,6 +52,14 @@ def verify():
         'real playback walkthrough': 'func testStarterPlaybackAndControls()' in test,
         'library dismissal then search coverage': 'Search did not present the keypad after library dismissal' in test,
         'stage search accessibility identifier': 'stage.search' in stage,
+        'library dismissal leaves session save opt-in': (
+            'onSaveSession: {' in host
+            and 'guard model.showingSessionSavePrompt else { return }' in host
+            and 'guard !navigationSheetPresented && activeHostSheet == nil else { return }' in host
+            and 'presentationGate.request(.host) { activeHostSheet = .sessionSave }' in host
+            and 'A completed session must not replace Library dismissal with a save sheet' in test
+            and 'The deferred session must remain available for explicit saving' in test
+        ),
     }
     for name, passed in checks.items():
         print(('PASS' if passed else 'FAIL') + ': ' + name)

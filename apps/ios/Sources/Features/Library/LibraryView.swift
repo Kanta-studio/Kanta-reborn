@@ -189,6 +189,8 @@ struct LibraryView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .tint(GeloVisualStyle.accent)
+                .disabled(model.isWorking)
+                .accessibilityIdentifier("library.addFolder")
 
                 HStack(spacing: 12) {
                     Image(systemName: "externaldrive.badge.icloud")
@@ -253,13 +255,19 @@ struct LibraryView: View {
             ) {
                 ContentUnavailableView(
                     "Choose a Folder",
-                    systemImage: "externaldrive.badge.plus",
+                    systemImage: "folder",
                     description: Text(
                         "Use Files or iCloud Drive. KANTA stores a " +
                         "security-scoped bookmark so the library can " +
                         "be reopened later."
                     )
                 )
+                Button("Choose a Folder") { showingLibraryImporter = true }
+                    .buttonStyle(.borderedProminent)
+                    .tint(GeloVisualStyle.accent)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("library.chooseFolder")
+                    .disabled(model.isWorking)
             }
         } else {
             VStack(alignment: .leading, spacing: 12) {

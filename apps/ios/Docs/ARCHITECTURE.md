@@ -1174,3 +1174,10 @@ The optional `EncryptedCompanionView`/`EncryptedCompanionClient` path uses syste
 ## Fullscreen modal ownership repair
 
 The background SingingModalPresenter now retains a weak identity for only the karaoke player it creates and dismisses that player directly. UIKit's presentedViewController may refer to an ancestor's presentation, so it must never be used as permission to dismiss unrelated SwiftUI menus or sheets. The active-playback walkthrough verifies that More remains visible across redraws, then enters/exits the library without changing playback. UI harness waits for rendered controls and observed menu presentation, with bounded retries only for the idempotent open-menu action. This repair changes app presentation only; package/core source, FIFO ownership and audio semantics remain unchanged. Changed-source simulator execution remains required. Reference: https://developer.apple.com/documentation/uikit/uiviewcontroller/presentedviewcontroller .
+
+
+## PR #52 Host compiler repair candidate — 2026-10-18
+
+Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
+
+The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.
