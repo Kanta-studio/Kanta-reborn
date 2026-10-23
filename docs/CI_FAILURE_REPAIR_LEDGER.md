@@ -180,3 +180,6 @@ The fullscreen and session-save repair commits recorded above were folded into `
 **Recurrence rule:** inspect the complete Vercel CLI error and project metadata first. Never deploy with an implicit project-selection prompt, create a replacement project, or move production aliases merely to make CI green.
 
 **Status:** `candidate`.
+
+
+**Validation checkpoint (2026-10-24):** the Vercel deployment-contract validation job passed in [run 40006046506](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046506), and website validation including the deployment-contract regression test passed in [run 40006046535](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046535). Both runs checked source SHA `e30515834d36e35944ed9ec72d97700f4947ddf8`. At this checkpoint, full reconstruction run [40006046552](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046552) and unsigned archive run [40006046467](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046467) were still running; their results are not inferred from the green website checks. No production deploy was attempted by a PR run, and production HTTP checks remain red. This ledger note is documentation-only and does not claim the candidate is production-verified.
