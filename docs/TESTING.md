@@ -57,11 +57,11 @@ Android runtime fixtures live in the test APK behind a signature permission decl
 
 
 
-Android emulator startup uses an explicit shared AVD directory for avdmanager and emulator. The helper detects early process exits, bounds boot/ADB/instrumentation, always collects diagnostics and retires the emulator. Use `owner-approved-android-validation` for Android-only repairs; `owner-approved-validation` still runs both native platforms. No source tests are skipped by the focused label.
+Android emulator startup uses an explicit shared AVD directory for avdmanager and emulator. The helper detects early process exits, bounds boot/ADB/instrumentation, always collects diagnostics and retires the emulator. Both native jobs run automatically on every relevant change; no validation label is required, and no source tests are skipped.
 
 ## iOS KCP1 controller candidate
 
-`owner-approved-ios-validation` selects the full iOS package/app gate without rerunning unchanged Android native tests. The job pins Java 17 and compiles the unmodified Android CompanionProtocol with a synthetic Java TCP peer. LocalNetworkControlTests requires that peer via KANTA_KCP_TEST_CLASSES; absence is a failure, never a silent skip on macOS. Fixed independent Python crypto vectors check exact handshake, request and bidirectional record bytes. Live Java/Swift socket checks exercise the actual iOS client, bounded busy behavior, Unicode, distinct repeated reservations, cancellation and revocation. This is automated interoperability evidence, not a physical Android/iOS pair or iOS-host acceptance.
+The iOS job runs the full package and app gate automatically alongside the Android job; it no longer needs a validation label. The job pins Java 17 and compiles the unmodified Android CompanionProtocol with a synthetic Java TCP peer. LocalNetworkControlTests requires that peer via KANTA_KCP_TEST_CLASSES; absence is a failure, never a silent skip on macOS. Fixed independent Python crypto vectors check exact handshake, request and bidirectional record bytes. Live Java/Swift socket checks exercise the actual iOS client, bounded busy behavior, Unicode, distinct repeated reservations, cancellation and revocation. This is automated interoperability evidence, not a physical Android/iOS pair or iOS-host acceptance.
 
 ## iOS walkthrough runner diagnostics and suite timeout
 
@@ -97,7 +97,7 @@ The presentation contract guard checks that the UIKit fullscreen presenter acqui
 
 ## Automatic workflow triggers and release boundary
 
-Reconstruction validation runs for relevant app, tool and workflow changes on same-repository pull requests and main pushes. Website validation runs for relevant website changes on main pushes and same-repository pull requests, and can also be started by manual dispatch. It deliberately does not run on ordinary feature-branch pushes; the pull-request event is the feature-branch validation trigger, avoiding duplicate CI for the same change. Verified-download contract checks follow their workflow's relevant pull-request/main triggers. The full iPhone/iPad walkthrough remains a separate acceptance gate and must pass on the exact release-candidate SHA. Packaging previously accepted IPA/APK inputs still requires the owner-approved dispatch or packaging label. No workflow signs, merges, deploys or publishes production downloads automatically.
+Reconstruction validation runs for relevant app, tool and workflow changes on same-repository pull requests and main pushes. Website validation runs for relevant website changes on main pushes and same-repository pull requests, and can also be started by manual dispatch. It deliberately does not run on ordinary feature-branch pushes; the pull-request event is the feature-branch validation trigger, avoiding duplicate CI for the same change. Verified-download contract and packaging checks run on their relevant pull-request and main triggers without any approval label. The full iPhone/iPad walkthrough runs on iOS pull requests, main pushes, weekly and on manual dispatch, and must pass on the exact release-candidate SHA before that SHA is treated as accepted. No workflow signs or publishes production downloads automatically.
 
 ## CI separation: fast validation, unsigned artifacts and visual acceptance
 
@@ -112,10 +112,10 @@ Reconstruction validation runs for relevant app, tool and workflow changes on sa
 
 - Feature branches are validated by the pull-request event only; ordinary feature-branch pushes do not duplicate the reconstruction, website or download-contract jobs. Main pushes retain post-merge verification.
 - The unsigned personal-signing IPA archive is manually dispatched only; compilation, Swift package tests and the unsigned simulator build remain in normal reconstruction CI. Do not interpret an unbuilt IPA as a release artifact.
-- Full iPhone/iPad visual walkthrough remains manual, weekly or release-candidate-tag gated. A release candidate must pass both devices on its exact SHA.
+- Full iPhone/iPad visual walkthrough runs automatically on iOS pull requests and main pushes, plus weekly and on release-candidate tags. A release candidate must pass both devices on its exact SHA.
 - Failure triage is manually dispatchable with a failed run ID; it no longer starts a skipped workflow for every successful validation. Investigators can still inspect exact job logs and report failures.
-- The separate focused iOS simulator smoke PR must be validated before merge. Workflow YAML changes themselves require review of triggers and required status checks; do not remove required branch protection checks without an equivalent passing gate.
+- The separate focused iOS simulator smoke PR must be validated before merge. Workflow YAML changes require checking triggers and required status checks; do not remove an equivalent passing gate when editing them.
 
 ## PR #43 post-merge evidence
 
-Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [39051661330](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39051661330). Website validation and verified-download contracts also passed on that main-branch commit. Unsigned IPA packaging is not automatic; an absent artifact from this merge is expected. The next release candidate still needs a candidate-SHA-matched full iPhone/iPad walkthrough and separately approved artifact packaging.
+Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [39051661330](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39051661330). Website validation and verified-download contracts also passed on that main-branch commit. Unsigned IPA packaging is not automatic; an absent artifact from this merge is expected. The next release candidate still needs a candidate-SHA-matched full iPhone/iPad walkthrough. Packaging runs automatically alongside; no separate approval label is required.

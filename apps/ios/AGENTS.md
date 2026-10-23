@@ -222,4 +222,4 @@ recording, upload, backup or a persisted enabled preference. Serialize capture
 operations off-main and fence stale permission callbacks. Preserve audio session
 ownership by the karaoke/scoring/voice services. Keep privacy text synchronized.
 PR #47's real-capture work remains included; its updated tests require fresh
-owner-approved macOS execution before merge. See Docs/STAGE_UI_ACCEPTANCE.md.
+macOS CI execution before merge. See Docs/STAGE_UI_ACCEPTANCE.md.

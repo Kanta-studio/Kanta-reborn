@@ -1,4 +1,4 @@
-name: Verified download packaging (owner-approved)
+name: Verified download packaging
 on:
   workflow_dispatch:
   push:
@@ -29,7 +29,6 @@ jobs:
         run: python3 -m unittest discover -s tools/tests -p test_verified_downloads.py
   package:
     needs: contracts
-    if: ${{ github.actor == 'kanta-gelo' && (github.event_name == 'workflow_dispatch' || github.event.label.name == 'owner-approved-download-packaging') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

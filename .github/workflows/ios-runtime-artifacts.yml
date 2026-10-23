@@ -1,6 +1,18 @@
 name: KANTA iOS unsigned artifacts
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/ios/**'
+      - 'tools/**'
+      - '.github/workflows/ios-runtime-artifacts.yml'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/ios/**'
+      - 'tools/**'
+      - '.github/workflows/ios-runtime-artifacts.yml'
 permissions:
   contents: read
 concurrency:

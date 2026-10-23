@@ -4,13 +4,24 @@ on:
   schedule:
     - cron: '0 19 * * 1'
   push:
+    branches: [main]
+    paths:
+      - 'apps/ios/**'
+      - 'tools/capture-ios-runtime.py'
+      - '.github/workflows/ios-visual-walkthrough.yml'
     tags:
       - 'ios-rc-*'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/ios/**'
+      - 'tools/capture-ios-runtime.py'
+      - '.github/workflows/ios-visual-walkthrough.yml'
 permissions:
   contents: read
 concurrency:
-  group: ios-visual-${{ github.ref }}
-  cancel-in-progress: false
+  group: ios-visual-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
 jobs:
   visual-walkthrough:
     runs-on: macos-15
