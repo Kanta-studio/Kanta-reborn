@@ -124,6 +124,7 @@ def main():
         assert '<html lang="en"' in source and 'name="viewport"' in source, path.name
         assert "<title>" in source and 'id="content"' in source, path.name
         assert "github.com/kanta-ph/" not in source, path.name
+        assert "github.com/kanta-gelo/" not in source, path.name
         pages[path.name] = page
 
     assert set(pages) == set(PUBLIC_ROUTES.values()), (
@@ -167,6 +168,8 @@ def main():
         assert expected in (WEB / filename).read_text(encoding="utf-8"), filename + " artifact differs from manifest"
     assert manifest["ios"]["signed"] is False and manifest["ios"]["personalSigningRequired"]
     assert not manifest["ios"]["icloudAvailable"]
+    assert manifest["android"]["source"][:8] in (WEB / "android.html").read_text(encoding="utf-8")
+    assert manifest["ios"]["source"][:8] in (WEB / "ios-download.html").read_text(encoding="utf-8")
     print(
         "10 public pages, local routes/anchors, immutable Songbook reader, lowercase ads.txt, "
         "canonical sitemap, CSP and verified download provenance passed"
