@@ -4,7 +4,7 @@ Static first-party pages recovered from the captured October 15 website evidence
 
 Deploy this directory as a static site, with no install or build command. `vercel.json` preserves clean routes and a restrictive Content Security Policy. The browser Songbook script and stylesheet are byte-identical to the immutable evidence; files, codes and searches are processed locally with network connections blocked by CSP.
 
-Downloads point to verified 30-day Actions bundles from packaging run 38882359866 and require GitHub sign-in. The Android APK is debug-signed. The iPhoneOS IPA is unsigned, needs separate trusted personal signing and has no iCloud Save. Neither is a store release.
+Downloads point to verified Actions artifacts in the current `usermalik20-del/Kanta-reborn` repository and require GitHub sign-in. Artifact retention is seven days; update `downloads.json` and both platform pages whenever fresh main-branch artifacts are published. The Android APK is debug-signed. The iPhoneOS IPA is unsigned, needs separate trusted personal signing and has no iCloud Save. Neither is a store release.
 
 Run `python3 tools/verify-website.py` from the repository root, then `node --check apps/web/songbook.js`. The owner-gated website workflow performs these checks without rebuilding native apps. Always stage and inspect a preview before changing the public alias. Preserve the previous deployment for rollback.
 
