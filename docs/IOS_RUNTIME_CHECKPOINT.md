@@ -29,3 +29,13 @@ The IPA is a separate personal-signing input with iCloud capabilities omitted. I
 ## Fullscreen presentation-gate integration candidate — 2026-10-17
 
 PR #36 now routes UIKit fullscreen acquisition and dismissal through the shared main-actor presentation gate. CONTROL-to-fullscreen handoff is queued before CONTROL releases its sheet owner. Search and Queue remain usable within fullscreen through a nested stage slot that restores the fullscreen parent after sheet dismissal. UIKit ownership is released only after the player dismissal completion callback. The walkthrough now exercises Search within fullscreen and again after exit. Current-head compilation, iPhone/iPad runtime and unsigned IPA remain pending; this is not runtime acceptance.
+
+## iPad embedded Stage presentation — 2026-10-24
+
+Candidate source tree: `fix/ipad-stage-sheet-host-20261024`, based on PR #57's `49e3f8ea111cf985c9e768e1d0a9a2a5d17bbc7b` release-acceptance candidate.
+
+The full walkthrough [#39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824) compiled app and UI tests and completed the iPhone walkthrough, but the iPad Pro 11-inch run failed three Search/keypad cases. The exported hierarchy showed the embedded Host stage and Search button with no presented Stage sheet. The gate's runtime owner was not logged, so the internal SwiftUI failure path remains unconfirmed.
+
+The candidate moves embedded Search/Queue presentation state to HostView and attaches the sheet to the stable scroll-container presenter. Fullscreen Search/Queue remain hosted inside the UIKit fullscreen controller; both use the same presentation gate and HostViewModel. Search accessibility IDs are now unique by projection. The test suite retains the failing flows and adds a bounded keypad-existence wait; the source guard checks the parent/child presenter boundary. No queue, playback, media, persistence or dependency changes.
+
+Status: **candidate only**. Reconstruction and full iPhone/iPad walkthrough on the new candidate tree must pass before this is accepted for release.
