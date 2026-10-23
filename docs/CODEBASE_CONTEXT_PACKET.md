@@ -21,7 +21,7 @@ Candidate branch `fix/ipad-stage-sheet-host-20261024` changes only presentation 
 - Embedded and fullscreen Search identifiers are distinct; regression coverage and static architecture checks enforce this.
 - No playback/FIFO controller, imported media, persistence format, dependency or audio path changes.
 
-Candidate source-changing commit: `551e6481888c3d6d422035aa59d4a45d1b436a14`; test and source-contract follow-ups are on the same branch. Hosted validation on the new tree is pending. The repair is not accepted until reconstruction and the full iPhone/iPad walkthrough pass on the exact candidate SHA.
+Candidate source tree includes source changes through `37ccadf81caa286cb8ca7802f3dbde0beec849a3`; test, source-contract and documentation follow-ups are on the same branch. Hosted validation on the new tree is pending. The repair is not accepted until reconstruction and the full iPhone/iPad walkthrough pass on the exact candidate SHA.
 
 ### Current release evidence
 
