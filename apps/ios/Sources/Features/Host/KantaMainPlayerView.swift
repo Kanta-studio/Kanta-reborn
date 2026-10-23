@@ -16,33 +16,29 @@ struct KantaMainPlayerView: View {
     var onSaveSession: () -> Void = {}
     var embedded = false
     var onExpand: () -> Void = {}
+    var setEmbeddedStageSheet: ((KantaStageSheet?) -> Void)? = nil
     @Environment(\.scenePhase) private var scenePhase
     @State private var activeStageSheet: StageSheet?
 
-    private enum StageSheet: String, Identifiable {
-        case search, queue
-        var id: String { rawValue }
-    }
     @State private var transportBusy = false
 
     var body: some View {
         Group {
-            if embedded { embeddedPlayer } else { fullscreenPlayer }
-        }
-        .sheet(item: $activeStageSheet, onDismiss: {
-            presentationGate.completeDismissal(.stage)
-        }) { sheet in
-            switch sheet {
-            case .search:
-                KantaStageSearchView(model: model, singerName: $singerName,
-                                     microphoneBusy: microphoneBusy,
-                                     onClose: { presentationGate.beginDismissal(.stage); activeStageSheet = nil })
-                    .padding(12)
-                    .background(GeloVisualStyle.pageBackground)
-                    .preferredColorScheme(.dark)
-                    .presentationDetents([.large])
-            case .queue:
-                queueSheet
+            if embedded {
+                embeddedPlayer
+            } else {
+                fullscreenPlayer
+                    .sheet(item: $activeStageSheet, onDismiss: {
+                        presentationGate.completeDismissal(.stage)
+                    }) { sheet in
+                        KantaStageSheetContent(
+                            sheet: sheet,
+                            model: model,
+                            singerName: $singerName,
+                            microphoneBusy: microphoneBusy,
+                            onClose: closeStageSheet
+                        )
+                    }
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -255,15 +251,38 @@ struct KantaMainPlayerView: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24))
         }
     }
+    private func requestStageSheet(_ sheet: KantaStageSheet) {
+        guard !embedded || setEmbeddedStageSheet != nil else {
+            assertionFailure("Embedded stage sheets require a stable HostView presenter.")
+            return
+        }
+        presentationGate.request(.stage) {
+            if embedded {
+                setEmbeddedStageSheet?(sheet)
+            } else {
+                activeStageSheet = sheet
+            }
+        }
+    }
+
+    private func closeStageSheet() {
+        presentationGate.beginDismissal(.stage)
+        if embedded {
+            setEmbeddedStageSheet?(nil)
+        } else {
+            activeStageSheet = nil
+        }
+    }
+
     private var searchButton: some View {
         stageButton("Search", icon: "magnifyingglass") {
-            presentationGate.request(.stage) { activeStageSheet = .search }
+            requestStageSheet(.search)
         }
-            .accessibilityIdentifier("stage.search")
+            .accessibilityIdentifier(embedded ? "stage.search" : "stage.search.fullscreen")
     }
     private var queueButton: some View {
         stageButton("Queue", icon: "list.bullet") {
-            presentationGate.request(.stage) { activeStageSheet = .queue }
+            requestStageSheet(.queue)
         }
             .accessibilityValue("\(model.snapshot.queue.count) reservations")
     }
@@ -320,32 +339,5 @@ struct KantaMainPlayerView: View {
             .frame(minWidth: 44)
         }
         .buttonStyle(.plain).accessibilityLabel(title)
-    }
-    private var queueSheet: some View {
-        NavigationStack {
-            List {
-                if model.snapshot.queue.isEmpty {
-                    Text("No reservations yet. Use Search to choose a song.")
-                }
-                ForEach(model.snapshot.queue) { item in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(item.song.title)
-                            if let singer = item.requestedBy { Text(singer).font(.caption) }
-                        }
-                        Spacer()
-                        Button(role: .destructive) {
-                            Task { await model.removeQueueItem(item.id) }
-                        } label: { Image(systemName: "trash").frame(width: 44, height: 44) }
-                        .accessibilityLabel("Remove " + item.song.title)
-                    }
-                }
-            }
-            .navigationTitle("Reservations")
-            .toolbar { ToolbarItem(placement: .confirmationAction) {
-                Button("Done") { presentationGate.beginDismissal(.stage); activeStageSheet = nil }
-            } }
-        }
-        .preferredColorScheme(.dark)
     }
 }
