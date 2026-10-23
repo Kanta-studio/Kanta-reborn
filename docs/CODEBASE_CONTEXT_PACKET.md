@@ -6,17 +6,35 @@ KCP1 client work connects only to explicit numeric RFC1918 IPv4 on port 45731. I
 
 # Codebase Context Packet — KANTA Reborn
 
-Current snapshot: merged Android stage/party and iOS runtime work, verified download packaging and restored website. Native source revisions and checks are listed below and in the root README. This is a testing reconstruction, not a signed production release.
+## Current repository snapshot — 2026-10-24
+
+Canonical repository: `usermalik20-del/Kanta-reborn` (the requested `kanta-gelo/Kanta-reborn` URL redirects here). Latest main commit observed: `6f335c224689cdc73d97a5bdd3695d55ab35aecb` (`ci: add Vercel deploy workflow`). The latest validated app/site source before that workflow-only commit is `ba28a945a21b487248589dfe7831f8506c4e9a44`: reconstruction run [#39994959594](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39994959594) and website run [#39994959668](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39994959668) passed. No successful deployment from the new Vercel workflow has been verified; production deployment remains a separate gate.
+
+### Current release-acceptance candidate
+
+PR #57's exact-SHA packaging candidate `49e3f8ea111cf985c9e768e1d0a9a2a5d17bbc7b` passed native reconstruction and packaging contract checks, but its full walkthrough [#39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824) failed on iPad: three UI cases tapped embedded Stage Search but never found `stage.keypad.0`. The iPhone walkthrough completed. The failure-time hierarchy showed the Host stage/Search button without a presented Stage sheet; the gate owner was not captured, so the exact internal presentation mechanism is still an inference.
+
+Candidate branch `fix/ipad-stage-sheet-host-20261024` changes only presentation ownership, test identity and supporting documentation:
+- HostView owns embedded Search/Queue sheet identity and attaches it to the stable scroll-container presenter.
+- `KantaMainPlayerView` routes embedded intents through the existing `KantaPresentationGate`; fullscreen retains its own child sheet in the UIKit-hosted player.
+- A shared sheet-content view preserves the same HostViewModel, singer-name binding and microphone state.
+- Embedded and fullscreen Search identifiers are distinct; regression coverage and static architecture checks enforce this.
+- No playback/FIFO controller, imported media, persistence format, dependency or audio path changes.
+
+Candidate source-changing commit: `551e6481888c3d6d422035aa59d4a45d1b436a14`; test and source-contract follow-ups are on the same branch. Hosted validation on the new tree is pending. The repair is not accepted until reconstruction and the full iPhone/iPad walkthrough pass on the exact candidate SHA.
+
+### Current release evidence
+
+- Latest main reconstruction and website checks: [#39994959594](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39994959594) and [#39994959668](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39994959668).
+- New unsigned iOS candidate from [#39996051816](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051816), source `49e3f8ea111cf985c9e768e1d0a9a2a5d17bbc7b`, SHA-256 `824f6dd5ba9c534debfc07958e34a0b4261b92ecfb5eaec8182c2a911f11f697`. This is an unsigned personal-signing input, not an installable signed release.
+- GitHub Releases currently has no published release. Diagnostic and unsigned artifacts are not production APK/IPA releases.
+- Exact release-candidate iPhone/iPad acceptance remains open until the new candidate tree passes.
 
 ## Current accepted state
 
-Android 0.8.0 source `57dc0611cb54435802a4bd7d226e00983dd3c8f6` passed run 38845590252 with 328 domain assertions, 110 actual API 35 checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and the permission/runtime-notice gate. Private media, front-camera preview, dry input, experimental monitoring/effects and optional pitch-following scores are merged. Physical timing/scoring accuracy and wired/USB output quality remain unverified.
+This is a reconstructed testing project, not a signed production release. Android uses native Java/Android Views with AGP 8.13.2, compile/target SDK 36, min SDK 26, Java 17 and pinned TinySoundFont via JNI. iOS uses SwiftUI/iOS 17, AVFoundation playback and the existing GeloKaraokeCore controller. Each platform retains its own authoritative playback/FIFO owner. No cross-platform playback state or queue has been introduced.
 
-iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed all three UI walkthroughs on both iPhone and iPad plus unsigned device packaging in run 38806377805; its package source passed 158 tests. No Apple source change is included in the Android follow-ups.
-
-Packaging run 38842836405 passed five contract tests and original app identity/checksum verification. Android and unsigned iOS bundles last 30 days and require GitHub sign-in. The static website remains under apps/web; its private reader is byte-identical to evidence and CSP blocks network connections.
-
-Control panels still rebuild on controller publication and search remains in-memory over normalized snapshots. These are source-review risks, not measured latency claims. Camera preview has no capture/analysis/recording output. Experimental monitored effects are implemented; physical output and calibrated scoring, secure companion and official YouTube remain unfinished. Physical quality/latency, external displays and signing remain open.
+Source-review risks must not be reported as measured performance. Physical device audio/latency, signed Apple distribution, external-display behavior, real-network companion interoperability and commercial licensing review remain separate acceptance gates.
 
 ## Android stack
 
