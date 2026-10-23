@@ -175,3 +175,17 @@ The fullscreen and session-save repair commits recorded above were folded into `
 **Regression coverage:** latest run status/conclusion, exact SHA and main-branch identity, artifact run identity/expiry/ambiguity, full-walkthrough prerequisite, APK/IPA structure, IPA checksum/source metadata and authorization-header removal on storage redirects.
 
 **Validation status:** repair candidate is on `fix/verified-downloads-current-sha-20261024`. CI is pending; do not mark this failure repaired until the branch contract job passes and the resulting workflow behavior is verified.
+
+## 2026-10-24 — iPhone walkthrough failed on duplicate remote accessibility IDs and menu-suite timeout
+
+**Evidence:** Main walkthrough [run 39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296), SHA `81148475474742cf417d386ff4713b44cf58df0e`; iPhone evidence artifact [12518549843](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296/artifacts/12518549843). The iPhone result bundle and `iphone-tests.log` show two independent failures.
+
+**Root cause A — duplicate accessibility identity:** `HostView.inlineRemote` placed `.accessibilityIdentifier("host.remotePanel")` on the whole SwiftUI `DisclosureGroup`. After expansion, SwiftUI exposed that identifier on the toggle and numerous descendants (Songbook, voice controls, reservations, preset controls and add/remove buttons). The second tap of the saved XCTest query therefore matched multiple buttons and failed at `KantaVisualWalkthroughUITests.swift:155`.
+
+**Repair candidate:** move the identifier onto the disclosure label only as `host.remotePanel.toggle`; query that unique button and assert its count remains one before and after expansion. This scopes the identifier to the interactive control instead of the container.
+
+**Root cause B — test-case timeout:** `testMainMenuButtonsAndScreens` launched the app six times and navigated six destinations in one XCTest case. Simulator startup was slow enough that the case exceeded XCTest's 120-second allowance while still progressing through the menu list.
+
+**Repair candidate:** split the six destinations into two bounded test cases (three screens each), keep fresh-launch isolation, require both cases in `tools/capture-ios-runtime.py`, and make the runner explicitly fail on missing tests, execution-timeout messages and `TEST EXECUTE FAILED`.
+
+**Validation status:** fixes are on `fix/verified-downloads-current-sha-20261024` alongside the exact-SHA verified-download repair. PR #57 contract tests passed on the earlier head; the updated full iPhone/iPad walkthrough, unsigned IPA and reconstruction jobs are pending. Do not claim the UI repair is complete until the new head passes both devices.
