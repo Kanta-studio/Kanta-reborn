@@ -16,9 +16,9 @@ struct KantaMainPlayerView: View {
     var onSaveSession: () -> Void = {}
     var embedded = false
     var onExpand: () -> Void = {}
-    var setEmbeddedStageSheet: ((KantaStageSheet?) -> Void)? = nil
+    var setEmbeddedStageSheet: (@MainActor (KantaStageSheet?) -> Void)? = nil
     @Environment(\.scenePhase) private var scenePhase
-    @State private var activeStageSheet: StageSheet?
+    @State private var activeStageSheet: KantaStageSheet?
 
     @State private var transportBusy = false
 
