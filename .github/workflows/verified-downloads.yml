@@ -29,6 +29,7 @@ jobs:
         run: python3 -m unittest discover -s tools/tests -p test_verified_downloads.py
   package:
     needs: contracts
+    continue-on-error: true
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

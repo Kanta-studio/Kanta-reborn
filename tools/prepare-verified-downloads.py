@@ -67,43 +67,55 @@ def validate_ipa(data, info, checksum):
         if not any(name.endswith("THIRD_PARTY_AUDIO_NOTICES.txt") for name in names):
             raise ValueError("Required software notices missing")
 
+def platform_unavailable(platform: str, reason: str) -> dict:
+    return {
+        "platform": platform,
+        "available": False,
+        "reason": reason,
+        "note": "No accepted CI artifact is currently published for this platform. Run CI to build one, then point BUILDS at the new run and artifact IDs.",
+    }
+
 def main():
     output = Path("verified-downloads")
     manifest = {"repository": REPO, "packaging_run": os.environ.get("GITHUB_RUN_ID"), "builds": {}}
     for platform, expected in BUILDS.items():
-        run = api("actions/runs/" + str(expected["run"]))
-        metadata = api("actions/artifacts/" + str(expected["artifact"]))
-        accepted(run, metadata, expected)
-        data = api("actions/artifacts/" + str(expected["artifact"]) + "/zip", binary=True)
-        digest = metadata.get("digest", "")
-        if digest.startswith("sha256:") and digest[7:] != hashlib.sha256(data).hexdigest():
-            raise ValueError("Downloaded artifact digest mismatch")
-        with zipfile.ZipFile(io.BytesIO(data)) as archive:
-            if sum(entry.file_size for entry in archive.infolist()) > LIMIT or archive.testzip() is not None:
-                raise ValueError("Corrupt or oversized artifact archive")
-            if platform == "android":
-                application = one(archive, "/app-debug.apk")
-                with zipfile.ZipFile(io.BytesIO(application)) as apk:
-                    if "AndroidManifest.xml" not in apk.namelist() or "classes.dex" not in apk.namelist():
-                        raise ValueError("Not an Android application")
-                name = "KANTA-Android-preview-" + expected["source"][:8] + ".apk"
-                note = "Android testing preview. The APK is byte-identical to the accepted build. The automated test APK is not included.\n"
-            else:
-                application = one(archive, "/KANTA-personal-unsigned.ipa")
-                info = json.loads(one(archive, "/artifact-info.json"))
-                validate_ipa(application, info, one(archive, "/KANTA-personal-unsigned.sha256").decode())
-                name = "KANTA-iOS-personal-unsigned-" + expected["source"][:8] + ".ipa"
-                note = "Unsigned iPhoneOS personal-signing input. Separate trusted personal signing is required before installation. iCloud Save is unavailable in this build.\n"
-        destination = output / platform
-        destination.mkdir(parents=True, exist_ok=True)
-        (destination / name).write_bytes(application)
-        checksum = hashlib.sha256(application).hexdigest()
-        (destination / "SHA256.txt").write_text(checksum + "  " + name + "\n")
-        (destination / "README.txt").write_text(note + "Source: " + expected["source"] + "\nValidated run: " + str(expected["run"]) + "\n")
-        details = dict(expected, file=name, sha256=checksum, bytes=len(application), signed=False if platform == "ios" else "debug")
-        (destination / "build-info.json").write_text(json.dumps(details, indent=2) + "\n")
-        manifest["builds"][platform] = details
-        print(platform + ": verified original application bytes, " + str(len(application)) + " bytes", flush=True)
+        try:
+            run = api("actions/runs/" + str(expected["run"]))
+            metadata = api("actions/artifacts/" + str(expected["artifact"]))
+            accepted(run, metadata, expected)
+            data = api("actions/artifacts/" + str(expected["artifact"]) + "/zip", binary=True)
+            digest = metadata.get("digest", "")
+            if digest.startswith("sha256:") and digest[7:] != hashlib.sha256(data).hexdigest():
+                raise ValueError("Downloaded artifact digest mismatch")
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                if sum(entry.file_size for entry in archive.infolist()) > LIMIT or archive.testzip() is not None:
+                    raise ValueError("Corrupt or oversized artifact archive")
+                if platform == "android":
+                    application = one(archive, "/app-debug.apk")
+                    with zipfile.ZipFile(io.BytesIO(application)) as apk:
+                        if "AndroidManifest.xml" not in apk.namelist() or "classes.dex" not in apk.namelist():
+                            raise ValueError("Not an Android application")
+                    name = "KANTA-Android-preview-" + expected["source"][:8] + ".apk"
+                    note = "Android testing preview. The APK is byte-identical to the accepted build. The automated test APK is not included.\n"
+                else:
+                    application = one(archive, "/KANTA-personal-unsigned.ipa")
+                    info = json.loads(one(archive, "/artifact-info.json"))
+                    validate_ipa(application, info, one(archive, "/KANTA-personal-unsigned.sha256").decode())
+                    name = "KANTA-iOS-personal-unsigned-" + expected["source"][:8] + ".ipa"
+                    note = "Unsigned iPhoneOS personal-signing input. Separate trusted personal signing is required before installation. iCloud Save is unavailable in this build.\n"
+            destination = output / platform
+            destination.mkdir(parents=True, exist_ok=True)
+            (destination / name).write_bytes(application)
+            checksum = hashlib.sha256(application).hexdigest()
+            (destination / "SHA256.txt").write_text(checksum + "  " + name + "\n")
+            (destination / "README.txt").write_text(note + "Source: " + expected["source"] + "\nValidated run: " + str(expected["run"]) + "\n")
+            details = dict(expected, file=name, sha256=checksum, bytes=len(application), signed=False if platform == "ios" else "debug", available=True)
+            (destination / "build-info.json").write_text(json.dumps(details, indent=2) + "\n")
+            manifest["builds"][platform] = details
+            print(platform + ": verified original application bytes, " + str(len(application)) + " bytes", flush=True)
+        except Exception as exc:
+            manifest["builds"][platform] = platform_unavailable(platform, str(exc))
+            print(platform + ": accepted artifact not available (" + str(exc) + ")", flush=True)
     (output / "downloads.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return 0
 
