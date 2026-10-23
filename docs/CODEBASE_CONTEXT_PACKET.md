@@ -8,27 +8,22 @@ KCP1 client work connects only to explicit numeric RFC1918 IPv4 on port 45731. I
 
 ## Current repository snapshot — 2026-10-24
 
-Canonical repository: `usermalik20-del/Kanta-reborn` (the requested `kanta-gelo/Kanta-reborn` URL redirects here). Latest main commit observed: `6f335c224689cdc73d97a5bdd3695d55ab35aecb` (`ci: add Vercel deploy workflow`). The latest validated app/site source before that workflow-only commit is `ba28a945a21b487248589dfe7831f8506c4e9a44`: reconstruction run [#39994959594](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39994959594) and website run [#39994959668](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39994959668) passed. No successful deployment from the new Vercel workflow has been verified; production deployment remains a separate gate.
+Canonical online repository: `usermalik20-del/Kanta-reborn`; the requested `kanta-gelo/Kanta-reborn` URL redirects here. Main is at `ebe2f7ae42dcb578e6247adbd2be09a3cf24b57b` (`fix(web): remove stale build links and provenance`). The exact main-SHA runs for [Vercel deploy #40009517898](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517898), [website validation #40009517823](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517823), [unsigned iOS artifacts #40009518032](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032) and [reconstruction validation #40009517716](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517716) succeeded.
 
 ### Current release-acceptance candidate
 
-PR #57's exact-SHA packaging candidate `49e3f8ea111cf985c9e768e1d0a9a2a5d17bbc7b` passed native reconstruction and packaging contract checks, but its full walkthrough [#39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824) failed on iPad: three UI cases tapped embedded Stage Search but never found `stage.keypad.0`. The iPhone walkthrough completed. The failure-time hierarchy showed the Host stage/Search button without a presented Stage sheet; the gate owner was not captured, so the exact internal presentation mechanism is still an inference.
+Main does not yet have a successful full iPhone/iPad walkthrough on its latest SHA. The latest main-branch walkthrough [#39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296) ran on older SHA `81148475474742cf417d386ff4713b44cf58df0e` and failed both devices: iPhone reported duplicate `host.remotePanel` matches; iPad failed Search/keypad transitions. Since the newest main commits only changed web/CI behavior, the walkthrough did not automatically rerun on `ebe2f7a`.
 
-Candidate branch `fix/ipad-stage-sheet-host-20261024` changes only presentation ownership, test identity and supporting documentation:
-- HostView owns embedded Search/Queue sheet identity and attaches it to the stable scroll-container presenter.
-- `KantaMainPlayerView` routes embedded intents through the existing `KantaPresentationGate`; fullscreen retains its own child sheet in the UIKit-hosted player.
-- A shared sheet-content view preserves the same HostViewModel, singer-name binding and microphone state.
-- Embedded and fullscreen Search identifiers are distinct; regression coverage and static architecture checks enforce this.
-- No playback/FIFO controller, imported media, persistence format, dependency or audio path changes.
+PR #58's first embedded-sheet ownership candidate, `24c406f4b515ad8d47d58482163f71b29e8d3ec5`, passed the iPhone walkthrough but failed three iPad keypad assertions in [run #40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013). The failure-time hierarchy showed the stage and Search control but no presented keypad; the exact internal presenter path is not logged.
 
-Candidate source tree includes source changes through `37ccadf81caa286cb8ca7802f3dbde0beec849a3`; test, source-contract and documentation follow-ups are on the same branch. Hosted validation on the new tree is pending. The repair is not accepted until reconstruction and the full iPhone/iPad walkthrough pass on the exact candidate SHA.
+The current repair consolidates embedded Stage Search/Queue and CONTROL/session-save/Favorites under one root `HostView` sheet identity. Typed embedded intents still use `KantaPresentationGate`, and the shared `onDismiss` completes the matching `.stage` or `.host` owner. Fullscreen Search/Queue remain a separate child sheet inside the UIKit-hosted fullscreen player. Existing iPhone/iPad assertions and unique accessibility identifiers are retained. This source change is not accepted until current-head reconstruction and the complete iPhone/iPad walkthrough pass.
 
 ### Current release evidence
 
-- Latest main reconstruction and website checks: [#39994959594](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39994959594) and [#39994959668](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39994959668).
-- New unsigned iOS candidate from [#39996051816](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051816), source `49e3f8ea111cf985c9e768e1d0a9a2a5d17bbc7b`, SHA-256 `824f6dd5ba9c534debfc07958e34a0b4261b92ecfb5eaec8182c2a911f11f697`. This is an unsigned personal-signing input, not an installable signed release.
-- GitHub Releases currently has no published release. Diagnostic and unsigned artifacts are not production APK/IPA releases.
-- Exact release-candidate iPhone/iPad acceptance remains open until the new candidate tree passes.
+- Latest main checks passed on `ebe2f7ae42dcb578e6247adbd2be09a3cf24b57b`: [reconstruction #40009517716](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517716), [website #40009517823](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517823), [Vercel deploy #40009517898](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517898), and [unsigned iOS artifact #40009518032](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032).
+- The unsigned `KANTA-personal-unsigned` artifact [#12526580325](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032/artifacts/12526580325) expires 2026-10-30. It is a personal-signing input, not a signed or directly installable release.
+- GitHub Releases has no published release. Verified-download packaging has not produced a bundle for the latest main SHA.
+- Release acceptance remains blocked until the complete iPhone/iPad walkthrough passes on the exact release candidate SHA and exact-SHA packaging succeeds.
 
 ## Current accepted state
 
