@@ -38,7 +38,7 @@ States `stage`, `presenting(destination)`, `presented(destination)`, `dismissing
 | Fullscreen, external display, scenic/realm visuals | Read-only stage projection and presentation coordinator | Rotation/display tests |
 | Microphone, monitor, scoring, pitch correction/Auto-Tune-style DSP | Opt-in audio capture/processing graph; route/feedback safeguards | Latency, tuning, safety and hardware validation |
 | Companion remote | Authenticated, versioned protocol adapter, never separate queue | iOS/Android interoperability and two-device test |
-| YouTube both platforms | Reserved external-video source type, official visible player adapter and mixed-source FIFO | Queued: `docs/YOUTUBE_PLAYBACK_PLAN.md`; ads can interrupt non-Premium playback; no ad suppression/extraction |
+| YouTube both platforms | Independent local and official visible online transport; identity-fenced foreground player owner, separate audio-focus coordinator | PR #51 foreground-lifetime candidate; audio focus and runtime/device acceptance open. Updated owner decision in `docs/YOUTUBE_PLAYBACK_PLAN.md` supersedes mixed-source FIFO; no ad suppression/extraction |
 | Voice search | Permission-gated query provider into existing search | Language/device acceptance |
 | Favorites, songbook, session save | Library metadata + idempotent persistence, modal intent | Data and lifecycle regression |
 | Download pages, onboarding, privacy/legal | Platform-specific verified feature manifest + release artifacts | IPA/APK checksum, signing and deployment gates |

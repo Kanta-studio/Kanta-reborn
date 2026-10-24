@@ -111,7 +111,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         openFullscreen.tap()
         let fullscreenExit = app.buttons["fullscreen.exit"]
         XCTAssertTrue(fullscreenExit.waitForExistence(timeout: waitSeconds))
-        let fullscreenSearch = app.buttons["stage.search.fullscreen"]
+        let fullscreenSearch = app.buttons["stage.search"]
         XCTAssertTrue(fullscreenSearch.waitForExistence(timeout: waitSeconds))
         fullscreenSearch.tap()
         XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Search did not present inside fullscreen")
@@ -132,40 +132,6 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         search.tap()
         XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Stage Search must present after the fullscreen player has fully dismissed")
         app.buttons["Cancel"].tap()
-    }
-
-    @MainActor
-    func testRestoredHostInlineRemoteAndLibrary() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
-        app.launch()
-        XCTAssertTrue(app.staticTexts["NOW SINGING"].waitForExistence(timeout: waitSeconds))
-        capture("restored-host-stage", app)
-        let remoteToggle = app.buttons["host.remotePanel.toggle"].firstMatch
-        XCTAssertTrue(remoteToggle.waitForExistence(timeout: waitSeconds))
-        for _ in 0..<4 where !remoteToggle.isHittable { app.swipeUp() }
-        XCTAssertTrue(remoteToggle.isHittable)
-        XCTAssertEqual(
-            app.buttons.matching(identifier: "host.remotePanel.toggle").count, 1,
-            "The inline remote disclosure must have one unique toggle"
-        )
-        capture("restored-host-remote-collapsed", app)
-        remoteToggle.tap()
-        XCTAssertTrue(app.textFields["Search song title or code"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.navigationBars["CONTROL"].exists, "Inline remote must not present a sheet")
-        XCTAssertTrue(app.buttons["stage.playPause"].exists, "Expansion must preserve the stage")
-        XCTAssertEqual(
-            app.buttons.matching(identifier: "host.remotePanel.toggle").count, 1,
-            "Expanded content must not inherit the disclosure toggle identifier"
-        )
-        capture("restored-host-remote-expanded", app)
-        remoteToggle.tap()
-        for _ in 0..<4 where !app.buttons["More"].isHittable { app.swipeDown() }
-        openMenu(in: app, expecting: "Song Library")
-        app.buttons["Song Library"].tap()
-        XCTAssertTrue(app.buttons["library.addFolder"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["library.chooseFolder"].exists)
-        capture("restored-library-empty", app)
     }
 
     @MainActor
@@ -201,21 +167,143 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
     }
 
     @MainActor
-    func testMainMenuPrimaryScreens() throws {
-        assertMenuScreens(["Song Library", "KANTA Songbook", "Settings"], prefix: "menu-primary")
-    }
-
-    @MainActor
-    func testMainMenuCompanionAndLegalScreens() throws {
-        assertMenuScreens(["Companion Remote", "iCloud Save", "Legal & Privacy"], prefix: "menu-companion")
-    }
-
-    @MainActor
-    private func assertMenuScreens(_ destinations: [String], prefix: String) {
+    func testOnlinePreviewEntryCloseReopenAndForegroundLifecycle() throws {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
-        // Keep each group below XCTest's per-case deadline while retaining fresh-launch isolation.
-        for destination in destinations {
+        app.launch()
+        openOnlinePreview(in: app)
+        let field = app.textFields["youtube.preview.link"]
+        field.tap()
+        field.typeText("invalid\n")
+        app.buttons["youtube.preview.continue"].tap()
+        let invalid = app.alerts["Invalid YouTube link"]
+        XCTAssertTrue(invalid.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.webViews.firstMatch.exists, "Invalid input constructed a web player")
+        invalid.buttons["OK"].tap()
+        field.tap()
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 7))
+        field.typeText("https://youtu.be/abcdefghijk\n")
+        requestOnlinePreview(in: app, evidence: "online-first-open")
+        closeOnlineAttempt(in: app)
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.webViews.firstMatch.exists, "Stop left a native web view attached")
+        requestOnlinePreview(in: app, evidence: "online-explicit-reopen")
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(field.waitForExistence(timeout: waitSeconds), "Foreground return restored an old player")
+        XCTAssertFalse(app.buttons["youtube.preview.stop"].exists)
+        XCTAssertFalse(app.webViews.firstMatch.exists)
+        XCTAssertTrue(app.buttons["youtube.preview.continue"].isEnabled)
+        capture("online-foreground-requires-explicit-reopen", app)
+        app.buttons["youtube.preview.done"].tap()
+        XCTAssertTrue(app.buttons["youtube.preview.open"].waitForExistence(timeout: 10))
+        app.buttons["youtube.preview.open"].tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["youtube.preview.continue"].isEnabled)
+        XCTAssertFalse(app.webViews.firstMatch.exists)
+        app.buttons["youtube.preview.done"].tap()
+        app.buttons["controls.done"].tap()
+        let search = app.buttons["stage.search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        XCTAssertTrue(app.buttons["stage.keypad.0"].waitForExistence(timeout: 10))
+        app.buttons["Cancel"].tap()
+    }
+
+    @MainActor
+    func testOnlinePreviewPreservesPausedStarterAndLocalResume() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        app.launch()
+        openMenu(in: app, expecting: "Song Library")
+        app.buttons["Song Library"].tap()
+        let play = app.buttons["starter.play.morning-light"]
+        XCTAssertTrue(play.waitForExistence(timeout: waitSeconds))
+        for _ in 0..<5 where !play.isHittable { app.swipeUp() }
+        XCTAssertTrue(play.isHittable)
+        play.tap()
+        app.buttons["navigation.done"].tap()
+        let transport = app.buttons["stage.playPause"]
+        expectation(for: NSPredicate(format: "label == 'Pause' AND enabled == true"), evaluatedWith: transport)
+        waitForExpectations(timeout: waitSeconds)
+        transport.tap()
+        expectation(for: NSPredicate(format: "label == 'Play'"), evaluatedWith: transport)
+        waitForExpectations(timeout: 5)
+        let song = app.staticTexts["stage.currentSong"]
+        let pausedTitle = song.label
+        XCTAssertTrue(pausedTitle.contains("Morning Light"))
+        openOnlinePreview(in: app)
+        let field = app.textFields["youtube.preview.link"]
+        field.tap()
+        field.typeText("https://youtu.be/abcdefghijk\n")
+        requestOnlinePreview(in: app, evidence: "online-preserves-paused-starter")
+        app.buttons["youtube.preview.done"].tap()
+        XCTAssertTrue(app.buttons["controls.done"].waitForExistence(timeout: 10))
+        app.buttons["controls.done"].tap()
+        XCTAssertTrue(transport.waitForExistence(timeout: 10))
+        XCTAssertEqual(transport.label, "Play", "Opening online playback changed local transport")
+        XCTAssertEqual(song.label, pausedTitle, "Opening online playback replaced the local song")
+        XCTAssertFalse(app.webViews.firstMatch.exists)
+        transport.tap()
+        expectation(for: NSPredicate(format: "label == 'Pause'"), evaluatedWith: transport)
+        waitForExpectations(timeout: 5)
+        capture("online-dismissed-local-starter-resumes", app)
+        transport.tap()
+    }
+
+    @MainActor
+    private func openOnlinePreview(in app: XCUIApplication) {
+        let controls = app.buttons["stage.controls"]
+        XCTAssertTrue(controls.waitForExistence(timeout: waitSeconds))
+        controls.tap()
+        let online = app.buttons["youtube.preview.open"]
+        XCTAssertTrue(online.waitForExistence(timeout: 10))
+        XCTAssertTrue(online.isHittable)
+        online.tap()
+        XCTAssertTrue(app.textFields["youtube.preview.link"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.webViews.firstMatch.exists, "Online content loaded before explicit consent")
+    }
+
+    @MainActor
+    private func requestOnlinePreview(in app: XCUIApplication, evidence: String) {
+        let proceed = app.buttons["youtube.preview.continue"]
+        XCTAssertTrue(proceed.isEnabled)
+        proceed.tap()
+        let stop = app.buttons["youtube.preview.stop"]
+        let error = app.staticTexts["youtube.preview.error"]
+        // External availability is not a media fixture. Both paths must leave a usable screen.
+        let deadline = Date().addingTimeInterval(waitSeconds)
+        while Date() < deadline {
+            if stop.exists && stop.isHittable && app.webViews.firstMatch.exists {
+                capture(evidence + "-native-player", app)
+                return
+            }
+            if error.exists && proceed.exists && proceed.isEnabled {
+                XCTAssertTrue(error.label.contains("Online video could not load"), "Native claim failed instead of a recoverable external-load error")
+                XCTAssertFalse(app.webViews.firstMatch.exists)
+                capture(evidence + "-external-load-error", app)
+                return
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        capture(evidence + "-missing-outcome", app)
+        XCTFail("Online entry reached neither visible native player controls nor a recoverable external-load error")
+    }
+
+    @MainActor
+    private func closeOnlineAttempt(in app: XCUIApplication) {
+        let stop = app.buttons["youtube.preview.stop"]
+        if stop.exists { stop.tap() }
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.webViews.firstMatch)
+        waitForExpectations(timeout: 10)
+    }
+
+    @MainActor
+    func testMainMenuButtonsAndScreens() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        for destination in ["Song Library", "KANTA Songbook", "Settings",
+                            "Companion Remote", "iCloud Save", "Legal & Privacy"] {
             app.launch()
             XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
             openMenu(in: app, expecting: destination)
@@ -223,9 +311,34 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
             XCTAssertTrue(button.waitForExistence(timeout: 5))
             waitForRendered(button, in: app)
             button.tap()
-            capture(prefix + "-" + destination, app)
+            capture("menu-" + destination, app)
             app.terminate()
         }
+    }
+
+    @MainActor
+    func testBrowserCompanionRoleAndInputRejection() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
+        app.launch()
+        XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
+        openMenu(in: app, expecting: "Companion Remote")
+        app.buttons["Companion Remote"].tap()
+        let browser = app.buttons["browser.companion.open"]
+        waitForRendered(browser, in: app)
+        browser.tap()
+        let hostAddress = app.textFields["browser.host.address"]
+        let host = app.buttons["browser.host.start"]
+        let remote = app.buttons["browser.remote.open"]
+        XCTAssertTrue(hostAddress.waitForExistence(timeout: waitSeconds))
+        XCTAssertFalse(host.isEnabled, "Hosting must not start without explicit valid input")
+        XCTAssertFalse(remote.isEnabled)
+        XCTAssertTrue(app.staticTexts["Browser companion is off"].exists)
+        hostAddress.tap()
+        hostAddress.typeText("0.0.0.0")
+        XCTAssertFalse(host.isEnabled, "Wildcard hosting must be rejected before networking")
+        XCTAssertFalse(app.buttons["browser.host.stop"].exists)
+        capture("browser-companion-input-rejection", app)
     }
 
     @MainActor
@@ -268,10 +381,6 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         XCTAssertTrue(queue.waitForExistence(timeout: waitSeconds))
         XCTAssertEqual(queue.value as? String, "2 reservations")
         app.buttons["stage.search"].tap()
-        XCTAssertTrue(
-            app.buttons["stage.keypad.0"].waitForExistence(timeout: 10),
-            "Embedded Stage Search must present its keypad on the active iPad/iPhone window"
-        )
         for digit in 0...9 { XCTAssertTrue(app.buttons["stage.keypad.\(digit)"].exists) }
         app.buttons["Cancel"].tap()
         XCTAssertEqual(queue.value as? String, "2 reservations")

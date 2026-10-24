@@ -6,30 +6,17 @@ KCP1 client work connects only to explicit numeric RFC1918 IPv4 on port 45731. I
 
 # Codebase Context Packet — KANTA Reborn
 
-## Current repository snapshot — 2026-10-24
-
-Canonical online repository: `usermalik20-del/Kanta-reborn`; the requested `kanta-gelo/Kanta-reborn` URL redirects here. Main is at `ebe2f7ae42dcb578e6247adbd2be09a3cf24b57b` (`fix(web): remove stale build links and provenance`). The exact main-SHA runs for [Vercel deploy #40009517898](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517898), [website validation #40009517823](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517823), [unsigned iOS artifacts #40009518032](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032) and [reconstruction validation #40009517716](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517716) succeeded.
-
-### Current release-acceptance candidate
-
-Main does not yet have a successful full iPhone/iPad walkthrough on its latest SHA. The latest main-branch walkthrough [#39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296) ran on older SHA `81148475474742cf417d386ff4713b44cf58df0e` and failed both devices: iPhone reported duplicate `host.remotePanel` matches; iPad failed Search/keypad transitions. Since the newest main commits only changed web/CI behavior, the walkthrough did not automatically rerun on `ebe2f7a`.
-
-PR #58's first embedded-sheet ownership candidate, `24c406f4b515ad8d47d58482163f71b29e8d3ec5`, passed the iPhone walkthrough but failed three iPad keypad assertions in [run #40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013). The failure-time hierarchy showed the stage and Search control but no presented keypad; the exact internal presenter path is not logged.
-
-The current repair consolidates embedded Stage Search/Queue and CONTROL/session-save/Favorites under one root `HostView` sheet identity. Typed embedded intents still use `KantaPresentationGate`, and the shared `onDismiss` completes the matching `.stage` or `.host` owner. Fullscreen Search/Queue remain a separate child sheet inside the UIKit-hosted fullscreen player. Existing iPhone/iPad assertions and unique accessibility identifiers are retained. This source change is not accepted until current-head reconstruction and the complete iPhone/iPad walkthrough pass.
-
-### Current release evidence
-
-- Latest main checks passed on `ebe2f7ae42dcb578e6247adbd2be09a3cf24b57b`: [reconstruction #40009517716](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517716), [website #40009517823](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517823), [Vercel deploy #40009517898](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517898), and [unsigned iOS artifact #40009518032](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032).
-- The unsigned `KANTA-personal-unsigned` artifact [#12526580325](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032/artifacts/12526580325) expires 2026-10-30. It is a personal-signing input, not a signed or directly installable release.
-- GitHub Releases has no published release. Verified-download packaging has not produced a bundle for the latest main SHA.
-- Release acceptance remains blocked until the complete iPhone/iPad walkthrough passes on the exact release candidate SHA and exact-SHA packaging succeeds.
+Current snapshot: merged Android stage/party and iOS runtime work, verified download packaging and restored website. Native source revisions and checks are listed below and in the root README. This is a testing reconstruction, not a signed production release.
 
 ## Current accepted state
 
-This is a reconstructed testing project, not a signed production release. Android uses native Java/Android Views with AGP 8.13.2, compile/target SDK 36, min SDK 26, Java 17 and pinned TinySoundFont via JNI. iOS uses SwiftUI/iOS 17, AVFoundation playback and the existing GeloKaraokeCore controller. Each platform retains its own authoritative playback/FIFO owner. No cross-platform playback state or queue has been introduced.
+Android 0.8.0 source `57dc0611cb54435802a4bd7d226e00983dd3c8f6` passed run 38845590252 with 328 domain assertions, 110 actual API 35 checks, APK/instrumentation build, lint, native sanitizers, browser interoperability and the permission/runtime-notice gate. Private media, front-camera preview, dry input, experimental monitoring/effects and optional pitch-following scores are merged. Physical timing/scoring accuracy and wired/USB output quality remain unverified.
 
-Source-review risks must not be reported as measured performance. Physical device audio/latency, signed Apple distribution, external-display behavior, real-network companion interoperability and commercial licensing review remain separate acceptance gates.
+iOS source `3c12a1fb962ac956250a8f238c01eace13f560d2` passed all three UI walkthroughs on both iPhone and iPad plus unsigned device packaging in run 38806377805; its package source passed 158 tests. No Apple source change is included in the Android follow-ups.
+
+Packaging run 38842836405 passed five contract tests and original app identity/checksum verification. Android and unsigned iOS bundles last 30 days and require GitHub sign-in. The static website remains under apps/web; its private reader is byte-identical to evidence and CSP blocks network connections.
+
+Control panels still rebuild on controller publication and search remains in-memory over normalized snapshots. These are source-review risks, not measured latency claims. Camera preview has no capture/analysis/recording output. Experimental monitored effects are implemented; physical output and calibrated scoring, secure companion and official YouTube remain unfinished. Physical quality/latency, external displays and signing remain open.
 
 ## Android stack
 
@@ -223,23 +210,72 @@ Repository: `kanta-gelo/Kanta-reborn`, PR #36, branch `fix/ios-modal-ownership-p
 
 PR #36 now covers the previously separate UIKit fullscreen player in the shared presentation-gate candidate. The gate models Search/Queue presented inside fullscreen as a nested stage owner, restores fullscreen on child dismissal, and releases fullscreen only after UIKit's dismissal callback. The UI walkthrough adds nested Search and post-exit Search checks. Current-head CI and iPhone/iPad runtime evidence are still required; no release verification is implied.
 
-## PR #52 restoration implementation — 2026-10-18
 
-Branch design/restore-library-host-20261018, baseline 519890b. SwiftUI/iOS 17, existing GeloVisualStyle tokens, scenic renderer and LocalKaraokeController remain authoritative. No dependency/storage/audio/network changes. Host now scrolls a bounded-width embedded stage card, collapsed inline InAppControlCenterView and external-display information; fullscreen retains the existing KantaMainPlayerView presentation path. Direct Expand requests the shared fullscreen gate; CONTROL dismissal still acknowledges UIKit/SwiftUI callbacks. Library imports use the existing bookmark-backed model, with busy-state protection on both folder entry points. No measured performance claim. New UI coverage captures the collapsed/expanded Host and disconnected Library. Local layout/presentation guards pass; Apple compilation and simulator acceptance remain pending.
+## PR #51 foreground player lifetime repair — October 18, 2026
+
+Source baseline: PR #51 `77f9f1078efc05cf91cc06db4fbd93780007c87e`. Source review confirms Swift 6.2/iOS 17 SwiftUI + WebKit; Java 17/Views, minSdk 26/targetSdk 36, existing Activity 1.10.1/CameraX 1.5.3 and direct system WebView. No dependency, permission, storage, search, decoder, remote-protocol, signing or workflow change. LocalKaraokeController and SessionController retain authoritative FIFO/transport. Transient preview UUIDs fence errors/dismissals; native retirement runs on the UI thread, with explicit WebKit suspension and Android terminal destroy. No measured audio latency or hardware behavior is inferred. Static/Python checks passed; hosted compilation/runtime and audio-focus coordination remain open. See `YOUTUBE_LIFECYCLE_CHECKPOINT.md`.
 
 
-## PR #52 Host compiler repair candidate — 2026-10-18
+## Android online preview follows authoritative playback publication — October 18, 2026
 
-Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
+Baseline: PR #51 `5c1b0f4`, whose reconstruction and focused iPhone smoke checks passed. The online/local overlap guard previously ran only after primary Play/Next button callbacks. Encrypted companion commands bypass those callbacks, and backend start acknowledgement is asynchronous, so those paths could leave a visible online player alive after local playback started.
 
-The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.
+MainActivity now reconciles the preview at the start of the existing SessionController listener's render callback. All published local starts/resumes retire the online instance; primary buttons again issue only controller commands. The preview owner does not pause local transport, consume reservations or introduce a playback queue. Replacement/dismissal guards remain unchanged. This closes a controller-observation gap, not general OS audio-focus arbitration or a guarantee of zero overlapping audio frames. SFX/intermission, iOS native runtime and physical audio/session acceptance remain separate.
 
-## Verified download packaging gate — 2026-10-24
+The Android instrumentation uses real KCP1 socket commands to reserve/start a local starter while a preview is open, waits for backend start acknowledgement, verifies native preview retirement, pauses, explicitly reopens the preview, resumes remotely and verifies retirement again. Reservation alone must preserve the preview, normal FIFO consumption remains checked, and local Stop must not reopen online playback. New-head APK/lint/emulator acceptance is pending. No website, dependency, permission, persistence or remote-protocol change.
 
-The verified-download workflow separates automatic contract validation from manual packaging. Contract tests run on relevant pull requests and main pushes; packaging is manually dispatched from main with an optional exact source SHA. Packaging requires the latest matching main-branch reconstruction validation, unsigned iOS device archive and complete iPhone/iPad walkthrough to have succeeded on that same SHA. It discovers artifacts from those runs rather than retaining hard-coded artifact IDs, rejects expired or cross-source artifacts, and validates checksums and application identity. It copies the accepted APK/unsigned IPA bytes without rebuilding or signing them and does not publish a GitHub Release or deploy production downloads.
 
-Failure evidence: [run 39992413302](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413302) passed contract tests but failed because the previous hard-coded artifact ID returned HTTP 404. The repair candidate and validation record are tracked in [CI failure repair ledger](CI_FAILURE_REPAIR_LEDGER.md).
+## Android audio ownership context — October 18, 2026
 
-## iOS walkthrough regression checkpoint — 2026-10-24
+Based on PR #51 `fa5dcbcf7aa070d924d86ed6c3e832af3618cebb`. Java 17/Views, minSdk 26/targetSdk 36, Activity 1.10.1, CameraX 1.5.3, direct system WebView and existing AudioFocusRequest remain unchanged. No new dependency, permission, storage/search schema, decoder, remote protocol, signing or workflow. SessionController now owns a main-Looper-only online-audio UUID and retirement callback; MainActivity destroys only its matching visible preview. All five native focus call sites use one revocation-before-request helper. Auxiliary automatic intermission cannot reclaim focus while online is active. Microphone/monitoring must be stopped explicitly before opening online playback. Local queue/current song and decoder settings remain unchanged.
 
-The iPhone runtime evidence for [run 39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296) exposed two release-acceptance failures on SHA `81148475474742cf417d386ff4713b44cf58df0e`: (1) the Host inline-remote `DisclosureGroup` accessibility identifier propagated to expanded descendants, creating multiple `host.remotePanel` button matches; (2) the six-destination menu test exceeded XCTest's 120-second per-case allowance due repeated simulator app launches. The repair scopes a unique identifier to the disclosure label, asserts uniqueness before/after expansion, splits menu coverage into two bounded cases, and makes the runtime runner require all seven cases and recognize timeout/execute-failed markers. See [CI failure repair ledger](CI_FAILURE_REPAIR_LEDGER.md); both-device validation on the repair head is still pending.
+Regression instrumentation uses real native players/AudioRecord and KCP1 commands with network-blocked local WebView content. Tests cover stale release, explicit local output priority, auxiliary stop/restart, microphone preservation, foreground loss and distinct FIFO identities. No physical latency or zero-overlap claim is made. Reviewed Android's official audio-focus guidance: https://developer.android.com/media/optimize/audio-focus . Native focus requests remain checked immediately before native output; WebView playback remains gesture-controlled.
+
+
+## iOS native WebKit coverage context — October 18, 2026
+
+Baseline PR #51 `99f3898` has green reconstruction validation, including Android audio coordination. iOS app/runtime playback and dependency boundaries are unchanged. XcodeGen adds one iOS 17/Swift 6 hosted unit-test target using the system XCTest/UIKit/WebKit frameworks, the existing GeloKaraokeCore product and the unchanged production preview component source. No dependency upgrade, permission, persisted state, app identity, signing, package test removal or release-testability setting is introduced.
+
+Three native cases cover replacement/same-video identity, foreground-loss cleanup/no resurrection, stale callbacks, process-failure idempotency and explicit reopen. No remote bytes are requested by those cases. Test-layout coverage includes both Xcode test roots; the smoke workflow builds and executes native and navigation tests serially within the existing timeout. The log gate requires all four named passes and no prior failure/restart. Local source/wiring guards and 54 Python release-tooling tests passed; Xcode/native simulator execution must validate the resulting head. iOS audio-session coordination remains separate.
+
+
+## iOS audio handoff candidate — October 18, 2026
+
+Based on PR #51 head `5d25f62993c8b003099c345b5387172a1fdf5af7`. AppServices constructs one MainActor KaraokeAudioOwnership alongside the existing LocalKaraokeController and a shared intermission owner. The coordinator owns only an ephemeral online UUID/retirement callback and foreground/microphone eligibility; it owns no queue, local transport, persistence or YouTube commands.
+
+Online claims acquire the controller's existing cancellation-aware operation gate, reject actual playing state, stop SFX, suspend both idle rendering engines without Pause/Stop or position changes, then atomically recheck microphone/foreground/monitor eligibility on MainActor before stopping intermission and configuring the shared playback session. Local load/resume/playing seek and SFX retire the online native owner before native output. Remote commands and natural advance use these same controller paths. Capture announces activity synchronously before its permission await and releases it on denial/failure/stop; native output preserves capture's playAndRecord category. Session errors fail visibly. Foreground loss retires online ownership; returning does not reopen it.
+
+The sheet cancels pending claims on close and rechecks its request UUID/foreground/ownership after suspension. The representable also checks ownership before attachment/load, preventing a revoked pre-mount session from constructing an active player. Stale release cannot clear a replacement. Intermission stops immediately, invalidates fades, and requires explicit re-enabling; automatic snapshot updates cannot reclaim online audio. Source files and reservation/playback identities are unchanged.
+
+Regression coverage adds controller preparation/cancellation/microphone races, paused song/FIFO identity, explicit Next/SFX handoff, stale release, foreground, session failure and both rendering routes. Native smoke adds real WKWebView retirement-before-session configuration and synthetic AVAudioPlayer intermission handoff/restart; the named-pass verifier now requires all five native cases plus navigation. The test target compiles the two production components directly; no app testability, dependency or permission change.
+
+Local layout, presentation, starter resources/generation and whitespace checks passed. Hosted Swift compilation, package execution, unsigned simulator app build and expanded native/navigation smoke are pending on the resulting source. Physical audio timing, real embeds/ads, interruptions, privacy and full iPhone/iPad release acceptance remain open. No zero-overlap timing, signing, merge, deployment or release is claimed.
+
+
+### Accepted hosted iOS audio coordination — October 18
+
+Source `6f7a0ece9e42cc500ce4f52cc414c58e5e11b58e` passed reconstruction 39112387766 (178 Swift tests, 54 tooling tests, unsigned simulator app build and Android validation) and smoke 39112387680 (all five native cases plus focused navigation, explicit named-pass gate). The iOS session/auxiliary implementation and hosted regression gap is closed. Actual SwiftUI online-sheet/media flow and physical embed/interruption/privacy/ads acceptance remain open; no zero-overlap timing, merge, signing or release is implied. See docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md for evidence and next steps.
+
+
+## Online-sheet UI acceptance context — October 18, 2026
+
+Baseline PR #51 24db7a1 contains source 6f7a0ec with accepted controller/native audio coordination. Actual UI entry is Stage CONTROL -> HostView's nested online sheet -> KantaYouTubePreviewSheet -> transient lifecycle/serialized controller claim -> WKWebView. The sheet owns only presentation; cancellation, foreground and ownership checks fence its asynchronous claim. AppServices owns shared services, while LocalKaraokeController still owns transport/FIFO.
+
+This batch adds stable control identifiers and keyboard dismissal plus two real XCUIApplication flows: invalid/valid entry, stop/reopen, background cleanup, dismissal/reentry and paused-original-starter preservation/resume. Synthetic video metadata has no autoplay; an external request must yield visible player controls or a recoverable native load error. Neither accepted outcome proves playable media/ads. Existing native process-failure and handoff tests remain strict. Keep all previous smoke cases and require both new named UI passes; no injected fake player, test launch bypass, extra sensor permission or dependency. Full release walkthrough/device/media gates remain separate.
+
+
+## PR #51 built-in and browser remote candidate — October 18, 2026
+
+Owner explicitly moved the approved Companion Remote UI and browser implementation into PR #51. Source now adds native role entry, locally served responsive remote assets, private-interface HTTPS with per-session identities and fingerprint trust bootstrap, bounded guest authentication/replay/expiry, native pinned clients and controller-owned local commands. No decoder, persistent media/queue format, native dependency, sensor permission, signing or website release change. Existing KCP1/legacy paths remain separate. The shared HTML assets are platform-owned copies checked for equality; neither native build depends on the other platform.
+
+Local Java core: 524 checks passed, including 45 actual TLS checks. API 36 compilation of PinnedBrowserTransport, 55 tooling tests, Swift layout/presentation/starter guards and captured Songbook interop passed. Local Chrome was blocked by the environment's Unix socket restriction; UI is not accepted from syntax/transport checks. Native builds, nine-case simulator smoke, full eight-case iPhone/iPad walkthrough, real-browser tests, cross-platform/device trust/security/media acceptance remain pending. Unsupported expanded shortcuts are disabled, not represented as completed features. See docs/COMPANION_BROWSER_CHECKPOINT.md (root-relative) for exact trust, expiry, limits, source and acceptance scope. No physical latency/performance result, merge, signing, deployment or release is implied.
+
+
+## PR #51 native iOS Keychain test boundary — October 18, 2026
+
+Source checkpoint `2e67879` compiles `LocalNetworkControl` as a Swift package dependency of the XcodeGen iOS host and native XCTest. `ios-smoke.yml` builds that target in Release without enabling `@testable` on the package. The app-hosted native test therefore requires a narrowly scoped Swift SPI to call the existing session-identity Keychain implementation without changing the production build configuration or introducing a parallel identity implementation. `BrowserRemoteIdentity` remains owned by `LocalNetworkControl`; its `@_spi(Testing)` surface is test access, not a supported client API. The native test still checks exact certificate bytes, private-key retrieval and removal. The previously failed smoke run is 39129484883; changed-head acceptance is pending. No new dependency or runtime queue/audio state owner is introduced.
+
+
+## PR #51 iOS native Keychain acceptance boundary — October 18, 2026
+
+The Release test-module SPI repair compiles and passes Swift package tests at `215e02a` (reconstruction 39136036615). The unsigned simulator smoke job 39136036597 executed the new app-hosted identity test but `SecItemAdd` returned `errSecMissingEntitlement` (`-34018`). Five native WebKit and four UI smoke tests passed; the Keychain acceptance gate did not. `ios-smoke.yml` uses `CODE_SIGNING_ALLOWED=NO`; no team identity, provisioning profile, signed IPA or new release was created. An authorized entitled simulator test host and explicit entitlement inspection are required before claiming native Keychain support. Production runtime and FIFO ownership are unchanged.

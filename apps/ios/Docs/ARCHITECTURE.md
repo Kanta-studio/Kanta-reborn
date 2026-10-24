@@ -1176,23 +1176,45 @@ The optional `EncryptedCompanionView`/`EncryptedCompanionClient` path uses syste
 The background SingingModalPresenter now retains a weak identity for only the karaoke player it creates and dismisses that player directly. UIKit's presentedViewController may refer to an ancestor's presentation, so it must never be used as permission to dismiss unrelated SwiftUI menus or sheets. The active-playback walkthrough verifies that More remains visible across redraws, then enters/exits the library without changing playback. UI harness waits for rendered controls and observed menu presentation, with bounded retries only for the idempotent open-menu action. This repair changes app presentation only; package/core source, FIFO ownership and audio semantics remain unchanged. Changed-source simulator execution remains required. Reference: https://developer.apple.com/documentation/uikit/uiviewcontroller/presentedviewcontroller .
 
 
-## PR #52 Host compiler repair candidate — 2026-10-18
+## PR #51 foreground player lifetime repair — October 18, 2026
 
-Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
-
-The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.
-
-## Embedded versus fullscreen Stage sheet ownership — candidate (2026-10-24)
-
-The embedded Stage is rendered inside HostView's scroll container. Its Search/Queue sheet identity now belongs to HostView, with the sheet attached to the stable scroll-container presenter rather than the embedded child view. `KantaMainPlayerView` sends typed embedded sheet intents through the shared `KantaPresentationGate`; it no longer tries to present its own sheet for the embedded projection.
-
-The fullscreen Stage remains inside its UIKit-owned hosting controller and keeps its own Search/Queue child sheet. Both presentations reuse the same HostViewModel, singer-name binding, microphone-busy state and authoritative FIFO. The embedded and fullscreen Search controls have distinct accessibility identifiers so XCTest cannot silently select the wrong projection.
-
-This is a repair candidate prompted by iPad-only missing-keypad failures in [walkthrough #39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824). The prior app/UI build compiled, but the iPad runtime did not present the expected sheet. The candidate deliberately changes presentation ownership instead of adding retries or removing assertions. Full changed-head iPhone/iPad acceptance remains pending.
+The online sheet owns transient preview identities and one MainActor native WebKit owner. Replacement retires the old coordinator before attachment; inactive/disappear/Stop/Done suspend and blank the WebView and invalidate callbacks. Repeated links get new native identities. LocalKaraokeController/FIFO and audio sessions are unchanged; audio-focus coordination remains open. See root `docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md`.
 
 
-### Follow-up — iPad still missed embedded Stage sheets (2026-10-24)
+## Native online-player test boundary (PR #51)
 
-The scroll-container presenter candidate was insufficient: walkthrough [#40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013) passed the iPhone walkthrough but failed three iPad keypad assertions. Source inspection found two SwiftUI `.sheet` modifiers in the same Host hierarchy: HostView's root sheet for CONTROL/session/Favorites and a second sheet on `hostContent` for embedded Search/Queue. The exact internal UIKit presentation path is not logged, but competing sheet ownership remains the actionable architectural defect.
+KantaNativeTests compiles the unchanged Features/Host/YouTubeEmbeddedPlayerView.swift into a simulator-hosted XCTest bundle and exercises real native owner/coordinator cleanup. Release apps retain their existing testability, signing and dependency settings. The focused root smoke selects three native cases plus its existing navigation case and requires explicit pass evidence. This does not establish iOS audio-session arbitration or real YouTube/device acceptance; see ../../../docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md.
 
-The next candidate consolidates embedded Stage Search/Queue and Host panels under the single root HostView sheet identity. `HostSheet` maps each destination to its gate owner; the root `onDismiss` completes `.stage` or `.host` accordingly. Fullscreen Search/Queue remain a separate child sheet of the UIKit-owned fullscreen player. Existing iPhone/iPad XCTest assertions remain mandatory; no retry or assertion relaxation is introduced. Validation must pass reconstruction and the complete walkthrough on the updated candidate SHA.
+
+## iOS audio handoff candidate — October 18, 2026
+
+Based on PR #51 head `5d25f62993c8b003099c345b5387172a1fdf5af7`. AppServices constructs one MainActor KaraokeAudioOwnership alongside the existing LocalKaraokeController and a shared intermission owner. The coordinator owns only an ephemeral online UUID/retirement callback and foreground/microphone eligibility; it owns no queue, local transport, persistence or YouTube commands.
+
+Online claims acquire the controller's existing cancellation-aware operation gate, reject actual playing state, stop SFX, suspend both idle rendering engines without Pause/Stop or position changes, then atomically recheck microphone/foreground/monitor eligibility on MainActor before stopping intermission and configuring the shared playback session. Local load/resume/playing seek and SFX retire the online native owner before native output. Remote commands and natural advance use these same controller paths. Capture announces activity synchronously before its permission await and releases it on denial/failure/stop; native output preserves capture's playAndRecord category. Session errors fail visibly. Foreground loss retires online ownership; returning does not reopen it.
+
+The sheet cancels pending claims on close and rechecks its request UUID/foreground/ownership after suspension. The representable also checks ownership before attachment/load, preventing a revoked pre-mount session from constructing an active player. Stale release cannot clear a replacement. Intermission stops immediately, invalidates fades, and requires explicit re-enabling; automatic snapshot updates cannot reclaim online audio. Source files and reservation/playback identities are unchanged.
+
+Regression coverage adds controller preparation/cancellation/microphone races, paused song/FIFO identity, explicit Next/SFX handoff, stale release, foreground, session failure and both rendering routes. Native smoke adds real WKWebView retirement-before-session configuration and synthetic AVAudioPlayer intermission handoff/restart; the named-pass verifier now requires all five native cases plus navigation. The test target compiles the two production components directly; no app testability, dependency or permission change.
+
+Local layout, presentation, starter resources/generation and whitespace checks passed. Hosted Swift compilation, package execution, unsigned simulator app build and expanded native/navigation smoke are pending on the resulting source. Physical audio timing, real embeds/ads, interruptions, privacy and full iPhone/iPad release acceptance remain open. No zero-overlap timing, signing, merge, deployment or release is claimed.
+
+
+### Accepted hosted iOS audio coordination — October 18
+
+Source `6f7a0ece9e42cc500ce4f52cc414c58e5e11b58e` passed reconstruction 39112387766 (178 Swift tests, 54 tooling tests, unsigned simulator app build and Android validation) and smoke 39112387680 (all five native cases plus focused navigation, explicit named-pass gate). The iOS session/auxiliary implementation and hosted regression gap is closed. Actual SwiftUI online-sheet/media flow and physical embed/interruption/privacy/ads acceptance remain open; no zero-overlap timing, merge, signing or release is implied. See docs/YOUTUBE_LIFECYCLE_CHECKPOINT.md for evidence and next steps.
+
+
+## Online-screen UI coverage candidate — October 18, 2026
+
+PR #51 baseline 24db7a1 now adds two real XCUIApplication flows through Stage CONTROL's actual online sheet. They cover invalid-link rejection before WebView construction, explicit valid entry, stop/reopen, background/return without resurrection, Done/reentry and navigation recovery, plus preserving a paused original starter and explicitly resuming it afterward. Stable accessibility identifiers and link-keyboard Done dismissal support the real UI; no fake player or launch-environment bypass is introduced.
+
+The synthetic video ID never autoplays. External YouTube availability is not a fixture: valid entry must reach either actual native player controls with a WebView or the production recoverable load-error state, with retained outcome screenshots. A local audio-claim failure is not accepted as an external-load error. This verifies UI lifecycle/recovery, not successful remote media or deterministic external-error delivery. Existing native process-failure, audio-handoff and controller/FIFO regressions remain required.
+
+Focused smoke retains all five native cases and navigation and now requires both named online-screen cases (eight passes total). The full release walkthrough gate also requires all seven methods in the UI suite; timeouts, serial execution, failure detection, evidence retention, signing and deployment boundaries are unchanged. Local layout/presentation/YAML/whitespace and 55 tooling tests passed. Hosted app/test compilation and actual simulator execution are pending on the resulting source. Physical embed/ads/interruption/privacy and exact-candidate full iPhone/iPad release gates remain open.
+
+
+## PR #51 built-in and browser remote candidate — October 18, 2026
+
+Owner explicitly moved the approved Companion Remote UI and browser implementation into PR #51. Source now adds native role entry, locally served responsive remote assets, private-interface HTTPS with per-session identities and fingerprint trust bootstrap, bounded guest authentication/replay/expiry, native pinned clients and controller-owned local commands. No decoder, persistent media/queue format, native dependency, sensor permission, signing or website release change. Existing KCP1/legacy paths remain separate. The shared HTML assets are platform-owned copies checked for equality; neither native build depends on the other platform.
+
+Local Java core: 524 checks passed, including 45 actual TLS checks. API 36 compilation of PinnedBrowserTransport, 55 tooling tests, Swift layout/presentation/starter guards and captured Songbook interop passed. Local Chrome was blocked by the environment's Unix socket restriction; UI is not accepted from syntax/transport checks. Native builds, nine-case simulator smoke, full eight-case iPhone/iPad walkthrough, real-browser tests, cross-platform/device trust/security/media acceptance remain pending. Unsupported expanded shortcuts are disabled, not represented as completed features. See docs/COMPANION_BROWSER_CHECKPOINT.md (root-relative) for exact trust, expiry, limits, source and acceptance scope. No physical latency/performance result, merge, signing, deployment or release is implied.

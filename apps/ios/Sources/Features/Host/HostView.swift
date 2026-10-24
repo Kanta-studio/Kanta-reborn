@@ -32,8 +32,11 @@ struct HostView: View {
     @ObservedObject private var settings: KantaUserSettings
     @ObservedObject private var externalStage = KantaExternalStageCoordinator.shared
     @State private var singerName = ""
+    @State private var showingYouTubePreview = false
     @StateObject private var audioInputs = KantaAudioInputDiagnostics()
-    @StateObject private var intermission = KantaIntermissionMusic()
+    @ObservedObject private var intermission: KantaIntermissionMusic
+    private let controller: LocalKaraokeController?
+    private let audioOwnership: KaraokeAudioOwnership
     private let partySFX: KantaPartySFXEngine
     private let diagnostics: KantaSupportDiagnostics
     @State private var showControlCenter =
@@ -49,6 +52,9 @@ struct HostView: View {
         self.presentationGate = presentationGate
         self.navigationSheetPresented = navigationSheetPresented
         self.onOpenNavigation = onOpenNavigation
+        controller = services.controller
+        audioOwnership = services.audioOwnership
+        _intermission = ObservedObject(wrappedValue: services.intermission)
         partySFX = services.partySFX
         diagnostics = services.diagnostics
         _networkHost = ObservedObject(
@@ -96,6 +102,10 @@ struct HostView: View {
             case .controls:
                 NavigationStack {
                     hostControls
+                        .sheet(isPresented: $showingYouTubePreview) {
+                            KantaYouTubePreviewSheet(localPlaybackActive: model.snapshot.transport == .playing,
+                                controller: controller, audioOwnership: audioOwnership)
+                        }
                         .safeAreaInset(edge: .bottom) {
                             Button(action: openFullscreenPlayer) {
                                 Label("Open fullscreen player", systemImage: "arrow.up.left.and.arrow.down.right")
@@ -115,6 +125,7 @@ struct HostView: View {
                                     presentationGate.beginDismissal(.host)
                                     activeHostSheet = nil
                                 }
+                                .accessibilityIdentifier("controls.done")
                             }
                         }
                 }
@@ -350,6 +361,10 @@ struct HostView: View {
 
     private var hostControls: some View {
         List {
+            Section("Online video") {
+                Button("Open YouTube video") { showingYouTubePreview = true }
+                    .accessibilityIdentifier("youtube.preview.open")
+            }
             Section {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {

@@ -141,72 +141,125 @@ undefined
 - Validation: pending fresh iPhone/iPad walkthrough and reconstruction checks on the updated head. Do not merge until both device walkthroughs pass.
 
 
-## PR #52 Host compiler repair candidate — 2026-10-18
+### 2026-10-18 — PR #51 has no validation run after lifecycle repair
 
-Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
-
-The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.
-## 2026-10-23 — Green validation follow-up for the fullscreen/presentation-gate batch (issues #35, #37, #40)
-
-The fullscreen and session-save repair commits recorded above were folded into `main` by the merged presentation-gate rework (PR #36, squash `59258ee`) and the subsequent split/gating CI work (PRs #41, #42, #43). The full-screen presenter in `main` is byte-identical to the last candidate repair `fa635ab`, so the earlier `candidate`/`pending` validation lines are recorded here as resolved by the green runs on the merged head; the historical failure text is intentionally left intact.
-
-**Fingerprint (superseded candidates):** `KantaVisualWalkthroughUITests.testStarterPlaybackAndControls` (Search blocked after Library; `fullscreen.exit` remaining after Exit) and the automated-failure issues filed by `automated-failure-triage` on `ios-runtime-artifacts` / `reconstruction validation` during the Oct 17 repair window.
-
-**Repairs carried into `main`:** the single-sheet navigation/host coordinators, the gate-owned UIKit fullscreen dismissal (`SingingFullscreenPresentation.swift`), the dismissal-callback window-attachment fix, and the session-save presentation guard (this batch). All are present at `main` head.
-
-**Validation evidence on the merged head (first green run per workflow):**
-- iOS runtime + unsigned device IPA: [run 39048322380](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39048322380) — `ios-runtime` succeeded on `main`@`59258ee`, artifacts `KANTA-personal-unsigned`, `ios-runtime-evidence`, `ios-iphone-runtime-evidence` retained.
-- Full iPhone/iPad visual walkthrough: [run 39311286326](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39311286326) — `visual-walkthrough` succeeded on `main`@`56f10c50` (scheduled release walkthrough), artifacts `ios-runtime-evidence`, `ios-iphone-runtime-evidence`.
-- Reconstruction validation (package tests + unsigned simulator build + Android): [run 39711445284](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39711445284) — succeeded on `main`@`3cbdba8`.
-- Focused iOS smoke: [run 39211154912](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39211154912) (PR head) / green on `main` via `ios-smoke.yml` (PR #42).
-
-**Status:** the affected `candidate` records above are now `verified` for the runtime/fullscreen/session-save fingerprints on the `main` head, by the green runs listed. This documentation-only commit does not alter production behavior and does not by itself validate a new SHA's source; it records the already-green merged head. Physical-device audio/camera/performance acceptance and signing/release remain separate open gates.
-
-## 2026-10-24 — Verified-download packaging used expired pinned artifacts
-
-**Fingerprint:** Verified download packaging run [39992413302](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413302), source SHA `81148475474742cf417d386ff4713b44cf58df0e`. The contract-test job passed; the package job failed in `Preserve validated application bytes` while requesting artifact metadata, ending in HTTP 404.
-
-**Root cause:** `tools/prepare-verified-downloads.py` hard-coded artifact/run IDs from the October 15–16 builds. Those source artifact IDs are no longer accessible, so a successful contract suite could not produce a fresh bundle. The workflow also ran the packaging job on push/PR changes to its own workflow and tests, even though those events should validate contracts rather than regenerate downloads.
-
-**Recurrence:** after the repository name was corrected in commit [380acd1](https://github.com/usermalik20-del/Kanta-reborn/commit/380acd18c9a38613b6e54c6edbfbf73a5276dc74), main run [39993458953](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39993458953) failed at the same artifact lookup with HTTP 404. This confirms the repository-name correction was necessary but insufficient; the pinned artifact IDs themselves are stale.
-
-**Repair candidate:** replace static IDs with discovery from the exact requested main SHA. Require the newest matching main runs for reconstruction validation, unsigned iOS archive and full iPhone/iPad walkthrough to be successful; locate the named Android/iOS artifacts in those exact runs; reject expired or cross-run artifacts; verify IPA source/run metadata and existing checksums; keep application bytes unchanged. Restrict packaging to manual dispatch on main while retaining automatic contract tests for relevant PR/main changes. Update architecture/testing documentation to make the release gate explicit.
-
-**Regression coverage:** latest run status/conclusion, exact SHA and main-branch identity, artifact run identity/expiry/ambiguity, full-walkthrough prerequisite, APK/IPA structure, IPA checksum/source metadata and authorization-header removal on storage redirects.
-
-**Validation status:** repair candidate is on `fix/verified-downloads-current-sha-20261024`. CI is pending; do not mark this failure repaired until the branch contract job passes and the resulting workflow behavior is verified.
-
-## 2026-10-24 — iPhone walkthrough failed on duplicate remote accessibility IDs and menu-suite timeout
-
-**Evidence:** Main walkthrough [run 39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296), SHA `81148475474742cf417d386ff4713b44cf58df0e`; iPhone evidence artifact [12518549843](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296/artifacts/12518549843). The iPhone result bundle and `iphone-tests.log` show two independent failures.
-
-**Root cause A — duplicate accessibility identity:** `HostView.inlineRemote` placed `.accessibilityIdentifier("host.remotePanel")` on the whole SwiftUI `DisclosureGroup`. After expansion, SwiftUI exposed that identifier on the toggle and numerous descendants (Songbook, voice controls, reservations, preset controls and add/remove buttons). The second tap of the saved XCTest query therefore matched multiple buttons and failed at `KantaVisualWalkthroughUITests.swift:155`.
-
-**Repair candidate:** move the identifier onto the disclosure label only as `host.remotePanel.toggle`; query that unique button and assert its count remains one before and after expansion. This scopes the identifier to the interactive control instead of the container.
-
-**Root cause B — test-case timeout:** `testMainMenuButtonsAndScreens` launched the app six times and navigated six destinations in one XCTest case. Simulator startup was slow enough that the case exceeded XCTest's 120-second allowance while still progressing through the menu list.
-
-**Repair candidate:** split the six destinations into two bounded test cases (three screens each), keep fresh-launch isolation, require both cases in `tools/capture-ios-runtime.py`, and make the runner explicitly fail on missing tests, execution-timeout messages and `TEST EXECUTE FAILED`.
-
-**Validation status:** fixes are on `fix/verified-downloads-current-sha-20261024` alongside the exact-SHA verified-download repair. PR #57 contract tests passed on the earlier head; the updated full iPhone/iPad walkthrough, unsigned IPA and reconstruction jobs are pending. Do not claim the UI repair is complete until the new head passes both devices.
-
-## 2026-10-24 — iPad Stage Search/Queue sheet not presented
-
-**Evidence:** [full walkthrough #39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824), source SHA `49e3f8ea111cf985c9e768e1d0a9a2a5d17bbc7b`. The iPhone portion completed. On the iPad Pro 11-inch simulator, three cases failed after tapping the embedded `stage.search` control because `stage.keypad.0` never appeared: `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke`, and `testStarterPlaybackAndControls`. The failure-time hierarchy showed the Host stage and Search button but no presented Stage sheet. Native reconstruction compilation/tests had passed on the candidate.
-
-**Actionable source finding:** embedded Search/Queue presentation was owned by a `.sheet` modifier on `KantaMainPlayerView`, a child inside HostView's `ScrollView`. The runtime log does not expose the gate's owner state, so the precise platform presentation failure is not yet proven; the child-attached presenter is the strongest source-level hypothesis and is being removed.
-
-**Repair candidate:** HostView owns embedded sheet identity and presents it from the stable scroll-container host. Embedded requests still acquire the shared `KantaPresentationGate`; fullscreen Search/Queue remain child sheets of the UIKit fullscreen host. A shared content view prevents behavior drift. The fullscreen Search ID is now `stage.search.fullscreen`, distinct from the embedded `stage.search`. Added regression assertions and static architecture guards.
-
-**Validation status:** candidate branch `fix/ipad-stage-sheet-host-20261024`; no hosted result exists yet for this branch. Do not mark repaired until current-head reconstruction and the complete iPhone/iPad walkthrough both pass.
+- Source: `7fb5e2a8f8e2bd805c2ecf5b5820ad2208fe42ed`; main advanced to `56f10c505ed654c57e0b6b4b3412b082181a77c4`. GitHub reports `mergeable_state: dirty`; both the commit-filtered Actions query and PR-run query returned no runs. There is no failed run ID because validation never started.
+- Confirmed integration blocker: both branches appended independent sections to `docs/ARCHITECTURE.md`. Git reports that file as the sole merge conflict. Pull-request workflows require a mergeable PR; draft status is not excluded by the current workflow.
+- Repair: merge the current main ancestry into the existing feature branch, preserving the online-player lifecycle section and all approved library-folder, SongHub import and FluidSynth decisions. No application, workflow or assertion changes. No history rewrite or main-branch merge.
+- Verification: conflict-marker and whitespace review, test-layout and presentation guards on the resolved tree. Reconstruction and focused iPhone smoke must run on the resulting head; earlier green runs apply only to `77f9f10`. Hosted results remain pending.
 
 
-### Recurrence — iPad embedded Search still not presented after scroll-container move (2026-10-24)
+### 2026-10-18 — Swift Testing macro rejects mutating lifecycle calls
 
-**Evidence:** [PR #58 walkthrough run 40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013), source SHA `24c406f4b515ad8d47d58482163f71b29e8d3ec5`. The iPhone walkthrough passed; the iPad walkthrough failed `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke` and `testStarterPlaybackAndControls` because `stage.keypad.0` never appeared after embedded Search. The unsigned app/UI tests compiled, so this is not a compile failure.
+- Failed run: [39103777006](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39103777006), iOS job `117605226475`, PR head `92e838c6fe7307d10eea9620832a00e5156a4038` (checkout merge `be14bbccc7b03b407ee37228db1ece3a49807fe0`). Deterministic test compilation failure; package execution never started. Android validation and focused iPhone smoke run `39103776922` passed; the unsigned iOS simulator app build also passed.
+- Confirmed cause: six `#expect` expressions in `YouTubeVideoReferenceTests.swift` directly invoked mutating `YouTubePreviewLifecycle.close(_:)`. Swift Testing expanded the receiver into an immutable `$0`, producing `cannot use mutating member on immutable value`. This is test-expression incompatibility, not evidence of a runtime lifecycle failure.
+- Repair: execute each close exactly once into a named Boolean before asserting the result. Preserve all stale-token, repeated-close, background and replacement assertions and production value semantics. No production, dependency, workflow or architecture change.
+- Local verification: test-layout and presentation guards, unchanged assertion count, and bounded diff/whitespace review. Swift is unavailable in this execution environment; fresh hosted package compilation and execution remain required on the repair commit. No unchanged deterministic rerun.
+- Follow-up: append green evidence only after the repaired head passes. Audio-focus coordination and native iOS lifecycle/device acceptance remain separate PR gates.
 
-**Root-cause finding:** the first repair moved the embedded `.sheet` to `hostContent` but left the root `HostView` `.sheet` active for CONTROL/session-save/Favorites. SwiftUI therefore still had two sheet modifiers in the same Host hierarchy. The failure log does not expose the exact presenter internals; competing presentation ownership is the strongest actionable source-level explanation.
 
-**Repair candidate:** use one root `HostView` sheet identity for both embedded Stage Search/Queue and Host panels. Route typed Stage intents into `HostSheet.stageSearch`/`stageQueue`, map each sheet to its `KantaPresentationGate.Owner`, and release that owner only from the shared `onDismiss`. Keep fullscreen Search/Queue under the UIKit fullscreen host. Preserve the existing device assertions and accessibility identities.
+## Verified hosted checkpoint — October 18, 2026
 
-**Validation:** implementation is being validated on the existing PR #58 branch. Do not mark fixed until reconstruction validation and the full iPhone/iPad walkthrough pass on the exact updated head.
+Source `5c1b0f4eea9f92196b836a8bbf2980a5bb6793ad` passed reconstruction run [39106105837](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39106105837) and focused iPhone smoke run [39106105865](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39106105865). Reconstruction job steps confirm Swift package/test compilation, package execution, unsigned simulator application build, Android assembly/lint/domain regression, full native sanitizer gate and emulator runtime checks passed. This closes the earlier Swift Testing macro compilation failure after repair `1ca7454`; no assertions were removed. It also validates the subsequently added iOS/Android local-playing preview-entry guards on this source.
+
+This is hosted evidence for the named SHA only. The smoke test is navigation coverage, not iOS native online-player lifecycle acceptance. General audio-focus/session arbitration, Android remote/asynchronous-start preview reconciliation, iOS runtime online lifecycle coverage and physical-device embed/interruption/ads acceptance remain open. No merge, signing, packaging, deployment or release is claimed.
+
+
+## Verified controller-observer repair — October 18, 2026
+
+Source `fa5dcbcf7aa070d924d86ed6c3e832af3618cebb` passed reconstruction run [39108033371](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39108033371): Swift package/test compilation and execution, unsigned simulator build, Android build/lint/domain/native sanitizers/browser interoperability and actual emulator runtime checks. The added KCP1 remote start/resume regression passed. Earlier Android-only run `39107996743` was cancelled by the superseding run, not a regression failure. Focused iPhone smoke run `39108033323` was still in progress at this checkpoint; no smoke, physical-device, signing or release result is inferred from reconstruction success.
+
+
+## Verified Android audio-coordination checkpoint — October 18, 2026
+
+Source `99f3898d35394a26d1879149c3f8637acd48ef56` passed reconstruction run [39108899667](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39108899667). Both Android and iOS jobs succeeded. Android native emulator execution includes the new effects/intermission/microphone/stale-owner/background/FIFO cases, plus the existing encrypted-remote start/resume cases. Swift package compilation/tests and unsigned simulator app build passed. Focused iPhone smoke run `39108899640` remained in progress at this checkpoint; its outcome is not inferred. This validates the Android candidate in hosted checks, not physical output timing, real YouTube media/ads or iOS audio-session parity. No merge/signing/release.
+
+
+## Verified iOS native component checkpoint — October 18, 2026
+
+Source `2302703481810824d75b0ae9a4b84b417a6c39ac` passed reconstruction run [39109936325](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39109936325) and native/navigation smoke run [39109936327](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39109936327), job `117623681797`. The retained log explicitly reports passes for `testForegroundLossRetiresNativeViewAndDoesNotRestoreIt`, `testProcessFailureRetiresExactlyOnceAndOwnerCanReopen`, `testReplacementRetiresOldNativeViewBeforeAttachingNext`, and the unchanged `testFocusedNavigationSmoke`. The new named-pass verifier also succeeded. Thus the new Xcode target compiled and all three native cases actually executed; this is not a zero-test or navigation-only green.
+
+Reconstruction passed both native platform jobs, including Swift package/test compilation/execution, unsigned iOS simulator build and Android build/lint/domain/sanitizer/emulator acceptance. This closes the native WebKit component coverage candidate. It does not establish SwiftUI sheet/real-media timing, iOS shared audio-session and auxiliary coordination, physical embeds/interruption/privacy/advertisements, signing or release. Those PR #51 gates remain open; the Companion Remote design/roadmap stays separate in PR #53.
+
+
+## Local source-contract fixture repair — October 18, 2026
+
+- Baseline: PR #51 `5d25f62`, uncommitted iOS audio-handoff candidate.
+- Observed: local ReleaseToolingTests ran 54 tests, with one error in test_saved_intermission_track_does_not_decode_on_host_entry: IndexError while splitting the removed literal `init() {` signature.
+- Cause: intermission now receives the shared audio coordinator and optional isolated storage. The source guard assumed a parameterless constructor; production did not eagerly decode a track.
+- Repair: delimit the actual coordinator-injected initializer through the next private method. Preserve every lazy-decoder assertion and add native synthetic intermission handoff coverage. No test removed or suppressed.
+- Result: rerun recorded after the repair; hosted Swift and simulator validation remain required. This was a local fixture error, not a hosted CI failure.
+
+
+## iOS intermission initializer shadowing — October 18, 2026
+
+- Failed source: `b3e26e573e91aaa52fe4d52ff6ed0466270fd7ae`, reconstruction [39111947485](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39111947485), iOS job `117629764652`; native/navigation smoke [39111947495](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39111947495), job `117629764528`.
+- Fingerprint: KantaIntermissionMusic.swift:46:23, optional URL must be unwrapped for appendingPathComponent. Both application/test-bundle compilation stopped before native execution.
+- Confirmed cause: the new optional injected `directory` parameter shadows the nonoptional stored directory in the initializer's saved-track restoration. This is deterministic app-only source compilation; the file is not part of the Swift package.
+- Repair: retain the external `directory:` label but name the local argument `storageDirectory`, restoring nonoptional property lookup during track restoration. Preserve the same runtime defaults, test storage isolation, every assertion and both target source entries.
+- Other evidence on failed source: all 178 Swift package tests passed after all package targets compiled; Android validation passed. Those results do not supersede failed application/native-smoke compilation.
+- Regression gates: lazy intermission source guard, real native intermission fixture and named-pass smoke remain enabled. Corrected-source compilation/execution required; append green evidence only after it actually passes.
+
+
+## Verified iOS audio handoff — October 18, 2026
+
+Source `6f7a0ece9e42cc500ce4f52cc414c58e5e11b58e` passed [reconstruction 39112387766](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39112387766) and [native/navigation smoke 39112387680](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39112387680). Reconstruction compiled every Swift package test target, executed all 178 Swift tests and 54 release-tooling tests, built the unsigned Release iOS simulator app and passed Android build/lint/domain/sanitizer/browser/emulator checks.
+
+Smoke job `117631072361` explicitly passed all five YouTubeEmbeddedPlayerLifecycleTests cases and testFocusedNavigationSmoke. The new intermission handoff case passed at 08:49:55 UTC (0.070 s); WebKit retirement-before-session configuration passed at 08:49:55 (0.008 s); focused navigation passed at 08:50:40 (35.553 s). The named-pass verifier accepted all six cases at 08:51:24. This closes the hosted iOS audio-arbitration implementation/coverage gap and the initializer compilation repair; no assertions were removed. The earlier failed b3e26e5 remains recorded in the failure ledger.
+
+The coordinator preserves local song/position/playback/FIFO identities, retires online ownership before native output requests, stops auxiliary audio and fences microphone permission, cancellation, foreground and stale owners. Tests establish the named domain/native behavior, not real-media zero-overlap timing. Actual SwiftUI online entry/dismissal, physical embeds/interruptions/privacy/ads and full exact-candidate iPhone/iPad release acceptance remain open. PR #51 stays draft. Next executable task: exercise the actual online-sheet entry/close/reopen/error flow through the host UI, retaining device/media acceptance as separate gates. No merge, signing, packaging, deployment or release occurred.
+
+
+## Verified online-sheet UI acceptance — October 18, 2026
+
+Source `594cd94c2c78d12fcf8fd21d0ece1cd5949c2c72` passed [reconstruction 39114570402](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39114570402) and [expanded smoke 39114570339](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39114570339). Both reconstruction platform jobs succeeded. Smoke job `117637615146` explicitly passed all five native cases, focused navigation, testOnlinePreviewEntryCloseReopenAndForegroundLifecycle (105.968 seconds) and testOnlinePreviewPreservesPausedStarterAndLocalResume (54.616 seconds). The eight-name verifier succeeded at 09:36:18 UTC; this is execution evidence, not build-only acceptance. No assertions or previous cases were removed.
+
+Actual host-sheet navigation, invalid-link validation, explicit entry/stop/reopen, foreground cleanup, dismissal/reentry/navigation recovery and paused-original-starter preservation/local resume are accepted on that iPhone simulator source. External availability was deliberately not treated as playable-media evidence: the UI cases accept either real native player controls or the production recoverable external-load error. Successful YouTube playback, ads, hardware interruption/privacy/audio timing and the updated seven-case full iPhone/iPad release walkthrough remain separate open gates. PR #51 remains draft and unmerged; no signing, deployment or release occurred.
+
+Next executable acceptance: full seven-case iPhone/iPad walkthrough on the exact candidate source, followed by physical-device/real-media acceptance. No new failure occurred on this candidate. The earlier initializer repair history remains unchanged.
+
+
+## Local browser environment restriction — October 18, 2026
+
+Candidate: PR #51 companion implementation based on b46f6c7. No hosted run yet. Local Chrome 155 could not start: `chrome/browser/process_singleton_posix.cc:297 socket() failed: Operation not permitted`. The restricted execution environment disallows its Unix-domain profile singleton socket. This is an environment blocker, not evidence of an application UI failure or success. The first Playwright browser download also returned an invalid archive; the direct Chrome package downloaded and extracted successfully, isolating startup from acquisition. Do not remove browser assertions or call static transport tests UI acceptance. The unchanged real Chrome harness is wired to hosted Linux validation, where native browser startup is supported. Hosted outcome must be recorded against the resulting source SHA; device/browser trust acceptance remains open.
+
+
+## PR #51 companion first-head validation — 339b8f6
+
+Reconstruction run 39126848617: Android APK and instrumentation assembly, lint, 524 domain checks, native sanitizer and merged permission/notices checks passed. Actual Chrome launched but the first unverified-pairing notice assertion failed; emulator execution was consequently skipped. Confirmed test defect: the harness waited only for a form element, which does not establish that deferred production scripts have finished, and did not explicitly establish foreground focus even though pairing correctly requires a visible document. Repair: wait for document completion and foreground, bring the tested page to front, retain the fingerprint assertion, and capture bounded nonsecret readiness/exception diagnostics. Whether another production issue remains must be determined by the changed-head browser run; no browser pass is claimed.
+
+The same run's Swift test compilation failed at BrowserRemoteProtocolTests.swift:22: a throwing parseHTTP call inside #require lacked its own try. Repair evaluates the throwing parser first, then unwraps its optional with #require; all parser assertions remain. Local address conversion also replaces the newly deprecated cString array initializer. Swift package execution and native app/smoke results are not inferred from Android build success.
+
+Independent source review found two bounded follow-ups included in the repair batch: Android repeated Host taps could enqueue identity preparation before a server became active (claim preparing before dispatch and fence stale work); an oversized post-mutation response could escape before entering the replay ledger (cache a bounded error reply on both platforms instead, with actual TLS duplicate-side-effect regression coverage). Final changed-head CI evidence remains required.
+
+
+The first-head iPhone smoke build (39126848616, job 117673666097) independently exposed Swift's conflicting-isolation diagnostic on the lazy AppServices browser-host initializer. The repair moves construction into the existing composition initializer through an explicit MainActor factory; controller and library captures remain immutable. Its WebKit callbacks also emitted near-match warnings because the new SDK requires MainActor/Sendable completion closures; all three handlers now use the exact protocol closure annotations rather than suppressing warnings. These are changed-source repairs, not acceptance claims.
+
+## PR #51 session identity test failure — 9e0519e (October 18, 2026)
+
+Reconstruction run 39127315432 completed Android validation but failed one of 182 Swift package tests: `BrowserRemoteProtocolTests.sessionIdentityCanBeRetrievedAndRemoved` threw `invalidInput` during `BrowserRemoteIdentity.install`. The independent certificate generation/trust test passed, so the failure is within Keychain insertion or identity retrieval, not certificate construction. The previous implementation used iOS-only Keychain accessibility attributes on the macOS SwiftPM runner and searched for an identity using the certificate's custom label. Neither is a reliable macOS identity lookup contract. The repair candidate omits the iOS accessibility attribute only on macOS, preserves device-only accessibility on iOS, and enumerates identities to match the exact generated certificate bytes rather than accepting an unrelated identity. It also retains the OSStatus of failed Keychain operations without logging keys, certificates, pairing codes or identities. The existing regression test continues to verify certificate equality and private-key retrieval; no assertion is removed.
+
+This is a targeted repair candidate until its exact commit passes hosted Swift package tests and simulator compilation. Run 39127315433 independently passed the focused iPhone smoke on the original failing source; that does not clear the Swift package test failure. No full iPhone/iPad walkthrough, signing or release is implied.
+
+## PR #51 macOS SwiftPM Keychain entitlement boundary — b77d3e6 (October 18, 2026)
+
+Repair attempt b77d3e6 preserved successful Android validation (39128897852) and produced a more precise Swift failure: `SecItemAdd` returned OSStatus `-34018` (`errSecMissingEntitlement`) when the unsigned macOS SwiftPM test runner attempted to install a private session key. This is a macOS test-host entitlement limitation, not evidence that the iOS application Keychain path works or fails. Merely adjusting certificate lookup or macOS accessibility attributes cannot supply an absent entitlement. The preceding patch remains valuable for exact-certificate identity selection and nonsecret OSStatus diagnostics, but it did not resolve the test environment.
+
+The next candidate preserves the complete identity round-trip assertions for entitled macOS hosts, allows only the exact missing-entitlement condition on the unsigned macOS runner, and adds the same certificate/private-key installation plus removal assertions to app-hosted iOS simulator XCTest, with an explicit LocalNetworkControl test dependency. The simulator test must actually execute and pass; build-only success or an ignored macOS entitlement error is not acceptance. Do not remove the new native test or claim Keychain support without its named passing result. Exact-head CI and device acceptance remain pending.
+
+
+## PR #51 Release-mode native test visibility — October 18, 2026
+
+Focused iPhone smoke [39129484883](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39129484883) failed at `build-for-testing` on head `2e67879` because `BrowserRemoteIdentityNativeTests` used `@testable import LocalNetworkControl` while the Swift package dependency was compiled in Release without `-enable-testing`. Reconstruction [39129484882](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39129484882) passed on the same head, so the failure is isolated to native XCTest's import visibility, not SwiftPM production compilation. The repair candidate exports the existing identity operations through a narrowly named Swift `@_spi(Testing)` interface and switches only the native test import to that SPI. It preserves Release optimization, production Keychain behavior, certificate/private-key assertions and removal checks; it does not enable testability globally or weaken the test. Hosted exact-head compilation and execution of `testSessionIdentityInstallationAndRemoval` are required before marking the repair verified. App-hosted unsigned simulator Keychain entitlements may still be a separate runtime gate. No release or device acceptance is implied.
+
+
+## PR #51 SwiftPM SPI import follow-up — October 18, 2026
+
+The first repair candidate `1b93450` exposed the existing native Keychain test seam through `@_spi(Testing)` and changed the app-hosted XCTest import. Reconstruction [39135792551](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39135792551) immediately reported `cannot find 'BrowserRemoteIdentity' in scope` while compiling `LocalNetworkControlTests`: marking the type as SPI also hides it from the ordinary `@testable import` used by the SwiftPM suite. This is a test-import visibility regression, not a runtime Keychain failure. The follow-up changes the existing SwiftPM test import to `@_spi(Testing) @testable import LocalNetworkControl`, retaining internal access needed for `Material.privateKey` and all certificate/private-key assertions. The syntax was independently compiled in a minimal Swift module. Exact-head hosted SwiftPM, Release iOS native compilation and simulator execution remain pending; no test has been skipped or removed.
+
+
+## PR #51 unsigned iPhone Keychain entitlement gate — October 18, 2026
+
+On exact source `215e02a`, [reconstruction 39136036615](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39136036615) passed Android and iOS jobs, including all Swift package tests and unsigned simulator compilation. [Focused iPhone smoke 39136036597](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39136036597) compiled its native/UI bundles, then ran the new `BrowserRemoteIdentityNativeTests.testSessionIdentityInstallationAndRemoval`: `SecItemAdd` failed with `errSecMissingEntitlement` (`-34018`) at `BrowserRemoteIdentity.install`. Five WebKit lifecycle tests and all four focused UI tests passed, but the smoke workflow correctly failed because the Keychain test did not. The workflow explicitly builds and runs with `CODE_SIGNING_ALLOWED=NO`; its test host therefore cannot be assumed to have the Keychain access-group entitlement. This is a **confirmed entitlement failure**, not proof of a production Keychain implementation defect or successful runtime acceptance. The first candidate's SPI import failure was corrected by `215e02a`; this is the next independent gate.
+
+Next action requires an authorized, simulator-only signed test-host configuration with inspectable entitlements (or an equivalent entitled app-hosted environment), followed by execution of the unchanged Keychain round-trip/deletion assertions on that exact signed candidate. Do not skip, mock, suppress or mark the test passed. Production signing credentials, release distribution and real-device acceptance remain separately gated. No blind rerun of the same unsigned configuration is justified.
