@@ -1,5 +1,6 @@
 import GeloKaraokeCore
 import SwiftUI
+import UIKit
 
 /// A projection of the existing Host model, never a second player or queue.
 @MainActor
@@ -43,6 +44,9 @@ struct KantaMainPlayerView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { camera.stop() }
+        }
+        .background {
+            KantaWindowTapProbe().frame(width: 0, height: 0)
         }
         .onDisappear { camera.stop() }
         .alert("Camera BGV", isPresented: Binding(
@@ -367,4 +371,48 @@ struct KantaMainPlayerView: View {
         }
         .buttonStyle(.plain).accessibilityLabel(title)
     }
+}
+
+/// Diagnostic only: records where a tap in the window actually lands so a
+/// reported accessibility frame can be compared with the delivered touch.
+/// The recogniser never cancels touches, so behaviour is unchanged.
+@MainActor
+final class KantaWindowTapProbeCoordinator: NSObject, UIGestureRecognizerDelegate {
+    @objc func handleTap(_ recogniser: UITapGestureRecognizer) {
+        guard let view = recogniser.view else { return }
+        let point = recogniser.location(in: view)
+        let hit = view.hitTest(point, with: nil)
+        NSLog("[KANTA_TAP] window-point=%@ hit=%@",
+              NSStringFromCGPoint(point),
+              hit.map { String(describing: type(of: $0)) + " " + NSStringFromCGRect($0.frame) } ?? "nil")
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+    ) -> Bool { true }
+}
+
+struct KantaWindowTapProbe: UIViewRepresentable {
+    func makeCoordinator() -> KantaWindowTapProbeCoordinator {
+        KantaWindowTapProbeCoordinator()
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let probe = UIView(frame: .zero)
+        probe.isUserInteractionEnabled = false
+        DispatchQueue.main.async {
+            guard let window = probe.window else { return }
+            let recogniser = UITapGestureRecognizer(
+                target: context.coordinator,
+                action: #selector(KantaWindowTapProbeCoordinator.handleTap(_:))
+            )
+            recogniser.cancelsTouchesInView = false
+            recogniser.delegate = context.coordinator
+            window.addGestureRecognizer(recogniser)
+        }
+        return probe
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }
