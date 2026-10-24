@@ -378,6 +378,31 @@ struct KantaMainPlayerView: View {
 /// The recogniser never cancels touches, so behaviour is unchanged.
 @MainActor
 final class KantaWindowTapProbeCoordinator: NSObject, UIGestureRecognizerDelegate {
+    private weak var installedWindow: UIWindow?
+    private weak var tapRecognizer: UITapGestureRecognizer?
+
+    func install(on window: UIWindow) {
+        guard installedWindow !== window || tapRecognizer == nil else { return }
+        detach()
+        let recognizer = UITapGestureRecognizer(
+            target: self,
+            action: #selector(handleTap(_:))
+        )
+        recognizer.cancelsTouchesInView = false
+        recognizer.delegate = self
+        window.addGestureRecognizer(recognizer)
+        installedWindow = window
+        tapRecognizer = recognizer
+    }
+
+    func detach() {
+        if let tapRecognizer {
+            installedWindow?.removeGestureRecognizer(tapRecognizer)
+        }
+        tapRecognizer = nil
+        installedWindow = nil
+    }
+
     @objc func handleTap(_ recogniser: UITapGestureRecognizer) {
         guard let view = recogniser.view else { return }
         let point = recogniser.location(in: view)
@@ -407,16 +432,14 @@ struct KantaWindowTapProbe: UIViewRepresentable {
         probe.isUserInteractionEnabled = false
         DispatchQueue.main.async {
             guard let window = probe.window else { return }
-            let recogniser = UITapGestureRecognizer(
-                target: context.coordinator,
-                action: #selector(KantaWindowTapProbeCoordinator.handleTap(_:))
-            )
-            recogniser.cancelsTouchesInView = false
-            recogniser.delegate = context.coordinator
-            window.addGestureRecognizer(recogniser)
+            context.coordinator.install(on: window)
         }
         return probe
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {}
+
+    static func dismantleUIView(_ uiView: UIView, coordinator: KantaWindowTapProbeCoordinator) {
+        coordinator.detach()
+    }
 }
