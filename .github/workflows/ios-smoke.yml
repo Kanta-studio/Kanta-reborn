@@ -65,7 +65,7 @@ jobs:
           echo "Running RTK Gain Test..."
           rtk gain | tee rtk-gain.log
           echo "Running RTK Latency Test..."
-          rtk latency | tee rtk-latency.log
+          sudo rtk latency | tee rtk-latency.log
           echo "Running RTK Spectral Integrity Test..."
           rtk spectral | tee rtk-spectral.log
 
