@@ -315,3 +315,8 @@ The current repair candidate gives embedded Stage Search/Queue a stable UIKit pr
 ## Embedded Stage presenter lifecycle contract (2026-10-24)
 
 Embedded Search/Queue are owned by `KantaStageSheetModalPresenter`, not a competing SwiftUI `.sheet`. Its UIKit representable must occupy the Host bounds while remaining non-interactive, retry presentation when layout/attachment changes, and recover a stale owned controller instead of silently leaving the shared presentation gate held. Blocked presentation states are logged with the `KANTA_STAGE_PRESENTATION` prefix. The exact-head iPhone and iPad walkthroughs are required before acceptance; source checks alone do not prove runtime behavior.
+
+
+## Window-level iPad tap diagnostics — October 25, 2026
+
+The temporary Stage action-row probe is diagnostic instrumentation only: its recognizer must not cancel application touches, its logged touch point and hit rectangle must both be expressed in window coordinates, and its recognizer must be detached with the representable lifecycle. Keep this probe separate from presentation ownership; it reports where a touch lands but does not dispatch Search/Queue requests or change the shared presentation gate. The compiler-compatibility and cleanup contract is enforced by tools/check-ios-presentation-contract.py. See docs/TESTING.md and docs/CI_FAILURE_REPAIR_LEDGER.md for the failed-run evidence and exact-SHA acceptance requirements.

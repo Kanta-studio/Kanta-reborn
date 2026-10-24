@@ -108,6 +108,14 @@ def verify():
             and 'A completed session must not replace Library dismissal with a save sheet' in test
             and 'The deferred session must remain available for explicit saving' in test
         ),
+        'window tap probe uses supported, comparable geometry and removes its recognizer': (
+            'NSCoder.string(for: point)' in stage
+            and 'hitView.convert(hitView.bounds, to: view)' in stage
+            and 'static func dismantleUIView' in stage
+            and 'coordinator.detach()' in stage
+            and 'NSStringFromCGPoint' not in stage
+            and 'NSStringFromCGRect' not in stage
+        ),
     }
     for name, passed in checks.items():
         print(('PASS' if passed else 'FAIL') + ': ' + name)
