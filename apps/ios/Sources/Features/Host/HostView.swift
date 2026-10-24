@@ -14,7 +14,7 @@ struct HostView: View {
     @State private var dismissedHostSheet: HostSheet?
     @State private var activeHostSheet: HostSheet? =
         ProcessInfo.processInfo.environment["KANTA_CONTROL_EXPANDED"] == "1" ? .controls : nil
-
+    @State private var activeEmbeddedStageSheet: KantaStageSheet?
     private enum HostSheet: String, Identifiable {
         case controls, sessionSave, favorites
         var id: String { rawValue }
@@ -66,7 +66,11 @@ struct HostView: View {
     @State private var remoteExpanded = false
 
     var body: some View {
-        hostContent
+        ZStack {
+            hostContent
+        }
+        // Embedded Stage Search/Queue and Host panels share one presenter; keep
+        // this as the only HostView sheet to avoid competing iPad presentations.
         .sheet(item: $activeHostSheet, onDismiss: {
             if dismissedHostSheet == .sessionSave {
                 model.showingSessionSavePrompt = false
@@ -124,6 +128,17 @@ struct HostView: View {
                 presentationGate: presentationGate,
                 microphoneBusy: microphonePitchMonitor.status == .running
                     || microphonePitchMonitor.status == .requestingPermission
+            )
+            .frame(width: 1, height: 1)
+        }
+        .background {
+            KantaEmbeddedStageSheetPresentation(
+                sheet: $activeEmbeddedStageSheet,
+                model: model,
+                singerName: $singerName,
+                microphoneBusy: microphonePitchMonitor.status == .running
+                    || microphonePitchMonitor.status == .requestingPermission,
+                presentationGate: presentationGate
             )
             .frame(width: 1, height: 1)
         }
@@ -192,7 +207,7 @@ struct HostView: View {
             intermission.sync(model.snapshot.transport)
         }
         .onChange(of: activeHostSheet) { previous, current in
-            if previous != nil && current == nil {
+            if let previous, current == nil {
                 presentationGate.beginDismissal(.host)
                 dismissedHostSheet = previous
             }
@@ -274,7 +289,10 @@ struct HostView: View {
                 presentationGate.request(.host) { activeHostSheet = .sessionSave }
             },
             embedded: true,
-            onExpand: openFullscreenPlayer
+            onExpand: openFullscreenPlayer,
+            setEmbeddedStageSheet: { stageSheet in
+                activeEmbeddedStageSheet = stageSheet
+            }
         )
     }
 
@@ -292,10 +310,10 @@ struct HostView: View {
         } label: {
             Label("Remote Control", systemImage: "rectangle.and.hand.point.up.left")
                 .font(.headline)
+                .accessibilityIdentifier("host.remotePanel.toggle")
         }
         .padding(18)
         .background(Color(white: 0.07), in: RoundedRectangle(cornerRadius: 20))
-        .accessibilityIdentifier("host.remotePanel")
     }
 
     private func openFullscreenPlayer() {

@@ -1181,3 +1181,32 @@ The background SingingModalPresenter now retains a weak identity for only the ka
 Baseline `aa711986d282e62997a71a54d66de6b2d6269389`. The takeover handoff reports SwiftUI type-check exhaustion at HostView.swift:68:25; the original hosted diagnostic has not yet been independently retrieved. HostView now separates its scroll content, embedded stage and inline remote into opaque `some View` properties. This bounds result-builder inference while retaining the same state/bindings, modifier order, sheet owner, presentation gate and controller intents. No queue, sensor, audio, network, dependency or persistence change.
 
 The source layout guard and all presentation-contract checks pass. Existing restored-host and navigation UI assertions remain intact. Linux cannot compile SwiftUI; hosted app compilation and simulator execution must establish whether this candidate resolves the reported compiler failure. No passed CI, visual acceptance, signing, merge or release is claimed.
+
+## Embedded versus fullscreen Stage sheet ownership — candidate (2026-10-24)
+
+The embedded Stage is rendered inside HostView's scroll container. Its Search/Queue sheet identity now belongs to HostView, with the sheet attached to the stable scroll-container presenter rather than the embedded child view. `KantaMainPlayerView` sends typed embedded sheet intents through the shared `KantaPresentationGate`; it no longer tries to present its own sheet for the embedded projection.
+
+The fullscreen Stage remains inside its UIKit-owned hosting controller and keeps its own Search/Queue child sheet. Both presentations reuse the same HostViewModel, singer-name binding, microphone-busy state and authoritative FIFO. The embedded and fullscreen Search controls have distinct accessibility identifiers so XCTest cannot silently select the wrong projection.
+
+This is a repair candidate prompted by iPad-only missing-keypad failures in [walkthrough #39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824). The prior app/UI build compiled, but the iPad runtime did not present the expected sheet. The candidate deliberately changes presentation ownership instead of adding retries or removing assertions. Full changed-head iPhone/iPad acceptance remains pending.
+
+
+### Follow-up — iPad still missed embedded Stage sheets (2026-10-24)
+
+The scroll-container presenter candidate was insufficient: walkthrough [#40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013) passed the iPhone walkthrough but failed three iPad keypad assertions. Source inspection found two SwiftUI `.sheet` modifiers in the same Host hierarchy: HostView's root sheet for CONTROL/session/Favorites and a second sheet on `hostContent` for embedded Search/Queue. The exact internal UIKit presentation path is not logged, but competing sheet ownership remains the actionable architectural defect.
+
+The next candidate consolidates embedded Stage Search/Queue and Host panels under the single root HostView sheet identity. `HostSheet` maps each destination to its gate owner; the root `onDismiss` completes `.stage` or `.host` accordingly. Fullscreen Search/Queue remain a separate child sheet of the UIKit-owned fullscreen player. Existing iPhone/iPad XCTest assertions remain mandatory; no retry or assertion relaxation is introduced. Validation must pass reconstruction and the complete walkthrough on the updated candidate SHA.
+
+## iPad sheet-anchor isolation — candidate (2026-10-24)
+
+The root navigation sheet is attached to a sibling background anchor, not directly to the `NavigationStack` that contains `HostView`. `HostView` keeps one sheet identity for CONTROL, session save, Favorites, and embedded Stage Search/Queue. Both SwiftUI presenters use the same `KantaPresentationGate`, which permits only one active owner and queues requests through dismissal callbacks. The UIKit fullscreen player retains its own nested Search/Queue presenter. This separation is intended to avoid the iPad case where the Host stage remains visible after Search is tapped but no keypad sheet enters the accessibility hierarchy.
+
+Evidence on parent candidate `5865e14`: [walkthrough #40065088612](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088612) passed the iPhone walkthrough but failed three iPad keypad assertions. The root-anchor relocation is a candidate repair only; the full changed-head iPhone/iPad walkthrough and reconstruction validation must pass before acceptance.
+
+
+
+## Embedded Stage sheet — UIKit ownership follow-up (2026-10-24)
+
+The root-anchor candidate 2db140c still failed iPad Search/keypad interactions in walkthrough #40070268797 (https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797): the iPhone portion passed, while testDemoKeypadCancelAndRepeatedIntentionalReservations, testFocusedNavigationSmoke and testStarterPlaybackAndControls failed because stage.keypad.0 never appeared. This disproves the sufficiency of the sibling-anchor-only repair; the exact internal UIKit presenter selection remains unlogged.
+
+The new candidate moves embedded Stage Search/Queue out of HostView.activeHostSheet and into KantaEmbeddedStageSheetPresentation, a stable UIKit presenter hosting the shared KantaStageSheetContent. The Host SwiftUI sheet now owns only CONTROL/session-save/Favorites; the fullscreen projection retains its own child sheet. The same KantaPresentationGate serializes all owners, and the embedded presenter releases .stage after UIKit dismissal. The full walkthrough on the exact new head is required to establish whether this architecture resolves the iPad issue. The focused smoke's initial failure on d9d5fa1 was a stale static-contract expectation, corrected in 4ff9a4d; that correction has not yet been validated by a green run.

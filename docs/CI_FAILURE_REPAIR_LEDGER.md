@@ -223,3 +223,52 @@ The fullscreen and session-save repair commits recorded above were folded into `
 
 **Disposition:** verified for the website/CSP repair on `afd83e5`. Native reconstruction and unsigned-iOS artifact jobs are separate checks and do not constitute iPhone/iPad walkthrough acceptance.
 
+## iOS — Verified-download packaging rejected expired pinned artifacts (2026-10-24)
+
+**Evidence:** packaging run [#39992413302](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413302) failed with HTTP 404 while requesting metadata for a hard-coded artifact from an older run; [#39993458953](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39993458953) repeated the same failure after the repository-owner correction.
+
+**Cause:** the packager pinned run/artifact IDs and could not discover current outputs. A green contract test therefore did not guarantee a usable bundle.
+
+**Candidate repair:** `fix/ios-stage-sheets-and-exact-sha-release-gate-20261024` replaces static IDs with exact-source discovery, requires successful main reconstruction, unsigned IPA and full iPhone/iPad walkthrough runs on one SHA, rejects expired/cross-run artifacts, verifies source/checksum/app identity, and separates automatic contract tests from manual main-only packaging. Hosted validation pending.
+
+## iOS — Full walkthrough exposed duplicate remote ID and menu timeout (2026-10-24)
+
+**Evidence:** [main walkthrough #39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296), source `81148475474742cf417d386ff4713b44cf58df0e`. The iPhone log shows a saved `host.remotePanel` query becoming ambiguous after the identifier propagated from the whole `DisclosureGroup` to descendants. The menu suite also exceeded XCTest's 120-second limit while launching the app and visiting six destinations.
+
+**Candidate repair:** scope the accessibility ID to the disclosure toggle, assert uniqueness before/after expansion, split the menu journey into bounded cases, and make the capture runner fail on missing cases, timeout text or `TEST EXECUTE FAILED`. Validation pending on the current exact candidate SHA.
+
+## iOS — Embedded Stage Search sheet missing on iPad (2026-10-24)
+
+**Evidence:** [walkthrough #39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824) and [PR #58 run #40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013). The iPhone portion passed on the earlier candidate, but three iPad cases did not find `stage.keypad.0` after tapping embedded Search.
+
+**Actionable finding:** the first repair left two competing sheet modifiers in the Host hierarchy. Logs do not expose the exact UIKit presenter state, so this remains a source-level hypothesis rather than a proven runtime trace.
+
+**Candidate repair:** use one root `HostView` sheet identity for embedded Search/Queue and Host panels; route typed intents through `KantaPresentationGate`, complete the correct owner on dismissal, and keep fullscreen Search/Queue in the UIKit-hosted child. The exact new head still needs full iPhone/iPad validation.
+
+## iOS — iPad Stage sheet still absent after Host consolidation (2026-10-24)
+
+**Fingerprint:** PR #64 candidate `5865e142da2bb6fc8dbb528ed79cb3dc0fd7cf97`; [full walkthrough #40065088612](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088612).
+
+**Observed result:** app/UI tests compiled; iPhone walkthrough passed; iPad failed `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke`, and `testStarterPlaybackAndControls` because `stage.keypad.0` never appeared. The retained iPad accessibility hierarchy contains the main Host window and `stage.search`, but no presented Stage sheet. Focused iPhone smoke [#40065088607](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088607), reconstruction [#40065088592](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088592), unsigned build [#40065088603](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088603), and download contract tests [#40065088602](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088602) passed on that parent SHA.
+
+**Source diagnosis:** the prior change consolidated embedded Stage Search/Queue and Host panels into one HostView sheet, but RootView's navigation sheet was still attached directly to the ancestor NavigationStack containing HostView. The runtime logs do not expose UIKit's internal presenter selection, so the contribution of this ancestor/descendant sheet-anchor arrangement is a source-supported hypothesis, not a proven runtime trace.
+
+**Candidate repair:** attach RootView's navigation sheet to a sibling background anchor; keep HostView's single sheet identity and the shared presentation gate; add a source-contract regression check. Do not add retry taps, fixed sleeps, or relax UI assertions.
+
+**Status:** pending hosted validation on the new commit. Require reconstruction and the complete iPhone/iPad walkthrough on the same exact SHA before marking verified or advancing release artifacts.
+
+
+
+## iOS — iPad embedded Stage sheet persists after anchor relocation (2026-10-24)
+
+**Fingerprint:** PR #64 candidate 2db140c5749de47314e32c714c12245a3396f7ae; full walkthrough [#40070268797](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797), job [#120801998970](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797/job/120801998970).
+
+**Observed result:** the iPhone walkthrough passed. The iPad failed testDemoKeypadCancelAndRepeatedIntentionalReservations, testFocusedNavigationSmoke and testStarterPlaybackAndControls with explicit XCTAssertTrue failures: “Embedded Stage Search must present its keypad on the active iPad/iPhone window”, “Stage Search must open the keypad”, and “Search did not present the keypad after library dismissal”. The accessibility hierarchy did not contain stage.keypad.0. Reconstruction [#40070268803](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268803), unsigned build [#40070268801](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268801), contract tests [#40070268814](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268814), and focused iPhone smoke [#40070268795](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268795) passed on that parent SHA.
+
+**Cause assessment:** the root navigation sheet's sibling-anchor relocation was not sufficient. Logs confirm the keypad never became accessible but do not expose UIKit's internal presentation state; the exact low-level mechanism remains unconfirmed.
+
+**Candidate repair:** commits [218c1c2](https://github.com/usermalik20-del/Kanta-reborn/commit/218c1c2c73cf641073a679649e409a9f54f4f2aa) and [e5f2672](https://github.com/usermalik20-del/Kanta-reborn/commit/e5f2672afc319b408bd270accc50bac0b3dcbeb1) move embedded Stage Search/Queue to a dedicated UIKit modal presenter while preserving the shared gate and existing Host/fullscreen owners. Static guard updated in [d9d5fa1](https://github.com/usermalik20-del/Kanta-reborn/commit/d9d5fa1a5eec645ac7758ccd5079cdac8ba58fa0).
+
+**Follow-up guard regression:** focused smoke [#40074261338](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40074261338) failed before compiling because the static checker searched for presentationGate.completeDismissal(.stage) while the presenter correctly calls gate.completeDismissal(.stage) through a captured gate. [Commit 4ff9a4d](https://github.com/usermalik20-del/Kanta-reborn/commit/4ff9a4d714908fc89e7a3cf514dfd3c243575bd1) corrects the assertion. This is a checker mismatch, not evidence of a Swift compiler failure.
+
+**Status:** current-head validation pending. Do not mark the runtime repair verified until the full iPhone and iPad walkthrough and reconstruction succeed on the same exact SHA.

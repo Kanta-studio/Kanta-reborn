@@ -12,19 +12,52 @@ def verify():
     root = (APP / 'App/RootView.swift').read_text()
     host = (APP / 'Features/Host/HostView.swift').read_text()
     stage = (APP / 'Features/Host/KantaMainPlayerView.swift').read_text()
+    stage_presentation = (APP / 'Features/Host/KantaStageSheetPresentation.swift').read_text()
     fullscreen = (APP / 'Features/Host/FullscreenKaraokePlayerView.swift').read_text()
     fullscreen_presenter = (APP / 'Features/Host/SingingFullscreenPresentation.swift').read_text()
     test = TEST.read_text()
     checks = {
         'root owns navigation sheet identity': '.sheet(item: $activeNavigation' in root and 'onDismiss:' in root,
+        'root navigation sheet uses a sibling background anchor': (
+            '.background {\n            Color.clear' in root
+            and '.sheet(item: $activeNavigation' in root
+            and root.index('NavigationStack {') < root.index('.background {')
+            and root.index('.background {') < root.index('.sheet(item: $activeNavigation')
+            and '.sheet(item: $activeNavigation' not in root.split('.background {', 1)[0]
+        ),
         'root queues menu requests through the shared presentation gate': (
             'guard activeNavigation == nil else { return }' in root
             and 'presentationGate.request(.navigation)' in root
             and 'func request(_ requested: Owner' in root),
         'host receives navigation presentation state': 'navigationSheetPresented: activeNavigation != nil' in root and 'navigationSheetPresented' in host,
         'single authoritative navigation state': 'navigationPresentation' not in root and 'navigationTransition' not in root,
-        'host uses one sheet coordinator': '.sheet(item: $activeHostSheet' in host and 'showingHostControls' not in host,
+        'host uses one sheet coordinator': (
+            '.sheet(item: $activeHostSheet' in host
+            and '.sheet(item: $activeStageSheet' not in host
+            and 'showingHostControls' not in host
+        ),
         'stage uses one sheet coordinator': '.sheet(item: $activeStageSheet' in stage and 'showingSearch' not in stage and 'showingQueue' not in stage,
+        'embedded Stage uses a stable UIKit sheet owner': (
+            'KantaEmbeddedStageSheetPresentation(' in host
+            and '@State private var activeEmbeddedStageSheet: KantaStageSheet?' in host
+            and 'setEmbeddedStageSheet' in host
+            and 'setEmbeddedStageSheet' in stage
+            and 'KantaStageSheetModalPresenter: UIViewController' in stage_presentation
+            and 'modalPresentationStyle = .pageSheet' in stage_presentation
+            and 'presentationControllerDidDismiss' in stage_presentation
+            and 'gate.completeDismissal(.stage)' in stage_presentation
+            and 'case stageSearch' not in host
+            and 'case stageQueue' not in host
+        ),
+        'fullscreen Search/Queue keep a separate child presenter': (
+            'fullscreenPlayer' in stage
+            and '.sheet(item: $activeStageSheet' in stage
+            and 'KantaStageSheetContent' in stage
+        ),
+        'fullscreen Search has a unique accessibility identity': (
+            'stage.search.fullscreen' in stage
+            and 'stage.search.fullscreen' in test
+        ),
         'fullscreen reuses host presentation gate': (
             'presentationGate: presentationGate' in host
             and 'presentationGate: presentationGate' in fullscreen_presenter

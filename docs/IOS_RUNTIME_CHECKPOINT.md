@@ -29,3 +29,27 @@ The IPA is a separate personal-signing input with iCloud capabilities omitted. I
 ## Fullscreen presentation-gate integration candidate — 2026-10-17
 
 PR #36 now routes UIKit fullscreen acquisition and dismissal through the shared main-actor presentation gate. CONTROL-to-fullscreen handoff is queued before CONTROL releases its sheet owner. Search and Queue remain usable within fullscreen through a nested stage slot that restores the fullscreen parent after sheet dismissal. UIKit ownership is released only after the player dismissal completion callback. The walkthrough now exercises Search within fullscreen and again after exit. Current-head compilation, iPhone/iPad runtime and unsigned IPA remain pending; this is not runtime acceptance.
+
+## iPad embedded Stage presentation — 2026-10-24
+
+Candidate source tree: `fix/ipad-stage-sheet-host-20261024`, based on PR #57's `49e3f8ea111cf985c9e768e1d0a9a2a5d17bbc7b` release-acceptance candidate.
+
+The full walkthrough [#39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824) compiled app and UI tests and completed the iPhone walkthrough, but the iPad Pro 11-inch run failed three Search/keypad cases. The exported hierarchy showed the embedded Host stage and Search button with no presented Stage sheet. The gate's runtime owner was not logged, so the internal SwiftUI failure path remains unconfirmed.
+
+The candidate moves embedded Search/Queue presentation state to HostView and attaches the sheet to the stable scroll-container presenter. Fullscreen Search/Queue remain hosted inside the UIKit fullscreen controller; both use the same presentation gate and HostViewModel. Search accessibility IDs are now unique by projection. The test suite retains the failing flows and adds a bounded keypad-existence wait; the source guard checks the parent/child presenter boundary. No queue, playback, media, persistence or dependency changes.
+
+Status: **candidate only**. Reconstruction and full iPhone/iPad walkthrough on the new candidate tree must pass before this is accepted for release.
+
+
+## iPad Stage Search recurrence — 2026-10-24
+
+The initial HostView-owned scroll-container sheet candidate did not resolve the iPad regression. PR #58 walkthrough [#40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013) passed iPhone but failed iPad cases where embedded Search did not present `stage.keypad.0`. Source inspection found a root Host sheet and a second embedded-stage sheet on separate branches of the same SwiftUI hierarchy. The exact presenter failure remains uninstrumented, so this is a source-backed architectural hypothesis, not a claimed runtime trace.
+
+The current candidate consolidates embedded Search/Queue with CONTROL/session-save/Favorites under the single root HostView sheet identity and completes the matching `.stage`/`.host` gate from `onDismiss`. Fullscreen Search/Queue remain nested under the UIKit fullscreen host. Changed-head reconstruction and both-device walkthrough are required before acceptance.
+
+
+## iPad embedded Stage sheet recurrence and UIKit presenter candidate — 2026-10-24
+
+Walkthrough #40070268797 (https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797) on 2db140c passed iPhone but failed iPad in three keypad cases. Failure logs show stage.keypad.0 missing after embedded Search, including the direct smoke path and the post-Library path. The sibling-anchor change was not sufficient.
+
+The current candidate uses KantaEmbeddedStageSheetPresentation and a dedicated UIKit UIHostingController for embedded Search/Queue, while Host panels and fullscreen child sheets keep their existing owners. The gate remains shared and dismissal-driven. The first focused smoke for source head d9d5fa1 failed at the static contract guard before app compilation; commit 4ff9a4d fixes the guard to match the captured gate callback. The new full walkthrough and reconstruction runs must complete on the exact latest head before this is considered accepted. No signed or installable release is established.

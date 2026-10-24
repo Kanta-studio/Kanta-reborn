@@ -8,6 +8,7 @@ on:
     paths:
       - 'apps/ios/**'
       - 'tools/capture-ios-runtime.py'
+      - 'tools/prepare-verified-downloads.py'
       - '.github/workflows/ios-visual-walkthrough.yml'
     tags:
       - 'ios-rc-*'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'apps/ios/**'
       - 'tools/capture-ios-runtime.py'
+      - 'tools/prepare-verified-downloads.py'
       - '.github/workflows/ios-visual-walkthrough.yml'
 permissions:
   contents: read

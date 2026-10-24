@@ -87,7 +87,7 @@ The real playback walkthrough waits for a rendered stage Search button after clo
 
 ## iOS modal request lifecycle
 
-The Root, Host and Stage SwiftUI sheet owners share `KantaPresentationGate`. The gate holds a request received while another sheet is presented or dismissing, coalesces a second pending request from the same owner, and activates the first pending action only after the current owner reports `onDismiss`. The Search walkthrough deliberately taps once after leaving Library; do not add retries or fixed sleeps to mask a dropped presentation request. UIKit fullscreen remains a separately owned presenter and is not covered by this gate yet.
+Root navigation, Host panels, embedded Stage Search/Queue and fullscreen share KantaPresentationGate, but they do not all use the same SwiftUI sheet. Root navigation uses its sibling background anchor; Host CONTROL/session/Favorites use the HostView SwiftUI sheet; embedded Stage Search/Queue use KantaEmbeddedStageSheetPresentation with a UIKit-owned UIHostingController; fullscreen retains its own child SwiftUI sheet under the UIKit fullscreen host. The gate coalesces pending requests per owner and activates the next action only after the current owner reports its actual dismissal. The Search walkthrough deliberately taps once after leaving Library; do not add retries or fixed sleeps to mask a dropped presentation request. The current UIKit embedded-sheet candidate is not accepted until the full iPhone/iPad walkthrough passes on its exact SHA.
 
 
 ### iOS fullscreen presentation ownership candidate
@@ -98,6 +98,12 @@ The presentation contract guard checks that the UIKit fullscreen presenter acqui
 ## Website Content Security Policy
 
 The website validator checks that every canonical public route has exactly one explicit CSP. Only the homepage may load the allowlisted Google tag/AdSense scripts and connect to Google Analytics; all other pages, including Songbook, must retain `connect-src 'none'` and same-origin script loading. The wildcard header rule may not define CSP. The focused `tools/tests/test_website_security_contract.py` suite guards this boundary, and CI syntax-checks both `songbook.js` and `analytics.js`. A passing static contract is not proof of live response headers; verify the production deployment after the merge.
+
+## Native release acceptance and verified downloads
+
+The full iPhone/iPad walkthrough is a release gate, not a compile smoke test. The current Host sheet repair must pass the complete UI suite on both devices on the exact candidate SHA; older green iPhone evidence cannot substitute for a current iPad result. The embedded Host panels and Stage Search/Queue use one root sheet identity and owner-aware dismissal, while the UIKit fullscreen host retains its own child sheet.
+
+Verified-download packaging is manually dispatched from `main`. It discovers successful reconstruction, unsigned iOS archive and full walkthrough runs for the same exact SHA, validates artifact run identity, expiry, APK/IPA structure and checksums, and copies the accepted bytes without rebuilding or signing. The packaging job does not publish a GitHub Release or deploy the website. Contract tests remain automatic for relevant pull requests and main changes.
 
 ## Automatic workflow triggers and release boundary
 
@@ -133,3 +139,10 @@ Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [390
 - The Vercel CLI is pinned to `65.2.0`. The job pulls the existing production project configuration, builds a prebuilt production output, then uploads that output with non-interactive confirmation. `VERCEL_TOKEN` is only a GitHub Actions secret; it must never be committed or printed.
 - The static contract test checks the explicit target, pinned CLI, validation dependency, PR deploy exclusion, non-interactive commands, and deployment concurrency. Website validation runs it whenever the deployment workflow changes.
 - A successful Vercel CLI job is not sufficient by itself: verify `/ads.txt` and `/sitemap.xml` return HTTP 200 on the production hostname after deployment. A preview URL is not production acceptance.
+
+## iPad Stage Search presentation-anchor regression — 2026-10-24
+
+Parent candidate `5865e14` passed reconstruction, unsigned artifact build, verified-download contract tests, and focused iPhone smoke. Full walkthrough [#40065088612](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088612) passed iPhone and failed iPad in `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke`, and `testStarterPlaybackAndControls`. The retained failure-time accessibility hierarchy showed the Host stage/Search button but no presented keypad.
+
+The previous repair removed the duplicate Stage sheet from the Host scroll-content branch, but RootView still attached its navigation `.sheet` to the ancestor `NavigationStack` containing HostView. The next candidate moves that navigation sheet to a sibling background anchor while keeping both owners serialized through `KantaPresentationGate`. `tools/check-ios-presentation-contract.py` guards the sibling-anchor structure. Do not add retries, sleeps, or weaken assertions. Accept only after reconstruction and the complete iPhone and iPad walkthrough pass on the exact same candidate SHA.
+

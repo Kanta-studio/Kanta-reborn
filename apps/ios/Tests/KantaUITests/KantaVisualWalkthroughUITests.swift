@@ -111,7 +111,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         openFullscreen.tap()
         let fullscreenExit = app.buttons["fullscreen.exit"]
         XCTAssertTrue(fullscreenExit.waitForExistence(timeout: waitSeconds))
-        let fullscreenSearch = app.buttons["stage.search"]
+        let fullscreenSearch = app.buttons["stage.search.fullscreen"]
         XCTAssertTrue(fullscreenSearch.waitForExistence(timeout: waitSeconds))
         fullscreenSearch.tap()
         XCTAssertTrue(keypadZero.waitForExistence(timeout: 10), "Search did not present inside fullscreen")
@@ -141,18 +141,25 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.staticTexts["NOW SINGING"].waitForExistence(timeout: waitSeconds))
         capture("restored-host-stage", app)
-        let panel = app.disclosureTriangles["host.remotePanel"]
-        let fallbackPanel = app.buttons["host.remotePanel"]
-        let remote = panel.exists ? panel : fallbackPanel
-        for _ in 0..<4 where !remote.isHittable { app.swipeUp() }
-        XCTAssertTrue(remote.isHittable)
+        let remoteToggle = app.buttons["host.remotePanel.toggle"].firstMatch
+        XCTAssertTrue(remoteToggle.waitForExistence(timeout: waitSeconds))
+        for _ in 0..<4 where !remoteToggle.isHittable { app.swipeUp() }
+        XCTAssertTrue(remoteToggle.isHittable)
+        XCTAssertEqual(
+            app.buttons.matching(identifier: "host.remotePanel.toggle").count, 1,
+            "The inline remote disclosure must have one unique toggle"
+        )
         capture("restored-host-remote-collapsed", app)
-        remote.tap()
+        remoteToggle.tap()
         XCTAssertTrue(app.textFields["Search song title or code"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.navigationBars["CONTROL"].exists, "Inline remote must not present a sheet")
         XCTAssertTrue(app.buttons["stage.playPause"].exists, "Expansion must preserve the stage")
+        XCTAssertEqual(
+            app.buttons.matching(identifier: "host.remotePanel.toggle").count, 1,
+            "Expanded content must not inherit the disclosure toggle identifier"
+        )
         capture("restored-host-remote-expanded", app)
-        remote.tap()
+        remoteToggle.tap()
         for _ in 0..<4 where !app.buttons["More"].isHittable { app.swipeDown() }
         openMenu(in: app, expecting: "Song Library")
         app.buttons["Song Library"].tap()
@@ -194,11 +201,21 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
     }
 
     @MainActor
-    func testMainMenuButtonsAndScreens() throws {
+    func testMainMenuPrimaryScreens() throws {
+        assertMenuScreens(["Song Library", "KANTA Songbook", "Settings"], prefix: "menu-primary")
+    }
+
+    @MainActor
+    func testMainMenuCompanionAndLegalScreens() throws {
+        assertMenuScreens(["Companion Remote", "iCloud Save", "Legal & Privacy"], prefix: "menu-companion")
+    }
+
+    @MainActor
+    private func assertMenuScreens(_ destinations: [String], prefix: String) {
         let app = XCUIApplication()
         app.launchEnvironment["KANTA_DEMO_MODE"] = "0"
-        for destination in ["Song Library", "KANTA Songbook", "Settings",
-                            "Companion Remote", "iCloud Save", "Legal & Privacy"] {
+        // Keep each group below XCTest's per-case deadline while retaining fresh-launch isolation.
+        for destination in destinations {
             app.launch()
             XCTAssertTrue(app.buttons["More"].waitForExistence(timeout: waitSeconds))
             openMenu(in: app, expecting: destination)
@@ -206,7 +223,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
             XCTAssertTrue(button.waitForExistence(timeout: 5))
             waitForRendered(button, in: app)
             button.tap()
-            capture("menu-" + destination, app)
+            capture(prefix + "-" + destination, app)
             app.terminate()
         }
     }
@@ -251,6 +268,10 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         XCTAssertTrue(queue.waitForExistence(timeout: waitSeconds))
         XCTAssertEqual(queue.value as? String, "2 reservations")
         app.buttons["stage.search"].tap()
+        XCTAssertTrue(
+            app.buttons["stage.keypad.0"].waitForExistence(timeout: 10),
+            "Embedded Stage Search must present its keypad on the active iPad/iPhone window"
+        )
         for digit in 0...9 { XCTAssertTrue(app.buttons["stage.keypad.\(digit)"].exists) }
         app.buttons["Cancel"].tap()
         XCTAssertEqual(queue.value as? String, "2 reservations")
