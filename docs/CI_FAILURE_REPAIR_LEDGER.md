@@ -162,113 +162,51 @@ The fullscreen and session-save repair commits recorded above were folded into `
 
 **Status:** the affected `candidate` records above are now `verified` for the runtime/fullscreen/session-save fingerprints on the `main` head, by the green runs listed. This documentation-only commit does not alter production behavior and does not by itself validate a new SHA's source; it records the already-green merged head. Physical-device audio/camera/performance acceptance and signing/release remain separate open gates.
 
+## 2026-10-24 — Verified-download packaging used expired pinned artifacts
 
-## Vercel production deploy workflow — non-interactive project targeting (2026-10-24)
+**Fingerprint:** Verified download packaging run [39992413302](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413302), source SHA `81148475474742cf417d386ff4713b44cf58df0e`. The contract-test job passed; the package job failed in `Preserve validated application bytes` while requesting artifact metadata, ending in HTTP 404.
 
-**Fingerprint:** workflow `KANTA Vercel deploy`, deploy step; `Command `vercel deploy` requires confirmation. Use option "--yes" to confirm.`
+**Root cause:** `tools/prepare-verified-downloads.py` hard-coded artifact/run IDs from the October 15–16 builds. Those source artifact IDs are no longer accessible, so a successful contract suite could not produce a fresh bundle. The workflow also ran the packaging job on push/PR changes to its own workflow and tests, even though those events should validate contracts rather than regenerate downloads.
 
-**First observed runs:** push run [40000554394](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40000554394) and manual run [40000568782](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40000568782), both on main SHA `6f335c224689cdc73d97a5bdd3695d55ab35aecb`. Both installed Vercel CLI 65.2.0 and failed at the deploy command before creating a deployment. The production routes remained HTTP 404.
+**Recurrence:** after the repository name was corrected in commit [380acd1](https://github.com/usermalik20-del/Kanta-reborn/commit/380acd18c9a38613b6e54c6edbfbf73a5276dc74), main run [39993458953](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39993458953) failed at the same artifact lookup with HTTP 404. This confirms the repository-name correction was necessary but insufficient; the pinned artifact IDs themselves are stale.
 
-**Cause:** the workflow called `vercel deploy --prod --token=… apps/web/` without non-interactive confirmation and without explicit organization/project IDs. The observed failure is the CLI's confirmation guard; whether it could then select or create the intended project was not established. Do not fix this by adding `--yes` to the bare command.
+**Repair candidate:** replace static IDs with discovery from the exact requested main SHA. Require the newest matching main runs for reconstruction validation, unsigned iOS archive and full iPhone/iPad walkthrough to be successful; locate the named Android/iOS artifacts in those exact runs; reject expired or cross-run artifacts; verify IPA source/run metadata and existing checksums; keep application bytes unchanged. Restrict packaging to manual dispatch on main while retaining automatic contract tests for relevant PR/main changes. Update architecture/testing documentation to make the release gate explicit.
 
-**Candidate repair:** bind the workflow to the existing verified team/project IDs, pin CLI 65.2.0, run `vercel pull --yes --environment=production`, `vercel build --prod`, then `vercel deploy --prebuilt --prod --yes`. Serialize production deploys, require the website/deployment-contract validation job, skip deploy on pull requests, and trigger production only from main or manual dispatch. The token remains a GitHub Actions secret. No new Vercel project or alias is created.
+**Regression coverage:** latest run status/conclusion, exact SHA and main-branch identity, artifact run identity/expiry/ambiguity, full-walkthrough prerequisite, APK/IPA structure, IPA checksum/source metadata and authorization-header removal on storage redirects.
 
-**Regression:** `tools/tests/test_vercel_deploy_workflow.py` checks explicit target IDs, CLI pinning, non-interactive commands, prebuilt deployment, validation dependency, PR exclusion and concurrency. Website validation must run this test when the deploy workflow changes.
+**Validation status:** repair candidate is on `fix/verified-downloads-current-sha-20261024`. CI is pending; do not mark this failure repaired until the branch contract job passes and the resulting workflow behavior is verified.
 
-**Validation:** `candidate` until the PR's workflow and website checks pass, the main-branch production deploy succeeds on the intended existing project, and both production `/ads.txt` and `/sitemap.xml` return HTTP 200. A preview build, successful CLI invocation without HTTP checks, or an unsigned native artifact does not verify this repair.
+## 2026-10-24 — iPhone walkthrough failed on duplicate remote accessibility IDs and menu-suite timeout
 
-**Recurrence rule:** inspect the complete Vercel CLI error and project metadata first. Never deploy with an implicit project-selection prompt, create a replacement project, or move production aliases merely to make CI green.
+**Evidence:** Main walkthrough [run 39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296), SHA `81148475474742cf417d386ff4713b44cf58df0e`; iPhone evidence artifact [12518549843](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296/artifacts/12518549843). The iPhone result bundle and `iphone-tests.log` show two independent failures.
 
-**Status:** `candidate`.
+**Root cause A — duplicate accessibility identity:** `HostView.inlineRemote` placed `.accessibilityIdentifier("host.remotePanel")` on the whole SwiftUI `DisclosureGroup`. After expansion, SwiftUI exposed that identifier on the toggle and numerous descendants (Songbook, voice controls, reservations, preset controls and add/remove buttons). The second tap of the saved XCTest query therefore matched multiple buttons and failed at `KantaVisualWalkthroughUITests.swift:155`.
 
+**Repair candidate:** move the identifier onto the disclosure label only as `host.remotePanel.toggle`; query that unique button and assert its count remains one before and after expansion. This scopes the identifier to the interactive control instead of the container.
 
-**Validation checkpoint (2026-10-24):** the Vercel deployment-contract validation job passed in [run 40006046506](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046506), and website validation including the deployment-contract regression test passed in [run 40006046535](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046535). Both runs checked source SHA `e30515834d36e35944ed9ec72d97700f4947ddf8`. At this checkpoint, full reconstruction run [40006046552](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046552) and unsigned archive run [40006046467](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40006046467) were still running; their results are not inferred from the green website checks. No production deploy was attempted by a PR run, and production HTTP checks remain red. This ledger note is documentation-only and does not claim the candidate is production-verified.
+**Root cause B — test-case timeout:** `testMainMenuButtonsAndScreens` launched the app six times and navigated six destinations in one XCTest case. Simulator startup was slow enough that the case exceeded XCTest's 120-second allowance while still progressing through the menu list.
 
+**Repair candidate:** split the six destinations into two bounded test cases (three screens each), keep fresh-launch isolation, require both cases in `tools/capture-ios-runtime.py`, and make the runner explicitly fail on missing tests, execution-timeout messages and `TEST EXECUTE FAILED`.
 
-## Vercel root-directory duplication after the first repair (2026-10-24)
+**Validation status:** fixes are on `fix/verified-downloads-current-sha-20261024` alongside the exact-SHA verified-download repair. PR #57 contract tests passed on the earlier head; the updated full iPhone/iPad walkthrough, unsigned IPA and reconstruction jobs are pending. Do not claim the UI repair is complete until the new head passes both devices.
 
-**Fingerprint:** main deployment run [40007708835](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40007708835), job [120599848754](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40007708835/job/120599848754).
+## 2026-10-24 — iPad Stage Search/Queue sheet not presented
 
-**Observed result:** validation passed, Vercel CLI 65.2.0 installed, project credentials and existing project were verified, `vercel pull` succeeded, and `vercel build` exited successfully. The deploy step failed with: `The provided path “~/work/Kanta-reborn/Kanta-reborn/apps/web/apps/web” does not exist.`
+**Evidence:** [full walkthrough #39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824), source SHA `49e3f8ea111cf985c9e768e1d0a9a2a5d17bbc7b`. The iPhone portion completed. On the iPad Pro 11-inch simulator, three cases failed after tapping the embedded `stage.search` control because `stage.keypad.0` never appeared: `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke`, and `testStarterPlaybackAndControls`. The failure-time hierarchy showed the Host stage and Search button but no presented Stage sheet. Native reconstruction compilation/tests had passed on the candidate.
 
-**Root cause:** the workflow set `working-directory: apps/web` while the existing Vercel project already declares `apps/web` as its Root Directory. Vercel resolved that path twice. The CLI commands must run from the repository root so the configured project Root Directory is applied once.
+**Actionable source finding:** embedded Search/Queue presentation was owned by a `.sheet` modifier on `KantaMainPlayerView`, a child inside HostView's `ScrollView`. The runtime log does not expose the gate's owner state, so the precise platform presentation failure is not yet proven; the child-attached presenter is the strongest source-level hypothesis and is being removed.
 
-**Repair:** remove the job-wide `working-directory`, execute pull/build/deploy from repository root, document why this is required, and add a regression test forbidding the nested working directory. Keep the explicit project IDs, pinned CLI, non-interactive prebuilt deployment, validation gate, and PR deployment exclusion.
+**Repair candidate:** HostView owns embedded sheet identity and presents it from the stable scroll-container host. Embedded requests still acquire the shared `KantaPresentationGate`; fullscreen Search/Queue remain child sheets of the UIKit fullscreen host. A shared content view prevents behavior drift. The fullscreen Search ID is now `stage.search.fullscreen`, distinct from the embedded `stage.search`. Added regression assertions and static architecture guards.
 
-**Verification gate:** PR checks must pass before merge. After merge, inspect the new main deploy job and verify production `/ads.txt` and `/sitemap.xml` return HTTP 200. Do not treat a successful `vercel build` as deployment success.
-
-**Status:** repair candidate; the failed main deployment did not change production.
-
-## Website — route-wide CSP assertion blocks restored homepage (2026-10-24)
-
-**Fingerprint:** `tools/verify-website.py` failed on `assert "github.com/kanta-gelo/" not in source` for `index.html`; website validation run [#40063520436](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40063520436), job [#120781862930](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40063520436/job/120781862930), source SHA `926b06163d8ddc11565febfcdb9ed4c685dda8e1`. The Vercel deploy validation failed and skipped production deployment in [run #40063520390](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40063520390).
-
-**Confirmed cause:** the restored homepage still linked to `github.com/kanta-gelo/Kanta-reborn` even though the active canonical repository is `usermalik20-del/Kanta-reborn`. After that first assertion, the verifier would also have rejected the newer global CSP: commit [`1291794`](https://github.com/usermalik20-del/Kanta-reborn/commit/12917944cb00c9023bbceef26f6c0980affdcf70) added Google tag/Analytics sources, and [`926b061`](https://github.com/usermalik20-del/Kanta-reborn/commit/926b06163d8ddc11565febfcdb9ed4c685dda8e1) restored the classic page but retained that global policy. Simply relaxing the verifier would also weaken the documented Songbook network boundary.
-
-**Candidate repair:** branch `fix/website-csp-route-isolation-20261024` scopes the CSP to each canonical HTML route, permits analytics only on the homepage, preserves `connect-src 'none'` for Songbook and every other page, and moves the inline analytics initializer to same-origin `analytics.js` so `script-src` no longer needs `unsafe-inline`. The verifier now checks exact directive allowlists, duplicate directives, explicit route coverage and the absence of a wildcard CSP. Focused regression tests and automatic website/deployment workflow wiring were added. Architecture, testing and website README documentation record the security boundary.
-
-**Regression:** fail if any non-home route gains an external connection or script origin, if the wildcard rule gains CSP, if any route lacks exactly one policy, or if homepage analytics returns to inline JavaScript.
-
-**Validation:** `candidate`; PR CI and production response-header verification pending. Do not mark verified from the earlier green SHA or from a static config check alone.
-
-**Recurrence rule:** inspect the actual route-scoped policy and preserve Songbook isolation; do not loosen the validator to accept a global analytics exception.
-
-## Verification follow-up — website CSP repair (2026-10-24)
-
-**Fixed SHA:** [`afd83e5`](https://github.com/usermalik20-del/Kanta-reborn/commit/afd83e52530811679bda3730945b7dd03f421bd8), merged via [PR #63](https://github.com/usermalik20-del/Kanta-reborn/pull/63).
-
-**First green fixed-SHA checks:** [website validation #40064491975](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40064491975) and [Vercel deployment #40064491915](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40064491915) both succeeded. The PR-head website suite [#40064155593](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40064155593) also passed the full route validator, CSP regression tests and both JavaScript syntax checks. Production deployment was independently confirmed READY as [Vercel deployment `dpl_F9itgfRjxfs5LqfRuYxvyrxXHg1y](https://vercel.com/gelo-tech/kanta-public/F9itgfRjxfs5LqfRuYxvyrxXHg1y).
-
-**Live verification:** the homepage and all nine other canonical routes returned HTTP 200. The homepage serves the external stylesheet and same-origin `analytics.js`, has no inline script, and receives only the homepage-specific Google script/Analytics allowlist. `/songbook` and the other eight non-home routes return the strict policy with `script-src 'self'` and `connect-src 'none'`. `/style.css` and `/analytics.js` also return HTTP 200. This confirms the route rules are effective at the production edge, not only valid in the checked-in JSON.
-
-**Disposition:** verified for the website/CSP repair on `afd83e5`. Native reconstruction and unsigned-iOS artifact jobs are separate checks and do not constitute iPhone/iPad walkthrough acceptance.
-
-## iOS — Verified-download packaging rejected expired pinned artifacts (2026-10-24)
-
-**Evidence:** packaging run [#39992413302](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413302) failed with HTTP 404 while requesting metadata for a hard-coded artifact from an older run; [#39993458953](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39993458953) repeated the same failure after the repository-owner correction.
-
-**Cause:** the packager pinned run/artifact IDs and could not discover current outputs. A green contract test therefore did not guarantee a usable bundle.
-
-**Candidate repair:** `fix/ios-stage-sheets-and-exact-sha-release-gate-20261024` replaces static IDs with exact-source discovery, requires successful main reconstruction, unsigned IPA and full iPhone/iPad walkthrough runs on one SHA, rejects expired/cross-run artifacts, verifies source/checksum/app identity, and separates automatic contract tests from manual main-only packaging. Hosted validation pending.
-
-## iOS — Full walkthrough exposed duplicate remote ID and menu timeout (2026-10-24)
-
-**Evidence:** [main walkthrough #39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296), source `81148475474742cf417d386ff4713b44cf58df0e`. The iPhone log shows a saved `host.remotePanel` query becoming ambiguous after the identifier propagated from the whole `DisclosureGroup` to descendants. The menu suite also exceeded XCTest's 120-second limit while launching the app and visiting six destinations.
-
-**Candidate repair:** scope the accessibility ID to the disclosure toggle, assert uniqueness before/after expansion, split the menu journey into bounded cases, and make the capture runner fail on missing cases, timeout text or `TEST EXECUTE FAILED`. Validation pending on the current exact candidate SHA.
-
-## iOS — Embedded Stage Search sheet missing on iPad (2026-10-24)
-
-**Evidence:** [walkthrough #39996051824](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39996051824) and [PR #58 run #40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013). The iPhone portion passed on the earlier candidate, but three iPad cases did not find `stage.keypad.0` after tapping embedded Search.
-
-**Actionable finding:** the first repair left two competing sheet modifiers in the Host hierarchy. Logs do not expose the exact UIKit presenter state, so this remains a source-level hypothesis rather than a proven runtime trace.
-
-**Candidate repair:** use one root `HostView` sheet identity for embedded Search/Queue and Host panels; route typed intents through `KantaPresentationGate`, complete the correct owner on dismissal, and keep fullscreen Search/Queue in the UIKit-hosted child. The exact new head still needs full iPhone/iPad validation.
-
-## iOS — iPad Stage sheet still absent after Host consolidation (2026-10-24)
-
-**Fingerprint:** PR #64 candidate `5865e142da2bb6fc8dbb528ed79cb3dc0fd7cf97`; [full walkthrough #40065088612](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088612).
-
-**Observed result:** app/UI tests compiled; iPhone walkthrough passed; iPad failed `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke`, and `testStarterPlaybackAndControls` because `stage.keypad.0` never appeared. The retained iPad accessibility hierarchy contains the main Host window and `stage.search`, but no presented Stage sheet. Focused iPhone smoke [#40065088607](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088607), reconstruction [#40065088592](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088592), unsigned build [#40065088603](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088603), and download contract tests [#40065088602](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088602) passed on that parent SHA.
-
-**Source diagnosis:** the prior change consolidated embedded Stage Search/Queue and Host panels into one HostView sheet, but RootView's navigation sheet was still attached directly to the ancestor NavigationStack containing HostView. The runtime logs do not expose UIKit's internal presenter selection, so the contribution of this ancestor/descendant sheet-anchor arrangement is a source-supported hypothesis, not a proven runtime trace.
-
-**Candidate repair:** attach RootView's navigation sheet to a sibling background anchor; keep HostView's single sheet identity and the shared presentation gate; add a source-contract regression check. Do not add retry taps, fixed sleeps, or relax UI assertions.
-
-**Status:** pending hosted validation on the new commit. Require reconstruction and the complete iPhone/iPad walkthrough on the same exact SHA before marking verified or advancing release artifacts.
+**Validation status:** candidate branch `fix/ipad-stage-sheet-host-20261024`; no hosted result exists yet for this branch. Do not mark repaired until current-head reconstruction and the complete iPhone/iPad walkthrough both pass.
 
 
+### Recurrence — iPad embedded Search still not presented after scroll-container move (2026-10-24)
 
-## iOS — iPad embedded Stage sheet persists after anchor relocation (2026-10-24)
+**Evidence:** [PR #58 walkthrough run 40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013), source SHA `24c406f4b515ad8d47d58482163f71b29e8d3ec5`. The iPhone walkthrough passed; the iPad walkthrough failed `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke` and `testStarterPlaybackAndControls` because `stage.keypad.0` never appeared after embedded Search. The unsigned app/UI tests compiled, so this is not a compile failure.
 
-**Fingerprint:** PR #64 candidate 2db140c5749de47314e32c714c12245a3396f7ae; full walkthrough [#40070268797](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797), job [#120801998970](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797/job/120801998970).
+**Root-cause finding:** the first repair moved the embedded `.sheet` to `hostContent` but left the root `HostView` `.sheet` active for CONTROL/session-save/Favorites. SwiftUI therefore still had two sheet modifiers in the same Host hierarchy. The failure log does not expose the exact presenter internals; competing presentation ownership is the strongest actionable source-level explanation.
 
-**Observed result:** the iPhone walkthrough passed. The iPad failed testDemoKeypadCancelAndRepeatedIntentionalReservations, testFocusedNavigationSmoke and testStarterPlaybackAndControls with explicit XCTAssertTrue failures: “Embedded Stage Search must present its keypad on the active iPad/iPhone window”, “Stage Search must open the keypad”, and “Search did not present the keypad after library dismissal”. The accessibility hierarchy did not contain stage.keypad.0. Reconstruction [#40070268803](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268803), unsigned build [#40070268801](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268801), contract tests [#40070268814](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268814), and focused iPhone smoke [#40070268795](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268795) passed on that parent SHA.
+**Repair candidate:** use one root `HostView` sheet identity for both embedded Stage Search/Queue and Host panels. Route typed Stage intents into `HostSheet.stageSearch`/`stageQueue`, map each sheet to its `KantaPresentationGate.Owner`, and release that owner only from the shared `onDismiss`. Keep fullscreen Search/Queue under the UIKit fullscreen host. Preserve the existing device assertions and accessibility identities.
 
-**Cause assessment:** the root navigation sheet's sibling-anchor relocation was not sufficient. Logs confirm the keypad never became accessible but do not expose UIKit's internal presentation state; the exact low-level mechanism remains unconfirmed.
-
-**Candidate repair:** commits [218c1c2](https://github.com/usermalik20-del/Kanta-reborn/commit/218c1c2c73cf641073a679649e409a9f54f4f2aa) and [e5f2672](https://github.com/usermalik20-del/Kanta-reborn/commit/e5f2672afc319b408bd270accc50bac0b3dcbeb1) move embedded Stage Search/Queue to a dedicated UIKit modal presenter while preserving the shared gate and existing Host/fullscreen owners. Static guard updated in [d9d5fa1](https://github.com/usermalik20-del/Kanta-reborn/commit/d9d5fa1a5eec645ac7758ccd5079cdac8ba58fa0).
-
-**Follow-up guard regression:** focused smoke [#40074261338](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40074261338) failed before compiling because the static checker searched for presentationGate.completeDismissal(.stage) while the presenter correctly calls gate.completeDismissal(.stage) through a captured gate. [Commit 4ff9a4d](https://github.com/usermalik20-del/Kanta-reborn/commit/4ff9a4d714908fc89e7a3cf514dfd3c243575bd1) corrects the assertion. This is a checker mismatch, not evidence of a Swift compiler failure.
-
-**Status:** current-head validation pending. Do not mark the runtime repair verified until the full iPhone and iPad walkthrough and reconstruction succeed on the same exact SHA.
+**Validation:** implementation is being validated on the existing PR #58 branch. Do not mark fixed until reconstruction validation and the full iPhone/iPad walkthrough pass on the exact updated head.

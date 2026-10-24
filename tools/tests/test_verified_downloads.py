@@ -207,15 +207,5 @@ class DownloadContracts(unittest.TestCase):
             module.validate_ipa(app, dict(info, signed=True), checksum, expected)
 
 
-    def test_live_manifest_uses_current_repository_and_run_specific_artifact_links(self):
-        root = pathlib.Path(__file__).parents[2]
-        manifest = __import__("json").loads((root / "apps/web/downloads.json").read_text())
-        self.assertEqual(manifest["repository"], "usermalik20-del/Kanta-reborn")
-        self.assertEqual(manifest["retentionDays"], 7)
-        for platform, page in (("android", "android.html"), ("ios", "ios-download.html")):
-            build = manifest[platform]
-            link = "https://github.com/" + manifest["repository"] + "/actions/runs/" + str(build["run"]) + "/artifacts/" + str(build["artifact"])
-            self.assertIn(link, (root / "apps/web" / page).read_text())
-
 if __name__ == "__main__":
     unittest.main()

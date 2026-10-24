@@ -46,10 +46,3 @@ Status: **candidate only**. Reconstruction and full iPhone/iPad walkthrough on t
 The initial HostView-owned scroll-container sheet candidate did not resolve the iPad regression. PR #58 walkthrough [#40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013) passed iPhone but failed iPad cases where embedded Search did not present `stage.keypad.0`. Source inspection found a root Host sheet and a second embedded-stage sheet on separate branches of the same SwiftUI hierarchy. The exact presenter failure remains uninstrumented, so this is a source-backed architectural hypothesis, not a claimed runtime trace.
 
 The current candidate consolidates embedded Search/Queue with CONTROL/session-save/Favorites under the single root HostView sheet identity and completes the matching `.stage`/`.host` gate from `onDismiss`. Fullscreen Search/Queue remain nested under the UIKit fullscreen host. Changed-head reconstruction and both-device walkthrough are required before acceptance.
-
-
-## iPad embedded Stage sheet recurrence and UIKit presenter candidate — 2026-10-24
-
-Walkthrough #40070268797 (https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797) on 2db140c passed iPhone but failed iPad in three keypad cases. Failure logs show stage.keypad.0 missing after embedded Search, including the direct smoke path and the post-Library path. The sibling-anchor change was not sufficient.
-
-The current candidate uses KantaEmbeddedStageSheetPresentation and a dedicated UIKit UIHostingController for embedded Search/Queue, while Host panels and fullscreen child sheets keep their existing owners. The gate remains shared and dismissal-driven. The first focused smoke for source head d9d5fa1 failed at the static contract guard before app compilation; commit 4ff9a4d fixes the guard to match the captured gate callback. The new full walkthrough and reconstruction runs must complete on the exact latest head before this is considered accepted. No signed or installable release is established.

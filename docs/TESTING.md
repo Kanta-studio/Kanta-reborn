@@ -51,7 +51,9 @@ Cloud run [38748040876](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/
 
 ## iOS online runtime workflow
 
-The root `ios-runtime-artifacts.yml` runs automatically for relevant feature-branch iOS pushes, same-repository pull requests and after successful main-branch reconstruction validation. Manual dispatch remains available for a deliberate rerun. It builds all Xcode UI tests, executes the complete walkthrough suite on an available iPhone and iPad separately, records each simulator and extracts XCTest attachments even on failures. Stable accessibility IDs identify the requested starter and current song, and predicates wait for actual playback. Logs, results and video remain available for seven days. Only after both walkthroughs pass does it build/package an unsigned iPhoneOS personal-signing input; signing and hardware acceptance remain separate.
+`.github/workflows/ios-visual-walkthrough.yml` builds and executes the full `KantaVisualWalkthroughUITests` suite on iPhone and iPad simulators separately. It runs for relevant iOS pull requests and main pushes, changes to `tools/prepare-verified-downloads.py`, weekly, by manual dispatch, and on `ios-rc-*` tags. It preserves screenshots, video, XCTest logs and result bundles for seven days. Every required named test must pass on each device; missing cases, XCTest execution-timeout messages and `TEST EXECUTE FAILED` are failures even if another test later passes.
+
+`.github/workflows/ios-runtime-artifacts.yml` is a separate unsigned device-archive workflow triggered by relevant iOS/tool changes on pull requests and main. It packages an unsigned personal-signing IPA and source/run metadata, but does not sign it and does not prove simulator or physical-device acceptance. `verified-downloads.yml` only packages a bundle after successful reconstruction, unsigned-IPA and full iPhone/iPad walkthrough runs for the exact same main SHA. Signing and hardware acceptance remain separate.
 
 Android runtime fixtures live in the test APK behind a signature permission declared only by debug builds. The read-only provider exposes synthetic/original starter bytes and a bounded cyclic SAF tree; no user storage is exposed. Instrumentation checks nested traversal, partial failure, cancellation rollback/reopen, byte integrity, real controller import, custom pad decode/reset and idle intermission gating. Fixture code is excluded from release builds.
 
@@ -65,7 +67,7 @@ The iOS job runs the full package and app gate automatically alongside the Andro
 
 ## iOS walkthrough runner diagnostics and suite timeout
 
-`tools/capture-ios-runtime.py` still executes the complete four-test `KantaVisualWalkthroughUITests` suite on each platform. XCTest per-case deadlines stay 120 seconds (180 seconds maximum), while the outer process deadline is 1,080 seconds so it cannot abort a legitimate multi-case run at 660 seconds. A failing process prints the last 100 lines from its test log in the Actions job and retains the full log and completed `.xcresult` attachments; partial result bundles are not passed to `xcresulttool`. The 55-minute workflow limit and existing red-on-failure/unsigned-artifact gates are unchanged. This addresses a confirmed iPad outer-runner timeout, not the separate iPhone UI assertion; the latest branch still requires an accepted iPhone/iPad runtime run before merging or updating public binaries.
+`tools/capture-ios-runtime.py` runs the full UI-test suite with a bounded 1,080-second outer deadline and 120-second per-case default (180-second maximum). The six original test methods now include separate primary-menu and companion/legal batches so a six-screen sweep cannot consume one test's entire deadline. The runner requires all seven named acceptance cases, rejects missing cases, captures execution-timeout and `TEST EXECUTE FAILED` diagnostics, prints the last 100 log lines and retains screenshots/video/completed `.xcresult` evidence. Partial result bundles are not passed to `xcresulttool`. The 55-minute workflow limit remains unchanged.
 
 ## PR #31 iPhone/iPad runtime regression checkpoint
 
@@ -87,7 +89,7 @@ The real playback walkthrough waits for a rendered stage Search button after clo
 
 ## iOS modal request lifecycle
 
-Root navigation, Host panels, embedded Stage Search/Queue and fullscreen share KantaPresentationGate, but they do not all use the same SwiftUI sheet. Root navigation uses its sibling background anchor; Host CONTROL/session/Favorites use the HostView SwiftUI sheet; embedded Stage Search/Queue use KantaEmbeddedStageSheetPresentation with a UIKit-owned UIHostingController; fullscreen retains its own child SwiftUI sheet under the UIKit fullscreen host. The gate coalesces pending requests per owner and activates the next action only after the current owner reports its actual dismissal. The Search walkthrough deliberately taps once after leaving Library; do not add retries or fixed sleeps to mask a dropped presentation request. The current UIKit embedded-sheet candidate is not accepted until the full iPhone/iPad walkthrough passes on its exact SHA.
+The Root, Host and Stage SwiftUI sheet owners share `KantaPresentationGate`. The gate holds a request received while another sheet is presented or dismissing, coalesces a second pending request from the same owner, and activates the first pending action only after the current owner reports `onDismiss`. Embedded Host panels and Stage Search/Queue must share the single root `HostView` sheet identity; do not attach a competing `.sheet` to the Host scroll-content branch. Owner-specific dismissal completes the matching gate state. The Search walkthrough deliberately taps once after leaving Library; do not add retries or fixed sleeps to mask a dropped presentation request. Fullscreen remains a separately owned UIKit presenter with its own child Search/Queue sheet.
 
 
 ### iOS fullscreen presentation ownership candidate
@@ -95,54 +97,29 @@ Root navigation, Host panels, embedded Stage Search/Queue and fullscreen share K
 The presentation contract guard checks that the UIKit fullscreen presenter acquires and releases `KantaPresentationGate` ownership through its dismissal callback, and that the gate restores fullscreen after a nested Search/Queue sheet. The UI walkthrough opens fullscreen from CONTROL, uses Search inside fullscreen, exits, and verifies normal-stage Search can present afterward. Run `tools/check-ios-presentation-contract.py` and the full reconstruction validation on the candidate SHA. A green run on a different SHA does not validate it.
 
 
-## Website Content Security Policy
-
-The website validator checks that every canonical public route has exactly one explicit CSP. Only the homepage may load the allowlisted Google tag/AdSense scripts and connect to Google Analytics; all other pages, including Songbook, must retain `connect-src 'none'` and same-origin script loading. The wildcard header rule may not define CSP. The focused `tools/tests/test_website_security_contract.py` suite guards this boundary, and CI syntax-checks both `songbook.js` and `analytics.js`. A passing static contract is not proof of live response headers; verify the production deployment after the merge.
-
-## Native release acceptance and verified downloads
-
-The full iPhone/iPad walkthrough is a release gate, not a compile smoke test. The current Host sheet repair must pass the complete UI suite on both devices on the exact candidate SHA; older green iPhone evidence cannot substitute for a current iPad result. The embedded Host panels and Stage Search/Queue use one root sheet identity and owner-aware dismissal, while the UIKit fullscreen host retains its own child sheet.
-
-Verified-download packaging is manually dispatched from `main`. It discovers successful reconstruction, unsigned iOS archive and full walkthrough runs for the same exact SHA, validates artifact run identity, expiry, APK/IPA structure and checksums, and copies the accepted bytes without rebuilding or signing. The packaging job does not publish a GitHub Release or deploy the website. Contract tests remain automatic for relevant pull requests and main changes.
-
 ## Automatic workflow triggers and release boundary
 
-Reconstruction validation runs for relevant app, tool and workflow changes on same-repository pull requests and main pushes. Website validation runs for relevant website changes on main pushes and same-repository pull requests, and can also be started by manual dispatch. It deliberately does not run on ordinary feature-branch pushes; the pull-request event is the feature-branch validation trigger, avoiding duplicate CI for the same change. Verified-download contract and packaging checks run on their relevant pull-request and main triggers without any approval label. The full iPhone/iPad walkthrough runs on iOS pull requests, main pushes, weekly and on manual dispatch, and must pass on the exact release-candidate SHA before that SHA is treated as accepted. No workflow signs or publishes production downloads automatically.
+Reconstruction validation runs for relevant app, tool and workflow changes on same-repository pull requests and main pushes. Website validation runs for relevant website changes on main pushes and same-repository pull requests, and can also be started manually. Feature-branch validation uses the pull-request event rather than duplicate ordinary branch-push runs.
+
+The verified-download contract tests run automatically on relevant pull requests and main pushes. The packaging job is **manual-dispatch only on main** because it produces a reusable cross-platform bundle and must not run merely because its own workflow or contract tests changed. The full visual walkthrough also runs when `tools/prepare-verified-downloads.py` changes, so a package-gate change can be validated against the exact source SHA before that SHA is eligible for packaging. Dispatch accepts an optional full source SHA; otherwise it uses the selected main ref. It requires the newest matching main-branch runs for reconstruction validation, the unsigned iOS device archive, and the complete iPhone/iPad walkthrough to have succeeded on that exact SHA. It then discovers artifacts from those runs, rejects expired or mismatched artifacts, and validates their source/run identity, digests, archive structure and application metadata. It never signs, publishes a GitHub Release or deploys production downloads. An expired/missing artifact is a hard failure, not permission to reuse an unrelated build.
 
 ## CI separation: fast validation, unsigned artifacts and visual acceptance
 
-- `reconstruction-validation.yml` remains the required PR source, Swift package, simulator-build, and Android validation gate. It does not execute the long XCTest UI walkthrough.
-- `ios-runtime-artifacts.yml` builds the unsigned personal-signing IPA only on manual dispatch. Its success proves packaging, not simulator interactions, signing, or installability.
-- `ios-visual-walkthrough.yml` runs the full four-case XCTest walkthrough separately on both iPhone and iPad, with screenshots, recordings and failure diagnostics. It is manually dispatchable, scheduled weekly (Tuesday 03:00 Asia/Manila; Monday 19:00 UTC), and triggered by `ios-rc-*` tags. It does not run on ordinary pull requests or documentation commits.
-- A release candidate requires a successful visual walkthrough on the **exact candidate SHA**; weekly or unrelated-commit green evidence cannot substitute for release acceptance. CI does not sign or publish production application downloads. The separate Vercel workflow deploys the public website only after its own validation job succeeds.
-- `ios-smoke.yml` runs `testFocusedNavigationSmoke` on an iPhone simulator for relevant iOS PR changes. It checks Search, fullscreen dismissal and Search recovery. This is not the full iPhone/iPad release walkthrough.
-- This split deliberately prevents the expensive walkthrough from blocking ordinary merges while keeping the full iPhone/iPad visual acceptance mandatory for release.
+- `reconstruction-validation.yml` owns source guards, Swift package tests, unsigned simulator compilation, Android build/lint/domain checks and Android emulator checks.
+- `ios-runtime-artifacts.yml` builds the unsigned personal-signing IPA for relevant iOS/tool changes on pull requests and main. It does not sign or publish the app.
+- `ios-visual-walkthrough.yml` runs the complete XCTest walkthrough separately on iPhone and iPad for relevant iOS pull requests and main pushes, changes to `tools/prepare-verified-downloads.py`, as well as weekly, manually and on `ios-rc-*` tags. A green result is release evidence only for that exact SHA.
+- `ios-smoke.yml` runs the focused iPhone navigation smoke on relevant iOS PR changes. It does not replace the full iPhone/iPad walkthrough.
+- `verified-downloads.yml` runs contract tests automatically, while its packaging job is manually dispatched on main and requires successful exact-SHA reconstruction, unsigned IPA and full iPhone/iPad walkthrough evidence.
+- Simulator builds and unsigned archives do not establish signing, physical-device audio quality or production deployment. No automated workflow signs or publishes production downloads.
 
 ## GitHub Actions cost controls (October 2026)
 
-- Feature branches are validated by the pull-request event only; ordinary feature-branch pushes do not duplicate the reconstruction, website or download-contract jobs. Main pushes retain post-merge verification.
-- The unsigned personal-signing IPA archive is manually dispatched only; compilation, Swift package tests and the unsigned simulator build remain in normal reconstruction CI. Do not interpret an unbuilt IPA as a release artifact.
-- Full iPhone/iPad visual walkthrough runs automatically on iOS pull requests and main pushes, plus weekly and on release-candidate tags. A release candidate must pass both devices on its exact SHA.
-- Failure triage is manually dispatchable with a failed run ID; it no longer starts a skipped workflow for every successful validation. Investigators can still inspect exact job logs and report failures.
-- The separate focused iOS simulator smoke PR must be validated before merge. Workflow YAML changes require checking triggers and required status checks; do not remove an equivalent passing gate when editing them.
+- Feature branches are validated by the pull-request event only; ordinary feature-branch pushes do not duplicate reconstruction, website or download-contract jobs. Main pushes retain post-merge verification.
+- Unsigned IPA generation is separated from the package-bundling job. The archive workflow runs only for relevant iOS/tool changes; the verified-download bundler runs only when deliberately dispatched after release acceptance.
+- Full iPhone/iPad walkthroughs run automatically on relevant iOS pull requests and main pushes, on verified-download packager changes, plus weekly and on release-candidate tags. Both devices must pass on the exact candidate SHA.
+- Failure triage remains manually dispatchable with a failed run ID; it does not launch after every successful validation.
+- Workflow YAML changes require checking triggers and required status checks. Keep immutable action pins and preserve all source/test assertions when correcting workflows.
 
 ## PR #43 post-merge evidence
 
-Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [39051661330](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39051661330). Website validation and verified-download contracts also passed on that main-branch commit. Unsigned IPA packaging is not automatic; an absent artifact from this merge is expected. The next release candidate still needs a candidate-SHA-matched full iPhone/iPad walkthrough. Packaging runs automatically alongside; no separate approval label is required.
-
-
-## Production Vercel deployment
-
-- `.github/workflows/vercel-deploy.yml` runs website and deployment-contract validation on same-repository pull requests; its deployment job is skipped for every pull request.
-- Main pushes affecting `apps/web/**` or the deployment workflow, and manual dispatch from `main`, run validation before production deployment. The workflow is serialized so two deployments cannot race to assign the production alias.
-- The deployment binds explicitly to the existing GeloTech Vercel team and `kanta-public` project IDs. It must not create a new project or infer a target from interactive defaults.
-- The Vercel CLI is pinned to `65.2.0`. The job pulls the existing production project configuration, builds a prebuilt production output, then uploads that output with non-interactive confirmation. `VERCEL_TOKEN` is only a GitHub Actions secret; it must never be committed or printed.
-- The static contract test checks the explicit target, pinned CLI, validation dependency, PR deploy exclusion, non-interactive commands, and deployment concurrency. Website validation runs it whenever the deployment workflow changes.
-- A successful Vercel CLI job is not sufficient by itself: verify `/ads.txt` and `/sitemap.xml` return HTTP 200 on the production hostname after deployment. A preview URL is not production acceptance.
-
-## iPad Stage Search presentation-anchor regression — 2026-10-24
-
-Parent candidate `5865e14` passed reconstruction, unsigned artifact build, verified-download contract tests, and focused iPhone smoke. Full walkthrough [#40065088612](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088612) passed iPhone and failed iPad in `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke`, and `testStarterPlaybackAndControls`. The retained failure-time accessibility hierarchy showed the Host stage/Search button but no presented keypad.
-
-The previous repair removed the duplicate Stage sheet from the Host scroll-content branch, but RootView still attached its navigation `.sheet` to the ancestor `NavigationStack` containing HostView. The next candidate moves that navigation sheet to a sibling background anchor while keeping both owners serialized through `KantaPresentationGate`. `tools/check-ios-presentation-contract.py` guards the sibling-anchor structure. Do not add retries, sleeps, or weaken assertions. Accept only after reconstruction and the complete iPhone and iPad walkthrough pass on the exact same candidate SHA.
-
+Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [39051661330](https://github.com/kanta-gelo/Kanta-reborn/actions/runs/39051661330). Website validation and verified-download contracts also passed on that main-branch commit. This is a historical checkpoint; current packaging is manual-dispatch only and requires exact-SHA reconstruction, unsigned IPA and full iPhone/iPad walkthrough evidence. A missing package on an ordinary push is expected.
