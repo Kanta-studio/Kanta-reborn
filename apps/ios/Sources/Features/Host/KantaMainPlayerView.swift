@@ -354,10 +354,16 @@ struct KantaMainPlayerView: View {
                 Image(systemName: icon).font(.system(size: 20, weight: .medium))
                     .frame(width: 44, height: 44)
                     .background(.black.opacity(0.3), in: Circle())
-                    .overlay(Circle().stroke(GeloVisualStyle.accent.opacity(0.65)))
+                    .overlay(Circle().strokeBorder(GeloVisualStyle.accent.opacity(0.65)))
                 Text(title).font(.caption)
             }
             .frame(minWidth: 44)
+            // With .plain button style SwiftUI derives the hit region from the
+            // label's content, which here is a symbol, a stroked circle and a
+            // caption rather than one solid shape. The iPad walkthrough tapped
+            // stage.search at the centre of the reported frame and no gesture in
+            // the row recognised it, so claim the whole label rectangle instead.
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain).accessibilityLabel(title)
     }
