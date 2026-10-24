@@ -169,3 +169,12 @@ When Stage Search does not expose `stage.keypad.0`, inspect the `KANTA_STAGE_PRE
 ### Keypad assertion regression after main synchronization — October 24, 2026
 
 The source guard in [focused smoke run #40100439415](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40100439415) caught a merge-resolution regression before XCTest: the demo keypad test used immediate `.exists` checks for digits 0–9 instead of waiting for asynchronous presentation. Commit [b36108e](https://github.com/usermalik20-del/Kanta-reborn/commit/b36108e2dffc30957161b2ce0e9f24eb3c134021) restores `waitForExistence(timeout: 10)` for each digit without removing any assertion. This repairs the test contract; it does not establish that the iPad runtime presentation issue is resolved. Re-run the focused smoke and full exact-SHA iPhone/iPad walkthrough.
+
+
+## Window-tap probe compiler and evidence contract — October 25, 2026
+
+Main commit d56a4ba introduced a window-level tap probe to distinguish a delivered touch from a SwiftUI button action that never fires. Reconstruction run [#40119874396](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40119874396), unsigned archive run [#40119874432](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40119874432), and walkthrough run [#40119876903](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40119876903) all exposed a compile error: the current Swift SDK replaces NSStringFromCGPoint and NSStringFromCGRect with NSCoder.string(for:). The walkthrough's subsequent missing-bundle-ID error is downstream of the failed UI-test build; it is not a new iPad runtime result.
+
+The repair uses NSCoder.string(for:), converts the hit view's bounds into window coordinates before logging them, and removes the non-cancelling tap recognizer when its representable is dismantled. This keeps the probe's point and hit rectangle comparable and prevents repeated view lifecycles from accumulating window-level recognizers.
+
+Acceptance requires the source-contract guard, Swift/package and app builds, unsigned archive, focused smoke, and a complete iPhone plus iPad walkthrough on the same exact candidate SHA. A successful diagnostic build does not establish that the original iPad Search tap is fixed.
