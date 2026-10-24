@@ -92,8 +92,6 @@ def validate_csp_config(config):
         assert parsed == expected, ("Unexpected Content-Security-Policy", rule["source"], parsed)
 
 
-
-
 class Page(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
@@ -242,8 +240,8 @@ def main():
     assert manifest["android"]["source"][:8] in (WEB / "android.html").read_text(encoding="utf-8")
     assert manifest["ios"]["source"][:8] in (WEB / "ios-download.html").read_text(encoding="utf-8")
     print(
-        "10 public pages, local routes/anchors, immutable Songbook reader, lowercase ads.txt, "
-        "canonical sitemap, route-scoped CSP, immutable Songbook reader and verified download provenance passed"
+        "10 public pages, local routes/anchors, lowercase ads.txt, canonical sitemap, "
+        "route-scoped CSP, immutable Songbook reader and verified download provenance passed"
     )
 
 
