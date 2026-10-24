@@ -126,9 +126,17 @@ struct KantaMainPlayerView: View {
                 .accessibilityIdentifier("stage.controls")
             }
             VStack(alignment: .leading, spacing: 14) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top) { nowSinging; Spacer(); stageActions }
-                    VStack(alignment: .leading, spacing: 12) { nowSinging; stageActions }
+                // A single deterministic layout keeps exactly one interactive
+                // instance of the stage action buttons. `ViewThatFits` builds
+                // both candidates and the iPad walkthrough showed it selecting
+                // the horizontal branch while taps on `stage.search` never
+                // reached the button's action, so the controls are laid out
+                // once here and the title yields space instead.
+                HStack(alignment: .top, spacing: 12) {
+                    nowSinging
+                        .layoutPriority(1)
+                    Spacer(minLength: 8)
+                    stageActions.fixedSize()
                 }
                 ZStack {
                     stageBackground.accessibilityHidden(true)

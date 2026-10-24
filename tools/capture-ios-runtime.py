@@ -54,6 +54,7 @@ def capture_presentation_diagnostics(udid: str, label: str) -> None:
     path = OUT / f"{label}-presentation-diagnostics.log"
     predicate = (
         'eventMessage CONTAINS[c] "KANTA_STAGE_PRESENTATION" OR '
+        'eventMessage CONTAINS[c] "KANTA_GATE" OR '
         'eventMessage CONTAINS[c] "Attempt to present" OR '
         'eventMessage CONTAINS[c] "not in the window hierarchy"'
     )
