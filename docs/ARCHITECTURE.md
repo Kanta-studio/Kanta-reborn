@@ -304,3 +304,9 @@ Adapters dispatch into the existing LocalKaraokeController and SessionController
 ## Native Keychain test access boundary — October 18, 2026
 
 `LocalNetworkControl` owns ephemeral browser-host session identity installation/removal. The Release-configured iOS app-hosted `KantaNativeTests` target accesses only the existing identity operations through the module's `@_spi(Testing)` surface; ordinary clients must use the host protocol, not the test SPI. This does not change session identity lifetime, transport security, Keychain accessibility or application signing. The native certificate/private-key round trip and deletion remain mandatory simulator execution gates, separate from Swift package compilation and physical-device acceptance.
+
+## iOS embedded Stage presentation — candidate (2026-10-24)
+
+Main `ca23b87871feb5b384c1613d8ba9d75457575456` still fails iPad embedded Search/keypad acceptance after the Host SwiftUI sheet was consolidated; [walkthrough #40081230815](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40081230815) shows the Host stage and Search control but no accessible `stage.keypad.0` after the tap. The internal presentation failure path is not logged, so the low-level cause remains unconfirmed.
+
+The current repair candidate gives embedded Stage Search/Queue a stable UIKit presenter (`KantaEmbeddedStageSheetPresentation`) mounted in HostView's background. Host CONTROL/session-save/Favorites retain their SwiftUI sheet; fullscreen Search/Queue retain their own child sheet. All requests continue through `KantaPresentationGate` and reuse the existing `HostViewModel`; no playback, queue, media or persistence ownership changes. The candidate is not accepted until the source guard, reconstruction and full iPhone/iPad walkthrough pass on the exact same PR head.
