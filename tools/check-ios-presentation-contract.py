@@ -47,7 +47,8 @@ def verify():
         ),
         'fullscreen Search has a unique accessibility identity': (
             'stage.search.fullscreen' in stage
-            and 'stage.search.fullscreen' in test
+            and 'let fullscreenSearch = app.buttons["stage.search.fullscreen"]' in test
+            and 'let search = app.buttons["stage.search"]' in test
         ),
         'fullscreen reuses host presentation gate': (
             'presentationGate: presentationGate' in host
