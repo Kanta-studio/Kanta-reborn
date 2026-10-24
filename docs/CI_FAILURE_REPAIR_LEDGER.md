@@ -198,3 +198,18 @@ The fullscreen and session-save repair commits recorded above were folded into `
 **Verification gate:** PR checks must pass before merge. After merge, inspect the new main deploy job and verify production `/ads.txt` and `/sitemap.xml` return HTTP 200. Do not treat a successful `vercel build` as deployment success.
 
 **Status:** repair candidate; the failed main deployment did not change production.
+
+## Website — route-wide CSP assertion blocks restored homepage (2026-10-24)
+
+**Fingerprint:** `tools/verify-website.py` assertions for `connect-src 'none'` and `script-src 'self'`; website validation run [#40063520436](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40063520436), job [#120781862930](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40063520436/job/120781862930), source SHA `926b06163d8ddc11565febfcdb9ed4c685dda8e1`. The Vercel deploy validation failed and skipped production deployment in [run #40063520390](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40063520390).
+
+**Confirmed cause:** the verifier still treated the CSP as one global wildcard policy and asserted the previous analytics-free directives. Commit [`1291794`](https://github.com/usermalik20-del/Kanta-reborn/commit/12917944cb00c9023bbceef26f6c0980affdcf70) added Google tag/Analytics sources, and [`926b061`](https://github.com/usermalik20-del/Kanta-reborn/commit/926b06163d8ddc11565febfcdb9ed4c685dda8e1) restored the classic page but retained that global policy. Simply relaxing the verifier would also weaken the documented Songbook network boundary.
+
+**Candidate repair:** branch `fix/website-csp-route-isolation-20261024` scopes the CSP to each canonical HTML route, permits analytics only on the homepage, preserves `connect-src 'none'` for Songbook and every other page, and moves the inline analytics initializer to same-origin `analytics.js` so `script-src` no longer needs `unsafe-inline`. The verifier now checks exact directive allowlists, duplicate directives, explicit route coverage and the absence of a wildcard CSP. Focused regression tests and automatic website/deployment workflow wiring were added. Architecture, testing and website README documentation record the security boundary.
+
+**Regression:** fail if any non-home route gains an external connection or script origin, if the wildcard rule gains CSP, if any route lacks exactly one policy, or if homepage analytics returns to inline JavaScript.
+
+**Validation:** `candidate`; PR CI and production response-header verification pending. Do not mark verified from the earlier green SHA or from a static config check alone.
+
+**Recurrence rule:** inspect the actual route-scoped policy and preserve Songbook isolation; do not loosen the validator to accept a global analytics exception.
+
