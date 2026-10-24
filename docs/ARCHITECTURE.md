@@ -10,6 +10,8 @@
 
 `docs/evidence/website/2026-10-15` stores exact public-site bytes, extracted readable text and URL/SHA-256 manifest. It remains immutable evidence; the active restored website is maintained separately under apps/web. No public song catalog may be added.
 
+The active website's CSP is route-scoped in `apps/web/vercel.json`: only `/` permits the Google tag and Google Analytics connections; every other public page, especially `/songbook`, retains `connect-src 'none'` and same-origin scripts. The homepage analytics initializer is served from `apps/web/analytics.js` to avoid `unsafe-inline` in `script-src`. Website CI checks the full route policy map and rejects a wildcard rule that grants analytics access.
+
 ## Runtime contracts
 
 Each platform has one playback controller and FIFO reservation queue. UI, lyrics, fullscreen/TV stage and companion control project that owner's state. Import and persistence run away from latency-sensitive playback/UI work; commits are atomic and stale async results cannot replace newer state. Retry suppression applies to the same operation ID, never separate intentional reservations.
