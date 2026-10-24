@@ -286,3 +286,10 @@ Next action requires an authorized, simulator-only signed test-host configuratio
 - Repair: remove the unrelated installation, pseudo audio-analysis commands, and their artifact upload. Do not run the unrelated command as root. Keep all KANTA source guards, native lifecycle tests, focused XCTest assertions, and evidence uploads intact. A future audio-quality gate must use an independently reviewed KANTA-specific measurement fixture and explicit acceptance thresholds.
 - Acceptance: rerun focused smoke on the repaired exact SHA and inspect the full iPhone/iPad walkthrough separately. This workflow fix does not resolve the still-open iPad embedded-keypad failure.
 
+
+
+## 2026-10-24 — iPad embedded Stage presenter readiness
+
+**Evidence:** PR #67 walkthrough run [#40093013311](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40093013311) passed the iPhone stage but failed four iPad walkthroughs; Search taps did not expose `stage.keypad.0`. The log does not contain a UIKit rejection trace, so the exact low-level cause remains unconfirmed.
+
+**Candidate repair:** mount the embedded UIKit presenter at full Host bounds, retry its state machine after layout, recover an orphaned owned controller, and log deduplicated blocked states. The demo keypad test now waits for each digit to appear. Validate the source guards, Swift tests, focused iPhone smoke, and full iPhone/iPad walkthrough on one exact head. Do not merge or release based on compilation or iPhone-only success.

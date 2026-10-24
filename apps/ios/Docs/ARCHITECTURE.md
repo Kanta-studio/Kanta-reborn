@@ -1226,3 +1226,8 @@ The merged single-Host-SwiftUI-sheet approach did not resolve the iPad regressio
 The current repair candidate moves only embedded Stage Search/Queue ownership to `KantaEmbeddedStageSheetPresentation`, a stable UIKit presenter mounted in the Host background. Host CONTROL/session-save/Favorites keep their SwiftUI sheet; fullscreen Search/Queue keep their separate child sheet. All use the existing `KantaPresentationGate` and the same `HostViewModel`; playback, queue, media and persistence ownership do not change. Interactive and button-driven dismissal both return ownership from UIKit callbacks. The existing keypad assertions remain enabled.
 
 This is a candidate, not accepted runtime behavior. Require source-contract checks, Swift package tests, focused iPhone smoke, reconstruction and the full iPhone/iPad walkthrough on the exact final PR head. No merge, signing or release is implied.
+
+
+## Embedded Stage presentation readiness (2026-10-24)
+
+The UIKit-owned embedded Stage Search/Queue presenter is mounted as a full-bounds, non-interactive Host background anchor. A 1×1 anchor is not the presentation surface. The presenter must re-evaluate requests after both appearance and layout, recover an orphaned controller, and emit a deduplicated `KANTA_STAGE_PRESENTATION` diagnostic when the view is not in a window or another controller is already presented. These checks are lifecycle safeguards, not proof of iPad runtime acceptance; both device walkthroughs on the exact candidate SHA remain required.

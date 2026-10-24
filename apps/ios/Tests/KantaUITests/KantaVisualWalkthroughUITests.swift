@@ -386,7 +386,10 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         expectation(for: queueValuePredicate, evaluatedWith: queue)
         waitForExpectations(timeout: waitSeconds)
         app.buttons["stage.search"].tap()
-        for digit in 0...9 { XCTAssertTrue(app.buttons["stage.keypad.\(digit)"].exists) }
+        for digit in 0...9 {
+            let key = app.buttons["stage.keypad.\(digit)"]
+            XCTAssertTrue(key.waitForExistence(timeout: 10), "Keypad digit \(digit) did not appear")
+        }
         app.buttons["Cancel"].tap()
         expectation(for: queueValuePredicate, evaluatedWith: queue)
         waitForExpectations(timeout: waitSeconds)

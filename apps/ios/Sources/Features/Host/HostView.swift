@@ -268,7 +268,7 @@ struct HostView: View {
                     || microphonePitchMonitor.status == .requestingPermission,
                 presentationGate: presentationGate
             )
-            .frame(width: 1, height: 1)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .allowsHitTesting(false)
     }

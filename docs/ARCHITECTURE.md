@@ -310,3 +310,8 @@ Adapters dispatch into the existing LocalKaraokeController and SessionController
 Main `ca23b87871feb5b384c1613d8ba9d75457575456` still fails iPad embedded Search/keypad acceptance after the Host SwiftUI sheet was consolidated; [walkthrough #40081230815](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40081230815) shows the Host stage and Search control but no accessible `stage.keypad.0` after the tap. The internal presentation failure path is not logged, so the low-level cause remains unconfirmed.
 
 The current repair candidate gives embedded Stage Search/Queue a stable UIKit presenter (`KantaEmbeddedStageSheetPresentation`) mounted in HostView's background. Host CONTROL/session-save/Favorites retain their SwiftUI sheet; fullscreen Search/Queue retain their own child sheet. All requests continue through `KantaPresentationGate` and reuse the existing `HostViewModel`; no playback, queue, media or persistence ownership changes. The candidate is not accepted until the source guard, reconstruction and full iPhone/iPad walkthrough pass on the exact same PR head.
+
+
+## Embedded Stage presenter lifecycle contract (2026-10-24)
+
+Embedded Search/Queue are owned by `KantaStageSheetModalPresenter`, not a competing SwiftUI `.sheet`. Its UIKit representable must occupy the Host bounds while remaining non-interactive, retry presentation when layout/attachment changes, and recover a stale owned controller instead of silently leaving the shared presentation gate held. Blocked presentation states are logged with the `KANTA_STAGE_PRESENTATION` prefix. The exact-head iPhone and iPad walkthroughs are required before acceptance; source checks alone do not prove runtime behavior.

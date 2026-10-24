@@ -78,6 +78,7 @@ final class KantaStageSheetModalPresenter: UIViewController,
     private weak var ownedSheet: UIViewController?
     private var isTransitioning = false
     private var dismissalCallbackPending = false
+    private var lastBlockedPresentationState: String?
 
     override func loadView() {
         view = UIView(frame: .zero)
@@ -110,6 +111,16 @@ final class KantaStageSheetModalPresenter: UIViewController,
         updatePresentation()
     }
 
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        if !isTransitioning, let ownedSheet, ownedSheet.presentingViewController == nil {
+            self.ownedSheet = nil
+            finishDismissal()
+            return
+        }
+        updatePresentation()
+    }
+
     private func updatePresentation() {
         guard !isTransitioning else { return }
 
@@ -130,11 +141,17 @@ final class KantaStageSheetModalPresenter: UIViewController,
             return
         }
 
-        guard ownedSheet == nil,
-              viewIfLoaded?.window != nil,
-              presentedViewController == nil,
-              let requestedSheet,
-              let makeSheet else { return }
+        guard ownedSheet == nil else { return }
+        guard viewIfLoaded?.window != nil else {
+            recordBlockedPresentation("presenter-not-in-window")
+            return
+        }
+        guard presentedViewController == nil else {
+            recordBlockedPresentation("presenter-already-presenting")
+            return
+        }
+        guard let requestedSheet, let makeSheet else { return }
+        lastBlockedPresentationState = nil
 
         let presented = makeSheet(requestedSheet)
         ownedSheet = presented
@@ -147,6 +164,13 @@ final class KantaStageSheetModalPresenter: UIViewController,
             presented?.presentationController?.delegate = self
             self.updatePresentation()
         }
+    }
+
+    private func recordBlockedPresentation(_ reason: String) {
+        let state = "sheet=\(requestedSheet?.rawValue ?? "none"),reason=\(reason),window=\(viewIfLoaded?.window != nil),presented=\(presentedViewController != nil),gate=\(String(describing: presentationGate?.owner))"
+        guard state != lastBlockedPresentationState else { return }
+        lastBlockedPresentationState = state
+        NSLog("[KANTA_STAGE_PRESENTATION] %@", state)
     }
 
     func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {

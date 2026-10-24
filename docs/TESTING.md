@@ -156,3 +156,8 @@ PR #51 native XCTest now compiles in Release through a test-only Swift SPI. Reco
 
 Focused simulator smoke must gate on KANTA-owned source checks, native lifecycle tests, named XCTest cases, and retained test evidence. Do not install unrelated external CLIs or label them audio analysis. On PR #67 head `61057d0`, the app build and focused XCTest step passed, including the four selected UI cases, but the overall job failed afterward at `rtk latency` with `must be run as root`. Inspection of the upstream [rtk-ai/rtk project](https://github.com/rtk-ai/rtk) confirms it is an LLM token-optimization CLI, not an audio measurement tool. The step was introduced by PR #65 and also piped a mutable remote install script directly into a shell. The repair removes this unrelated dependency rather than escalating it with sudo. Any future audio-quality/latency gate must use a KANTA-specific fixture or measurement tool with documented metrics, bounded permissions, and independently verified results; this smoke suite makes no audio-quality claim.
 
+
+
+## iPad embedded Stage presenter diagnostics (2026-10-24)
+
+When Stage Search does not expose `stage.keypad.0`, inspect the `KANTA_STAGE_PRESENTATION` diagnostics in the matching runtime logs and correlate the requested sheet, window attachment, existing presentation, and gate owner. The presenter now retries on layout and detects an orphaned owned controller; this is a candidate lifecycle repair until the full iPhone/iPad walkthrough passes on the same SHA. Keypad assertions must wait for each digit to exist rather than sampling `exists` immediately after a presentation animation.
