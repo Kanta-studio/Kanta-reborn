@@ -213,3 +213,13 @@ The fullscreen and session-save repair commits recorded above were folded into `
 
 **Recurrence rule:** inspect the actual route-scoped policy and preserve Songbook isolation; do not loosen the validator to accept a global analytics exception.
 
+## Verification follow-up — website CSP repair (2026-10-24)
+
+**Fixed SHA:** [`afd83e5`](https://github.com/usermalik20-del/Kanta-reborn/commit/afd83e52530811679bda3730945b7dd03f421bd8), merged via [PR #63](https://github.com/usermalik20-del/Kanta-reborn/pull/63).
+
+**First green fixed-SHA checks:** [website validation #40064491975](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40064491975) and [Vercel deployment #40064491915](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40064491915) both succeeded. The PR-head website suite [#40064155593](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40064155593) also passed the full route validator, CSP regression tests and both JavaScript syntax checks. Production deployment was independently confirmed READY as [Vercel deployment `dpl_F9itgfRjxfs5LqfRuYxvyrxXHg1y](https://vercel.com/gelo-tech/kanta-public/F9itgfRjxfs5LqfRuYxvyrxXHg1y).
+
+**Live verification:** the homepage and all nine other canonical routes returned HTTP 200. The homepage serves the external stylesheet and same-origin `analytics.js`, has no inline script, and receives only the homepage-specific Google script/Analytics allowlist. `/songbook` and the other eight non-home routes return the strict policy with `script-src 'self'` and `connect-src 'none'`. `/style.css` and `/analytics.js` also return HTTP 200. This confirms the route rules are effective at the production edge, not only valid in the checked-in JSON.
+
+**Disposition:** verified for the website/CSP repair on `afd83e5`. Native reconstruction and unsigned-iOS artifact jobs are separate checks and do not constitute iPhone/iPad walkthrough acceptance.
+
