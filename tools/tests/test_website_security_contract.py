@@ -85,7 +85,7 @@ class WebsiteSecurityContractTests(unittest.TestCase):
 
         html = (WEB / "index.html").read_text(encoding="utf-8")
         self.assertIn('<script defer src="/analytics.js"></script>', html)
-        self.assertIsNone(re.search(r"<script\\b(?![^>]*\\bsrc\\s*=)[^>]*>", html, re.IGNORECASE))
+        self.assertIsNone(re.search(r"<script\b(?![^>]*\bsrc\s*=)[^>]*>", html, re.IGNORECASE))
 
         analytics = (WEB / "analytics.js").read_text(encoding="utf-8")
         self.assertIn("G-L0QV01MWR4", analytics)
