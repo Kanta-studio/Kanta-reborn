@@ -12,6 +12,7 @@ def verify():
     root = (APP / 'App/RootView.swift').read_text()
     host = (APP / 'Features/Host/HostView.swift').read_text()
     stage = (APP / 'Features/Host/KantaMainPlayerView.swift').read_text()
+    stage_presentation = (APP / 'Features/Host/KantaStageSheetPresentation.swift').read_text()
     fullscreen = (APP / 'Features/Host/FullscreenKaraokePlayerView.swift').read_text()
     fullscreen_presenter = (APP / 'Features/Host/SingingFullscreenPresentation.swift').read_text()
     test = TEST.read_text()
@@ -36,16 +37,17 @@ def verify():
             and 'showingHostControls' not in host
         ),
         'stage uses one sheet coordinator': '.sheet(item: $activeStageSheet' in stage and 'showingSearch' not in stage and 'showingQueue' not in stage,
-        'embedded Stage and Host panels share one root sheet identity': (
-            '.sheet(item: $activeHostSheet' in host
-            and 'case .stageSearch:' in host
-            and 'case .stageQueue:' in host
-            and '.sheet(item: $activeStageSheet' not in host
+        'embedded Stage uses a stable UIKit sheet owner': (
+            'KantaEmbeddedStageSheetPresentation(' in host
+            and '@State private var activeEmbeddedStageSheet: KantaStageSheet?' in host
             and 'setEmbeddedStageSheet' in host
             and 'setEmbeddedStageSheet' in stage
-            and 'stageSheetContent(_ sheet: KantaStageSheet)' in host
-            and 'presentationGate.completeDismissal(dismissedOwner)' in host
-            and 'ZStack {\n            hostContent' in host
+            and 'KantaStageSheetModalPresenter: UIViewController' in stage_presentation
+            and 'modalPresentationStyle = .pageSheet' in stage_presentation
+            and 'presentationControllerDidDismiss' in stage_presentation
+            and 'presentationGate.completeDismissal(.stage)' in stage_presentation
+            and 'case stageSearch' not in host
+            and 'case stageQueue' not in host
         ),
         'fullscreen Search/Queue keep a separate child presenter': (
             'fullscreenPlayer' in stage
