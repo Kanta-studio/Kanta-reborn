@@ -14,16 +14,10 @@ struct HostView: View {
     @State private var dismissedHostSheet: HostSheet?
     @State private var activeHostSheet: HostSheet? =
         ProcessInfo.processInfo.environment["KANTA_CONTROL_EXPANDED"] == "1" ? .controls : nil
+    @State private var activeEmbeddedStageSheet: KantaStageSheet?
     private enum HostSheet: String, Identifiable {
-        case controls, sessionSave, favorites, stageSearch, stageQueue
+        case controls, sessionSave, favorites
         var id: String { rawValue }
-
-        var presentationOwner: KantaPresentationGate.Owner {
-            switch self {
-            case .stageSearch, .stageQueue: return .stage
-            case .controls, .sessionSave, .favorites: return .host
-            }
-        }
     }
     @StateObject private var model: HostViewModel
     @ObservedObject private var networkHost: BonjourHostAdvertiser
@@ -78,8 +72,6 @@ struct HostView: View {
         // Embedded Stage Search/Queue and Host panels share one presenter; keep
         // this as the only HostView sheet to avoid competing iPad presentations.
         .sheet(item: $activeHostSheet, onDismiss: {
-            let dismissedOwner = dismissedHostSheet?.presentationOwner
-                ?? (presentationGate.owner == .stage ? .stage : .host)
             if dismissedHostSheet == .sessionSave {
                 model.showingSessionSavePrompt = false
             }
@@ -90,7 +82,7 @@ struct HostView: View {
                 // transition continuously, including while the sheet animates out.
                 presentationGate.request(.fullscreen) { showingFullscreenPlayer = true }
             }
-            presentationGate.completeDismissal(dismissedOwner)
+            presentationGate.completeDismissal(.host)
         }) { sheet in
             switch sheet {
             case .controls:
@@ -122,10 +114,6 @@ struct HostView: View {
                 SaveSessionFavoritesView(model: model)
             case .favorites:
                 SavedFavoritesView(model: model)
-            case .stageSearch:
-                stageSheetContent(.search)
-            case .stageQueue:
-                stageSheetContent(.queue)
             }
         }
         .navigationTitle("Karaoke Host")
@@ -140,6 +128,17 @@ struct HostView: View {
                 presentationGate: presentationGate,
                 microphoneBusy: microphonePitchMonitor.status == .running
                     || microphonePitchMonitor.status == .requestingPermission
+            )
+            .frame(width: 1, height: 1)
+        }
+        .background {
+            KantaEmbeddedStageSheetPresentation(
+                sheet: $activeEmbeddedStageSheet,
+                model: model,
+                singerName: $singerName,
+                microphoneBusy: microphonePitchMonitor.status == .running
+                    || microphonePitchMonitor.status == .requestingPermission,
+                presentationGate: presentationGate
             )
             .frame(width: 1, height: 1)
         }
@@ -209,7 +208,7 @@ struct HostView: View {
         }
         .onChange(of: activeHostSheet) { previous, current in
             if let previous, current == nil {
-                presentationGate.beginDismissal(previous.presentationOwner)
+                presentationGate.beginDismissal(.host)
                 dismissedHostSheet = previous
             }
         }
@@ -270,20 +269,6 @@ struct HostView: View {
         .background(.black)
     }
 
-    private func stageSheetContent(_ sheet: KantaStageSheet) -> some View {
-        KantaStageSheetContent(
-            sheet: sheet,
-            model: model,
-            singerName: $singerName,
-            microphoneBusy: microphonePitchMonitor.status == .running
-                || microphonePitchMonitor.status == .requestingPermission,
-            onClose: {
-                presentationGate.beginDismissal(.stage)
-                activeHostSheet = nil
-            }
-        )
-    }
-
     private var embeddedStage: some View {
         KantaMainPlayerView(
             model: model, camera: camera, presentationGate: presentationGate,
@@ -306,14 +291,7 @@ struct HostView: View {
             embedded: true,
             onExpand: openFullscreenPlayer,
             setEmbeddedStageSheet: { stageSheet in
-                guard let stageSheet else {
-                    activeHostSheet = nil
-                    return
-                }
-                switch stageSheet {
-                case .search: activeHostSheet = .stageSearch
-                case .queue: activeHostSheet = .stageQueue
-                }
+                activeEmbeddedStageSheet = stageSheet
             }
         )
     }
