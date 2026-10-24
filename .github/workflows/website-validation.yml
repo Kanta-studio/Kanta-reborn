@@ -7,6 +7,7 @@ on:
       - 'apps/web/**'
       - 'tools/verify-website.py'
       - 'tools/tests/test_vercel_deploy_workflow.py'
+      - 'tools/tests/test_website_security_contract.py'
       - '.github/workflows/vercel-deploy.yml'
       - '.github/workflows/website-validation.yml'
   pull_request:
@@ -15,6 +16,7 @@ on:
       - 'apps/web/**'
       - 'tools/verify-website.py'
       - 'tools/tests/test_vercel_deploy_workflow.py'
+      - 'tools/tests/test_website_security_contract.py'
       - '.github/workflows/vercel-deploy.yml'
       - '.github/workflows/website-validation.yml'
 permissions:
@@ -30,5 +32,6 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - run: python3 tools/verify-website.py
-      - run: python3 -m unittest tools.tests.test_vercel_deploy_workflow
+      - run: python3 -m unittest tools.tests.test_vercel_deploy_workflow tools.tests.test_website_security_contract
       - run: node --check apps/web/songbook.js
+      - run: node --check apps/web/analytics.js

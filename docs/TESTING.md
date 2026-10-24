@@ -95,6 +95,10 @@ The Root, Host and Stage SwiftUI sheet owners share `KantaPresentationGate`. The
 The presentation contract guard checks that the UIKit fullscreen presenter acquires and releases `KantaPresentationGate` ownership through its dismissal callback, and that the gate restores fullscreen after a nested Search/Queue sheet. The UI walkthrough opens fullscreen from CONTROL, uses Search inside fullscreen, exits, and verifies normal-stage Search can present afterward. Run `tools/check-ios-presentation-contract.py` and the full reconstruction validation on the candidate SHA. A green run on a different SHA does not validate it.
 
 
+## Website Content Security Policy
+
+The website validator checks that every canonical public route has exactly one explicit CSP. Only the homepage may load the allowlisted Google tag/AdSense scripts and connect to Google Analytics; all other pages, including Songbook, must retain `connect-src 'none'` and same-origin script loading. The wildcard header rule may not define CSP. The focused `tools/tests/test_website_security_contract.py` suite guards this boundary, and CI syntax-checks both `songbook.js` and `analytics.js`. A passing static contract is not proof of live response headers; verify the production deployment after the merge.
+
 ## Automatic workflow triggers and release boundary
 
 Reconstruction validation runs for relevant app, tool and workflow changes on same-repository pull requests and main pushes. Website validation runs for relevant website changes on main pushes and same-repository pull requests, and can also be started by manual dispatch. It deliberately does not run on ordinary feature-branch pushes; the pull-request event is the feature-branch validation trigger, avoiding duplicate CI for the same change. Verified-download contract and packaging checks run on their relevant pull-request and main triggers without any approval label. The full iPhone/iPad walkthrough runs on iOS pull requests, main pushes, weekly and on manual dispatch, and must pass on the exact release-candidate SHA before that SHA is treated as accepted. No workflow signs or publishes production downloads automatically.
