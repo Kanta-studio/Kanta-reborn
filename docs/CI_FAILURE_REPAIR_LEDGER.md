@@ -244,3 +244,16 @@ The fullscreen and session-save repair commits recorded above were folded into `
 **Actionable finding:** the first repair left two competing sheet modifiers in the Host hierarchy. Logs do not expose the exact UIKit presenter state, so this remains a source-level hypothesis rather than a proven runtime trace.
 
 **Candidate repair:** use one root `HostView` sheet identity for embedded Search/Queue and Host panels; route typed intents through `KantaPresentationGate`, complete the correct owner on dismissal, and keep fullscreen Search/Queue in the UIKit-hosted child. The exact new head still needs full iPhone/iPad validation.
+
+## iOS — iPad Stage sheet still absent after Host consolidation (2026-10-24)
+
+**Fingerprint:** PR #64 candidate `5865e142da2bb6fc8dbb528ed79cb3dc0fd7cf97`; [full walkthrough #40065088612](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088612).
+
+**Observed result:** app/UI tests compiled; iPhone walkthrough passed; iPad failed `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke`, and `testStarterPlaybackAndControls` because `stage.keypad.0` never appeared. The retained iPad accessibility hierarchy contains the main Host window and `stage.search`, but no presented Stage sheet. Focused iPhone smoke [#40065088607](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088607), reconstruction [#40065088592](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088592), unsigned build [#40065088603](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088603), and download contract tests [#40065088602](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088602) passed on that parent SHA.
+
+**Source diagnosis:** the prior change consolidated embedded Stage Search/Queue and Host panels into one HostView sheet, but RootView's navigation sheet was still attached directly to the ancestor NavigationStack containing HostView. The runtime logs do not expose UIKit's internal presenter selection, so the contribution of this ancestor/descendant sheet-anchor arrangement is a source-supported hypothesis, not a proven runtime trace.
+
+**Candidate repair:** attach RootView's navigation sheet to a sibling background anchor; keep HostView's single sheet identity and the shared presentation gate; add a source-contract regression check. Do not add retry taps, fixed sleeps, or relax UI assertions.
+
+**Status:** pending hosted validation on the new commit. Require reconstruction and the complete iPhone/iPad walkthrough on the same exact SHA before marking verified or advancing release artifacts.
+

@@ -256,3 +256,10 @@ The single import pipeline must scan with provider-safe limits, preview categori
 Embedded Host panels and Stage Search/Queue must share one root `HostView` sheet identity. Route embedded requests through `KantaPresentationGate` and complete the matching owner only from the shared sheet's `onDismiss`; do not attach a competing sheet to the scroll-content branch. The fullscreen projection retains its own child Search/Queue sheet under the UIKit-owned fullscreen host.
 
 Verified download packaging is an exact-SHA operation: reconstruction validation, the unsigned device archive and the complete iPhone/iPad walkthrough must all succeed for the same main-branch source SHA. Discover artifacts from those exact runs, reject expired or cross-run outputs, preserve app bytes, and never sign the app, publish a GitHub Release or deploy the website from the packaging job.
+
+## iPad sheet-anchor isolation — candidate (2026-10-24)
+
+The root navigation sheet is attached to a sibling background anchor, not directly to the `NavigationStack` that contains `HostView`. `HostView` keeps one sheet identity for CONTROL, session save, Favorites, and embedded Stage Search/Queue. Both SwiftUI presenters use the same `KantaPresentationGate`, which permits only one active owner and queues requests through dismissal callbacks. The UIKit fullscreen player retains its own nested Search/Queue presenter. This separation is intended to avoid the iPad case where the Host stage remains visible after Search is tapped but no keypad sheet enters the accessibility hierarchy.
+
+Evidence on parent candidate `5865e14`: [walkthrough #40065088612](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088612) passed the iPhone walkthrough but failed three iPad keypad assertions. The root-anchor relocation is a candidate repair only; the full changed-head iPhone/iPad walkthrough and reconstruction validation must pass before acceptance.
+

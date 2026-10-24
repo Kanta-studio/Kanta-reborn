@@ -139,3 +139,10 @@ Commit `ad95e8b04eb23311127090883f309f0ec4205724` passed reconstruction run [390
 - The Vercel CLI is pinned to `65.2.0`. The job pulls the existing production project configuration, builds a prebuilt production output, then uploads that output with non-interactive confirmation. `VERCEL_TOKEN` is only a GitHub Actions secret; it must never be committed or printed.
 - The static contract test checks the explicit target, pinned CLI, validation dependency, PR deploy exclusion, non-interactive commands, and deployment concurrency. Website validation runs it whenever the deployment workflow changes.
 - A successful Vercel CLI job is not sufficient by itself: verify `/ads.txt` and `/sitemap.xml` return HTTP 200 on the production hostname after deployment. A preview URL is not production acceptance.
+
+## iPad Stage Search presentation-anchor regression — 2026-10-24
+
+Parent candidate `5865e14` passed reconstruction, unsigned artifact build, verified-download contract tests, and focused iPhone smoke. Full walkthrough [#40065088612](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088612) passed iPhone and failed iPad in `testDemoKeypadCancelAndRepeatedIntentionalReservations`, `testFocusedNavigationSmoke`, and `testStarterPlaybackAndControls`. The retained failure-time accessibility hierarchy showed the Host stage/Search button but no presented keypad.
+
+The previous repair removed the duplicate Stage sheet from the Host scroll-content branch, but RootView still attached its navigation `.sheet` to the ancestor `NavigationStack` containing HostView. The next candidate moves that navigation sheet to a sibling background anchor while keeping both owners serialized through `KantaPresentationGate`. `tools/check-ios-presentation-contract.py` guards the sibling-anchor structure. Do not add retries, sleeps, or weaken assertions. Accept only after reconstruction and the complete iPhone and iPad walkthrough pass on the exact same candidate SHA.
+

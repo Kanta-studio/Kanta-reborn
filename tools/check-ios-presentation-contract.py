@@ -17,6 +17,13 @@ def verify():
     test = TEST.read_text()
     checks = {
         'root owns navigation sheet identity': '.sheet(item: $activeNavigation' in root and 'onDismiss:' in root,
+        'root navigation sheet uses a sibling background anchor': (
+            '.background {\n            Color.clear' in root
+            and '.sheet(item: $activeNavigation' in root
+            and root.index('NavigationStack {') < root.index('.background {')
+            and root.index('.background {') < root.index('.sheet(item: $activeNavigation')
+            and '.sheet(item: $activeNavigation' not in root.split('.background {', 1)[0]
+        ),
         'root queues menu requests through the shared presentation gate': (
             'guard activeNavigation == nil else { return }' in root
             and 'presentationGate.request(.navigation)' in root
