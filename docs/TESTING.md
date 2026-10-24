@@ -93,7 +93,7 @@ The Root, Host and Stage SwiftUI sheet owners share `KantaPresentationGate`. The
 
 ### iOS fullscreen presentation ownership candidate
 
-The presentation contract guard checks that the UIKit fullscreen presenter acquires and releases `KantaPresentationGate` ownership through its dismissal callback, and that the gate restores fullscreen after a nested Search/Queue sheet. The UI walkthrough opens fullscreen from CONTROL, uses Search inside fullscreen, exits, and verifies normal-stage Search can present afterward. Run `tools/check-ios-presentation-contract.py` and the full reconstruction validation on the candidate SHA. A green run on a different SHA does not validate it.
+The presentation contract guard checks that the UIKit fullscreen presenter acquires and releases `KantaPresentationGate` ownership through its dismissal callback, and that the gate restores fullscreen after a nested Search/Queue sheet. The UI walkthrough opens fullscreen from CONTROL, uses Search inside fullscreen, exits, and verifies normal-stage Search can present afterward. Run `tools/check-ios-presentation-contract.py` and the full reconstruction validation on the candidate SHA. A green run on a different SHA does not validate it. The embedded Search control must use `stage.search`, while the fullscreen Search control uses `stage.search.fullscreen`; keep both identities asserted in the source guard and query the fullscreen-specific identifier in the nested-presentation walkthrough.
 
 
 ## Automatic workflow triggers and release boundary
