@@ -43,6 +43,16 @@ def verify():
             and 'setEmbeddedStageSheet' in stage
             and 'ZStack {\n            hostContent' in host
         ),
+        'embedded presenter retries layout and reports blocked ownership': (
+            '.frame(maxWidth: .infinity, maxHeight: .infinity)' in host
+            and 'override func viewDidLayoutSubviews()' in stage_presentation
+            and 'presenter-not-in-window' in stage_presentation
+            and 'presenter-already-presenting' in stage_presentation
+            and 'KANTA_STAGE_PRESENTATION' in stage_presentation
+        ),
+        'demo keypad assertions wait for asynchronous presentation': (
+            'waitForExistence(timeout: 10), "Keypad digit' in test
+        ),
         'fullscreen Search/Queue keep a separate child presenter': (
             'fullscreenPlayer' in stage
             and '.sheet(item: $activeStageSheet' in stage
