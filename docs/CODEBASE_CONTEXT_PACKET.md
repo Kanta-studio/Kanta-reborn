@@ -13,3 +13,9 @@ PR [#58](https://github.com/usermalik20-del/Kanta-reborn/pull/58) remains open a
 ## Release artifact boundary
 
 The previous verified unsigned iOS input is from `ebe2f7a`, [run #40009518032](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032), artifact [#12526580325](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032/artifacts/12526580325). It is unsigned and requires personal signing; it is not a signed or directly installable release. The main unsigned-artifact workflow for `afd83e5` is still separate from iOS walkthrough acceptance. Do not update public download links until the exact release candidate passes its acceptance gate.
+
+## iOS Stage repair and exact-SHA release gate — October 24, 2026
+
+The previous PR #58 candidate `6045fba0b46d3de7efc34d102aff60af20ca3288` has no successful current-head walkthrough evidence. The earlier candidate [run #40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013) passed iPhone but failed three iPad keypad tests. The repair must consolidate embedded Host/Stage sheet ownership and preserve separate fullscreen ownership; scope remote accessibility IDs to the actual toggle and bound menu test durations. The new candidate branch `fix/ios-stage-sheets-and-exact-sha-release-gate-20261024` is pending hosted reconstruction and full iPhone/iPad validation.
+
+The verified-download packager must discover artifacts from successful main runs for the exact same SHA (reconstruction, unsigned iOS archive and full walkthrough), reject expired/cross-run artifacts, verify IPA metadata/checksums, and remain manual-dispatch only. No unsigned archive is a signed or directly installable release, and public download links must not advance before the exact-SHA acceptance gate passes.

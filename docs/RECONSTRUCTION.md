@@ -4,7 +4,11 @@ Date: 2026-10-15. Destination: kanta-gelo/Kanta-reborn.
 
 ## Current checkpoint
 
-PR #1 merged at `1720a54f31123f2ef59d41383dc41ef06c5855d5`. Run 38748040876 passed all 158 Swift package tests, unsigned Release simulator compilation, Android APK/lint/domain/browser checks. Historical entries below record earlier states; they are not current failure claims. The current Android media branch adds custom SF2, folder imports and controls; changed-head cloud and emulator acceptance remain pending.
+Canonical online repository: `usermalik20-del/Kanta-reborn`; the requested `kanta-gelo/Kanta-reborn` URL redirects to this owner. Main is at `ebe2f7ae42dcb578e6247adbd2be09a3cf24b57b` (`fix(web): remove stale build links and provenance`). On that exact main SHA, Vercel deploy run [40009517898](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517898), website validation [40009517823](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517823), unsigned iOS artifacts [40009518032](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032) and reconstruction validation [40009517716](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009517716) succeeded.
+
+Release acceptance is still blocked. The latest full walkthrough on main is run [39992413296](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/39992413296) on older SHA `81148475474742cf417d386ff4713b44cf58df0e`; it failed iPhone accessibility uniqueness and iPad Search/keypad flows. PR #58 run [40003404013](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40003404013) passed iPhone but failed three iPad keypad cases. The active repair consolidates embedded Stage Search/Queue and Host panels under one root HostView sheet identity, with owner-specific gate completion. Changed-head reconstruction and full iPhone/iPad walkthrough are mandatory before release acceptance.
+
+The latest main unsigned personal-signing artifact is `KANTA-personal-unsigned`, artifact [12526580325](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40009518032/artifacts/12526580325), expiring 2026-10-30. It is not a signed or directly installable release. GitHub Releases has no published release, and verified-download packaging has not produced a release bundle for the latest main SHA.
 
 ## Completed preparation
 

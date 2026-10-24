@@ -99,6 +99,12 @@ The presentation contract guard checks that the UIKit fullscreen presenter acqui
 
 The website validator checks that every canonical public route has exactly one explicit CSP. Only the homepage may load the allowlisted Google tag/AdSense scripts and connect to Google Analytics; all other pages, including Songbook, must retain `connect-src 'none'` and same-origin script loading. The wildcard header rule may not define CSP. The focused `tools/tests/test_website_security_contract.py` suite guards this boundary, and CI syntax-checks both `songbook.js` and `analytics.js`. A passing static contract is not proof of live response headers; verify the production deployment after the merge.
 
+## Native release acceptance and verified downloads
+
+The full iPhone/iPad walkthrough is a release gate, not a compile smoke test. The current Host sheet repair must pass the complete UI suite on both devices on the exact candidate SHA; older green iPhone evidence cannot substitute for a current iPad result. The embedded Host panels and Stage Search/Queue use one root sheet identity and owner-aware dismissal, while the UIKit fullscreen host retains its own child sheet.
+
+Verified-download packaging is manually dispatched from `main`. It discovers successful reconstruction, unsigned iOS archive and full walkthrough runs for the same exact SHA, validates artifact run identity, expiry, APK/IPA structure and checksums, and copies the accepted bytes without rebuilding or signing. The packaging job does not publish a GitHub Release or deploy the website. Contract tests remain automatic for relevant pull requests and main changes.
+
 ## Automatic workflow triggers and release boundary
 
 Reconstruction validation runs for relevant app, tool and workflow changes on same-repository pull requests and main pushes. Website validation runs for relevant website changes on main pushes and same-repository pull requests, and can also be started by manual dispatch. It deliberately does not run on ordinary feature-branch pushes; the pull-request event is the feature-branch validation trigger, avoiding duplicate CI for the same change. Verified-download contract and packaging checks run on their relevant pull-request and main triggers without any approval label. The full iPhone/iPad walkthrough runs on iOS pull requests, main pushes, weekly and on manual dispatch, and must pass on the exact release-candidate SHA before that SHA is treated as accepted. No workflow signs or publishes production downloads automatically.
