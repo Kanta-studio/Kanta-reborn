@@ -1203,3 +1203,10 @@ The root navigation sheet is attached to a sibling background anchor, not direct
 
 Evidence on parent candidate `5865e14`: [walkthrough #40065088612](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40065088612) passed the iPhone walkthrough but failed three iPad keypad assertions. The root-anchor relocation is a candidate repair only; the full changed-head iPhone/iPad walkthrough and reconstruction validation must pass before acceptance.
 
+
+
+## Embedded Stage sheet — UIKit ownership follow-up (2026-10-24)
+
+The root-anchor candidate 2db140c still failed iPad Search/keypad interactions in walkthrough #40070268797 (https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797): the iPhone portion passed, while testDemoKeypadCancelAndRepeatedIntentionalReservations, testFocusedNavigationSmoke and testStarterPlaybackAndControls failed because stage.keypad.0 never appeared. This disproves the sufficiency of the sibling-anchor-only repair; the exact internal UIKit presenter selection remains unlogged.
+
+The new candidate moves embedded Stage Search/Queue out of HostView.activeHostSheet and into KantaEmbeddedStageSheetPresentation, a stable UIKit presenter hosting the shared KantaStageSheetContent. The Host SwiftUI sheet now owns only CONTROL/session-save/Favorites; the fullscreen projection retains its own child sheet. The same KantaPresentationGate serializes all owners, and the embedded presenter releases .stage after UIKit dismissal. The full walkthrough on the exact new head is required to establish whether this architecture resolves the iPad issue. The focused smoke's initial failure on d9d5fa1 was a stale static-contract expectation, corrected in 4ff9a4d; that correction has not yet been validated by a green run.

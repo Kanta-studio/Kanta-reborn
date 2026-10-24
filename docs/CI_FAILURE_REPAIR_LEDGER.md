@@ -257,3 +257,18 @@ The fullscreen and session-save repair commits recorded above were folded into `
 
 **Status:** pending hosted validation on the new commit. Require reconstruction and the complete iPhone/iPad walkthrough on the same exact SHA before marking verified or advancing release artifacts.
 
+
+
+## iOS — iPad embedded Stage sheet persists after anchor relocation (2026-10-24)
+
+**Fingerprint:** PR #64 candidate 2db140c5749de47314e32c714c12245a3396f7ae; full walkthrough [#40070268797](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797), job [#120801998970](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268797/job/120801998970).
+
+**Observed result:** the iPhone walkthrough passed. The iPad failed testDemoKeypadCancelAndRepeatedIntentionalReservations, testFocusedNavigationSmoke and testStarterPlaybackAndControls with explicit XCTAssertTrue failures: “Embedded Stage Search must present its keypad on the active iPad/iPhone window”, “Stage Search must open the keypad”, and “Search did not present the keypad after library dismissal”. The accessibility hierarchy did not contain stage.keypad.0. Reconstruction [#40070268803](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268803), unsigned build [#40070268801](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268801), contract tests [#40070268814](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268814), and focused iPhone smoke [#40070268795](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40070268795) passed on that parent SHA.
+
+**Cause assessment:** the root navigation sheet's sibling-anchor relocation was not sufficient. Logs confirm the keypad never became accessible but do not expose UIKit's internal presentation state; the exact low-level mechanism remains unconfirmed.
+
+**Candidate repair:** commits [218c1c2](https://github.com/usermalik20-del/Kanta-reborn/commit/218c1c2c73cf641073a679649e409a9f54f4f2aa) and [e5f2672](https://github.com/usermalik20-del/Kanta-reborn/commit/e5f2672afc319b408bd270accc50bac0b3dcbeb1) move embedded Stage Search/Queue to a dedicated UIKit modal presenter while preserving the shared gate and existing Host/fullscreen owners. Static guard updated in [d9d5fa1](https://github.com/usermalik20-del/Kanta-reborn/commit/d9d5fa1a5eec645ac7758ccd5079cdac8ba58fa0).
+
+**Follow-up guard regression:** focused smoke [#40074261338](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40074261338) failed before compiling because the static checker searched for presentationGate.completeDismissal(.stage) while the presenter correctly calls gate.completeDismissal(.stage) through a captured gate. [Commit 4ff9a4d](https://github.com/usermalik20-del/Kanta-reborn/commit/4ff9a4d714908fc89e7a3cf514dfd3c243575bd1) corrects the assertion. This is a checker mismatch, not evidence of a Swift compiler failure.
+
+**Status:** current-head validation pending. Do not mark the runtime repair verified until the full iPhone and iPad walkthrough and reconstruction succeed on the same exact SHA.

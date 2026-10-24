@@ -87,7 +87,7 @@ The real playback walkthrough waits for a rendered stage Search button after clo
 
 ## iOS modal request lifecycle
 
-The Root, Host and Stage SwiftUI sheet owners share `KantaPresentationGate`. The gate holds a request received while another sheet is presented or dismissing, coalesces a second pending request from the same owner, and activates the first pending action only after the current owner reports `onDismiss`. The Search walkthrough deliberately taps once after leaving Library; do not add retries or fixed sleeps to mask a dropped presentation request. UIKit fullscreen remains a separately owned presenter and is not covered by this gate yet.
+Root navigation, Host panels, embedded Stage Search/Queue and fullscreen share KantaPresentationGate, but they do not all use the same SwiftUI sheet. Root navigation uses its sibling background anchor; Host CONTROL/session/Favorites use the HostView SwiftUI sheet; embedded Stage Search/Queue use KantaEmbeddedStageSheetPresentation with a UIKit-owned UIHostingController; fullscreen retains its own child SwiftUI sheet under the UIKit fullscreen host. The gate coalesces pending requests per owner and activates the next action only after the current owner reports its actual dismissal. The Search walkthrough deliberately taps once after leaving Library; do not add retries or fixed sleeps to mask a dropped presentation request. The current UIKit embedded-sheet candidate is not accepted until the full iPhone/iPad walkthrough passes on its exact SHA.
 
 
 ### iOS fullscreen presentation ownership candidate
