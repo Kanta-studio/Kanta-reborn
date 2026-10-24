@@ -315,3 +315,11 @@ The presenter source already contains blocked-state logging, but the runner did 
 - Interpretation: the first observable gap is before the UIKit presenter. Logs cannot conclusively distinguish an uninvoked SwiftUI button action from an event-capture gap, so do not report a confirmed UIKit rejection.
 - Candidate repair: replace the embedded row's adaptive `ViewThatFits` layout with one stable VStack; add a 62-point minimum stage-action hit area and rectangular content shape; deduplicate steady-state presenter logs to reduce diagnostic noise.
 - Acceptance: source-contract checks, reconstruction, focused smoke, and complete iPhone/iPad walkthrough must pass on the exact same candidate SHA. This is not accepted until runtime evidence confirms keypad presentation on iPad.
+
+
+## Source-contract escaping regression during iPad hit-target repair — October 24, 2026
+
+- Failed candidate: [reconstruction run #40108649860](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40108649860), source SHA `7178b19039f5aae83551bd6fae997b660937fdf4`.
+- Root cause: the newly added layout contract used double-escaped newline markers, so the Python guard searched for literal backslash-n text instead of the actual multiline Swift source. The failure was in the new checker assertion; it was not a Swift compile or runtime regression.
+- Repair: [commit `03abe66`](https://github.com/usermalik20-del/Kanta-reborn/commit/03abe661dc287a888e7fcb15bc2948db8cb367ab) changes the contract to single newline escapes so Python matches the source layout.
+- Acceptance: the corrected checker and all simulator/reconstruction workflows must pass on the same final PR head. The earlier failed run is retained as a test-tooling regression, not counted as validation of the repair.
