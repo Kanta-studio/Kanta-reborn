@@ -379,11 +379,14 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.launch()
         let queue = app.buttons["Queue"]
         XCTAssertTrue(queue.waitForExistence(timeout: waitSeconds))
-        XCTAssertEqual(queue.value as? String, "2 reservations")
+        let queueValuePredicate = NSPredicate(format: "value == %@", "2 reservations")
+        expectation(for: queueValuePredicate, evaluatedWith: queue)
+        waitForExpectations(timeout: waitSeconds)
         app.buttons["stage.search"].tap()
         for digit in 0...9 { XCTAssertTrue(app.buttons["stage.keypad.\(digit)"].exists) }
         app.buttons["Cancel"].tap()
-        XCTAssertEqual(queue.value as? String, "2 reservations")
+        expectation(for: queueValuePredicate, evaluatedWith: queue)
+        waitForExpectations(timeout: waitSeconds)
         // The same song may legitimately be reserved twice in two separate flows.
         for count in 3...4 {
             app.buttons["stage.search"].tap()
