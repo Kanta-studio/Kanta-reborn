@@ -114,6 +114,9 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         openFullscreen.tap()
         let fullscreenExit = app.buttons["fullscreen.exit"]
         XCTAssertTrue(fullscreenExit.waitForExistence(timeout: waitSeconds))
+        // Fullscreen Search must expose a unique accessibility identity so the
+        // presentation-contract guard can prove the fullscreen child presenter
+        // is distinct from the embedded Stage panel.
         let fullscreenSearch = app.buttons["stage.search.fullscreen"]
         XCTAssertTrue(fullscreenSearch.waitForExistence(timeout: waitSeconds))
         fullscreenSearch.tap()
@@ -386,10 +389,7 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         expectation(for: queueValuePredicate, evaluatedWith: queue)
         waitForExpectations(timeout: waitSeconds)
         app.buttons["stage.search"].tap()
-        for digit in 0...9 {
-            let key = app.buttons["stage.keypad.\(digit)"]
-            XCTAssertTrue(key.waitForExistence(timeout: 10), "Keypad digit \(digit) did not appear")
-        }
+        for digit in 0...9 { XCTAssertTrue(app.buttons["stage.keypad.\(digit)"].exists) }
         app.buttons["Cancel"].tap()
         expectation(for: queueValuePredicate, evaluatedWith: queue)
         waitForExpectations(timeout: waitSeconds)
