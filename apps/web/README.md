@@ -6,7 +6,7 @@ Deploy this directory as a static site, with no install or build command. `verce
 
 Downloads point to verified Actions artifacts in the current `usermalik20-del/Kanta-reborn` repository and require GitHub sign-in. Artifact retention is seven days; update `downloads.json` and both platform pages whenever fresh main-branch artifacts are published. The Android APK is debug-signed. The iPhoneOS IPA is unsigned, needs separate trusted personal signing and has no iCloud Save. Neither is a store release.
 
-Run `python3 tools/verify-website.py`, `python3 -m unittest tools.tests.test_website_security_contract`, and `node --check apps/web/songbook.js apps/web/analytics.js` from the repository root. Website validation checks every route's CSP and the deployment workflow gates production publishing on the same contract. Native apps are not rebuilt by the website-only workflow. Preserve the previous deployment for rollback.
+Run `python3 tools/verify-website.py`, `python3 -m unittest tools.tests.test_website_security_contract`, `node --check apps/web/songbook.js`, and `node --check apps/web/analytics.js` from the repository root. Website validation checks every route's CSP and the deployment workflow gates production publishing on the same contract. Native apps are not rebuilt by the website-only workflow. Preserve the previous deployment for rollback.
 
 The recovery evidence in `docs/evidence/website/2026-10-15` remains immutable. Original legal and software notices are retained; current Android implementation and signing statements supersede unavailable-repository feature claims.
 
