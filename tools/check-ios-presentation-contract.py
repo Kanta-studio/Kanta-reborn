@@ -45,7 +45,7 @@ def verify():
             and 'KantaStageSheetModalPresenter: UIViewController' in stage_presentation
             and 'modalPresentationStyle = .pageSheet' in stage_presentation
             and 'presentationControllerDidDismiss' in stage_presentation
-            and 'presentationGate.completeDismissal(.stage)' in stage_presentation
+            and 'gate.completeDismissal(.stage)' in stage_presentation
             and 'case stageSearch' not in host
             and 'case stageQueue' not in host
         ),
