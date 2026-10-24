@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public class SoundFontValidator {
     private static final String TAG = "SoundFontValidator";
-    private static final long MAX_FILE_SIZE = 100 * 1024 * 1024; // 100 MB limit
+    private static final long MAX_FILE_SIZE = 5L * 1024L * 1024L * 1024L; // 5 GB limit to support large professional SoundFonts (e.g., 4GB+)
 
     public static boolean validateSoundFontFile(File file) {
         if (file == null || !file.exists() || !file.isFile()) {

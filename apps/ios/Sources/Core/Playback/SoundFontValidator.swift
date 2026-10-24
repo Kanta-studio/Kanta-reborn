@@ -1,13 +1,13 @@
 import Foundation
 
 public enum SoundFontValidator {
-    private static let maxFileSize: UInt64 = 100 * 1024 * 1024 // 100 MB limit
+    private static let maxFileSize: UInt64 = 5 * 1024 * 1024 * 1024 // 5 GB limit to support large professional SoundFonts (e.g., 4GB+)
 
     public static func validateSoundFontFile(at url: URL) -> Bool {
         guard let attributes = try? FileManager.default.attributesOfItem(atPath: url.path),
               let fileSize = attributes[.size] as? UInt64,
               fileSize <= maxFileSize else {
-            print("SoundFontValidator: File exceeds max size or attributes unreadable.")
+            print("SoundFontValidator: File exceeds max size (5GB) or attributes unreadable.")
             return false
         }
 
