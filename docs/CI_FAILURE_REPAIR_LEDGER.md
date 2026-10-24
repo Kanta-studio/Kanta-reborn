@@ -293,3 +293,10 @@ Next action requires an authorized, simulator-only signed test-host configuratio
 **Evidence:** PR #67 walkthrough run [#40093013311](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40093013311) passed the iPhone stage but failed four iPad walkthroughs; Search taps did not expose `stage.keypad.0`. The log does not contain a UIKit rejection trace, so the exact low-level cause remains unconfirmed.
 
 **Candidate repair:** mount the embedded UIKit presenter at full Host bounds, retry its state machine after layout, recover an orphaned owned controller, and log deduplicated blocked states. The demo keypad test now waits for each digit to appear. Validate the source guards, Swift tests, focused iPhone smoke, and full iPhone/iPad walkthrough on one exact head. Do not merge or release based on compilation or iPhone-only success.
+
+## PR #67 keypad assertion contract regressed during main synchronization — October 24, 2026
+
+- Evidence: [focused iPhone smoke #40100439415](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40100439415) failed in the pre-XCTest source-contract step on candidate `a09be411`; native lifecycle and UI tests were skipped because the build/gate step stopped first.
+- Confirmed cause: the main conflict-resolution commit `92a5aab` replaced the ten per-digit asynchronous waits with a compact `XCTAssertTrue(...exists)` loop. The PR's stronger source guard correctly rejected that regression before simulator execution.
+- Repair: [commit `b36108e`](https://github.com/usermalik20-del/Kanta-reborn/commit/b36108e2dffc30957161b2ce0e9f24eb3c134021) restores `waitForExistence(timeout: 10)` and a digit-specific failure message for all ten keypad buttons. No assertions are removed or weakened.
+- Acceptance: the corrected source guard, focused smoke, reconstruction, and full iPhone/iPad walkthrough must pass on the same final candidate SHA. The current main walkthrough [#40099286186](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40099286186) has passed iPhone and is still running iPad at this snapshot; do not infer iPad acceptance from the earlier iPhone pass.
