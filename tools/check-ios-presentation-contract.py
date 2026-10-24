@@ -57,7 +57,7 @@ def verify():
         ),
         'embedded Stage actions use stable hit targets across size classes': (
             'ViewThatFits(in: .horizontal)' not in stage
-            and 'VStack(alignment: .leading, spacing: 12) {\\n                    nowSinging\\n                    stageActions\\n                }' in stage
+            and 'VStack(alignment: .leading, spacing: 12) {\n                    nowSinging\n                    stageActions\n                }' in stage
             and '.frame(minWidth: 44, minHeight: 62)' in stage
             and '.contentShape(Rectangle())' in stage
         ),
