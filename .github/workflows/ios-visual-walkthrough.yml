@@ -60,6 +60,19 @@ jobs:
       - name: Real iPad walkthrough
         if: ${{ !cancelled() }}
         run: python3 ../../tools/capture-ios-runtime.py --device ipad
+      - name: Preserve compact iPad presentation diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-ipad-presentation-diagnostics
+          path: |
+            apps/ios/runtime-captures/ipad-tests.log
+            apps/ios/runtime-captures/ipad-presentation-diagnostics.log
+            apps/ios/runtime-captures/ipad-recording.log
+            apps/ios/runtime-captures/manifest-ipad.json
+            apps/ios/runtime-captures/ipad-screenshots/**/*.txt
+          if-no-files-found: ignore
+          retention-days: 7
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

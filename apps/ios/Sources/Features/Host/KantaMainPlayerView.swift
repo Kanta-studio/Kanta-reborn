@@ -256,7 +256,13 @@ struct KantaMainPlayerView: View {
             assertionFailure("Embedded stage sheets require a stable HostView presenter.")
             return
         }
+        NSLog("[KANTA_STAGE_PRESENTATION] request sheet=%@ embedded=%@ gateOwner=%@ dismissing=%@",
+              sheet.rawValue, embedded ? "true" : "false",
+              String(describing: presentationGate.owner),
+              presentationGate.dismissing ? "true" : "false")
         presentationGate.request(.stage) {
+            NSLog("[KANTA_STAGE_PRESENTATION] activate sheet=%@ embedded=%@",
+                  sheet.rawValue, embedded ? "true" : "false")
             if embedded {
                 setEmbeddedStageSheet?(sheet)
             } else {

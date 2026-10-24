@@ -48,6 +48,37 @@ def run(*args: str, **kwargs):
     print("+", " ".join(args), flush=True)
     return subprocess.run(args, check=True, **kwargs)
 
+
+def capture_presentation_diagnostics(udid: str, label: str) -> None:
+    """Retain filtered UIKit presentation logs without masking XCTest failures."""
+    path = OUT / f"{label}-presentation-diagnostics.log"
+    predicate = (
+        'eventMessage CONTAINS[c] "KANTA_STAGE_PRESENTATION" OR '
+        'eventMessage CONTAINS[c] "Attempt to present" OR '
+        'eventMessage CONTAINS[c] "not in the window hierarchy"'
+    )
+    command = [
+        "xcrun", "simctl", "spawn", udid, "log", "show",
+        "--last", "15m", "--style", "compact", "--info",
+        "--predicate", predicate,
+    ]
+    try:
+        with path.open("w") as log:
+            result = subprocess.run(
+                command, stdout=log, stderr=subprocess.STDOUT, text=True,
+                timeout=60, check=False,
+            )
+            if result.returncode:
+                log.write(
+                    f"Simulator log capture exited with status {result.returncode}\\n"
+                )
+    except (OSError, subprocess.SubprocessError) as error:
+        try:
+            path.write_text(f"Simulator log capture unavailable: {error}\\n")
+        except OSError:
+            pass
+    print(f"Presentation diagnostics: {path}", flush=True)
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--device", choices=("iphone", "ipad"))
@@ -107,6 +138,7 @@ def main() -> int:
                 except subprocess.TimeoutExpired:
                     recorder.kill()
                     recorder.wait()
+            capture_presentation_diagnostics(udid, label)
             result = OUT / f"{label}.xcresult"
             if (result / "Info.plist").is_file():
                 subprocess.run(["xcrun", "xcresulttool", "export", "attachments", "--path", str(result),

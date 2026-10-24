@@ -16,6 +16,8 @@ def verify():
     fullscreen = (APP / 'Features/Host/FullscreenKaraokePlayerView.swift').read_text()
     fullscreen_presenter = (APP / 'Features/Host/SingingFullscreenPresentation.swift').read_text()
     test = TEST.read_text()
+    runner = (ROOT / 'tools/capture-ios-runtime.py').read_text()
+    workflow = (ROOT / '.github/workflows/ios-visual-walkthrough.yml').read_text()
     checks = {
         'root owns navigation sheet identity': '.sheet(item: $activeNavigation' in root and 'onDismiss:' in root,
         'root queues menu requests through the shared presentation gate': (
@@ -52,6 +54,14 @@ def verify():
         ),
         'demo keypad assertions wait for asynchronous presentation': (
             'waitForExistence(timeout: 10), "Keypad digit' in test
+        ),
+        'embedded Stage presenter failures emit and retain diagnostics': (
+            '[KANTA_STAGE_PRESENTATION]' in stage_presentation
+            and 'request sheet=' in stage
+            and 'activate sheet=' in stage
+            and 'capture_presentation_diagnostics' in runner
+            and 'eventMessage CONTAINS[c] "KANTA_STAGE_PRESENTATION"' in runner
+            and 'ios-ipad-presentation-diagnostics' in workflow
         ),
         'fullscreen Search/Queue keep a separate child presenter': (
             'fullscreenPlayer' in stage

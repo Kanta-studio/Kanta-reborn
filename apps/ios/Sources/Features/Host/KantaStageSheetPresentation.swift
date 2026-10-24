@@ -79,6 +79,7 @@ final class KantaStageSheetModalPresenter: UIViewController,
     private var isTransitioning = false
     private var dismissalCallbackPending = false
     private var lastBlockedPresentationState: String?
+    private var lastPresentationEvent: String?
 
     override func loadView() {
         view = UIView(frame: .zero)
@@ -103,17 +104,20 @@ final class KantaStageSheetModalPresenter: UIViewController,
         self.presentationGate = presentationGate
         self.makeSheet = makeSheet
         self.onDismiss = onDismiss
+        recordPresentationEvent("configure")
         updatePresentation()
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        recordPresentationEvent("view-did-appear")
         updatePresentation()
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         if !isTransitioning, let ownedSheet, ownedSheet.presentingViewController == nil {
+            recordPresentationEvent("orphaned-owned-sheet")
             self.ownedSheet = nil
             finishDismissal()
             return
@@ -122,26 +126,37 @@ final class KantaStageSheetModalPresenter: UIViewController,
     }
 
     private func updatePresentation() {
-        guard !isTransitioning else { return }
+        guard !isTransitioning else {
+            if requestedSheet != nil { recordPresentationEvent("deferred-transition") }
+            return
+        }
 
         guard requestedSheet != nil else {
-            guard let presented = ownedSheet else { return }
+            guard let presented = ownedSheet else {
+                recordPresentationEvent("idle-no-request")
+                return
+            }
             guard presented.presentingViewController != nil else {
                 ownedSheet = nil
                 finishDismissal()
                 return
             }
             isTransitioning = true
+            recordPresentationEvent("dismiss-start")
             presented.dismiss(animated: false) { [weak self] in
                 guard let self else { return }
                 self.ownedSheet = nil
                 self.isTransitioning = false
+                self.recordPresentationEvent("dismiss-complete")
                 self.finishDismissal()
             }
             return
         }
 
-        guard ownedSheet == nil else { return }
+        guard ownedSheet == nil else {
+            recordBlockedPresentation("owned-sheet-still-referenced")
+            return
+        }
         guard viewIfLoaded?.window != nil else {
             recordBlockedPresentation("presenter-not-in-window")
             return
@@ -157,31 +172,42 @@ final class KantaStageSheetModalPresenter: UIViewController,
         ownedSheet = presented
         dismissalCallbackPending = true
         isTransitioning = true
+        recordPresentationEvent("present-start")
         presented.presentationController?.delegate = self
         present(presented, animated: false) { [weak self, weak presented] in
             guard let self else { return }
             self.isTransitioning = false
+            self.recordPresentationEvent("present-complete")
             presented?.presentationController?.delegate = self
             self.updatePresentation()
         }
     }
 
     private func recordBlockedPresentation(_ reason: String) {
-        let state = "sheet=\(requestedSheet?.rawValue ?? "none"),reason=\(reason),window=\(viewIfLoaded?.window != nil),presented=\(presentedViewController != nil),gate=\(String(describing: presentationGate?.owner))"
+        let state = "sheet=\(requestedSheet?.rawValue ?? "none"),reason=\(reason),window=\(viewIfLoaded?.window != nil),owned=\(ownedSheet != nil),ownedPresenting=\(ownedSheet?.presentingViewController != nil),presented=\(presentedViewController != nil),transitioning=\(isTransitioning),gate=\(String(describing: presentationGate?.owner)),dismissing=\(presentationGate?.dismissing ?? false)"
         guard state != lastBlockedPresentationState else { return }
         lastBlockedPresentationState = state
+        NSLog("[KANTA_STAGE_PRESENTATION] blocked:%@", state)
+    }
+
+    private func recordPresentationEvent(_ event: String) {
+        let state = "\(event),sheet=\(requestedSheet?.rawValue ?? "none"),window=\(viewIfLoaded?.window != nil),owned=\(ownedSheet != nil),ownedPresenting=\(ownedSheet?.presentingViewController != nil),presented=\(presentedViewController != nil),transitioning=\(isTransitioning),gate=\(String(describing: presentationGate?.owner)),dismissing=\(presentationGate?.dismissing ?? false)"
+        guard state != lastPresentationEvent else { return }
+        lastPresentationEvent = state
         NSLog("[KANTA_STAGE_PRESENTATION] %@", state)
     }
 
     func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
         guard let ownedSheet,
               presentationController.presentedViewController === ownedSheet else { return }
+        recordPresentationEvent("delegate-dismiss")
         self.ownedSheet = nil
         finishDismissal()
     }
 
     private func finishDismissal() {
         guard dismissalCallbackPending else { return }
+        recordPresentationEvent("finish-dismissal")
         dismissalCallbackPending = false
         presentationGate?.beginDismissal(.stage)
         onDismiss?()
