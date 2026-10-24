@@ -68,7 +68,7 @@ struct KantaEmbeddedStageSheetPresentation: UIViewControllerRepresentable {
 }
 
 @MainActor
-private final class KantaStageSheetModalPresenter: UIViewController,
+final class KantaStageSheetModalPresenter: UIViewController,
     UIAdaptivePresentationControllerDelegate {
     private var requestedSheet: KantaStageSheet?
     private var makeSheet: (@MainActor (KantaStageSheet) -> UIViewController)?
