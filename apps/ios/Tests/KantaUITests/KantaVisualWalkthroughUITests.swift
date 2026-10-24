@@ -82,8 +82,11 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
             return
         }
         search.tap()
-        XCTAssertTrue(keypadZero.waitForExistence(timeout: 10),
+        XCTAssertTrue(keypadZero.waitForExistence(timeout: 15),
                       "Search did not present the keypad after library dismissal")
+        let keypadZeroPredicate = NSPredicate(format: "hittable == true")
+        expectation(for: keypadZeroPredicate, evaluatedWith: keypadZero)
+        waitForExpectations(timeout: 10)
         capture("06-real-search-overlay", app)
         app.buttons["Cancel"].tap()
         let saveSession = app.buttons["stage.saveSession"]
@@ -379,14 +382,20 @@ final class KantaVisualWalkthroughUITests: XCTestCase {
         app.launch()
         let queue = app.buttons["Queue"]
         XCTAssertTrue(queue.waitForExistence(timeout: waitSeconds))
-        XCTAssertEqual(queue.value as? String, "2 reservations")
+        let queueValuePredicate = NSPredicate(format: "value == %@", "2 reservations")
+        expectation(for: queueValuePredicate, evaluatedWith: queue)
+        waitForExpectations(timeout: waitSeconds)
         app.buttons["stage.search"].tap()
         for digit in 0...9 { XCTAssertTrue(app.buttons["stage.keypad.\(digit)"].exists) }
         app.buttons["Cancel"].tap()
-        XCTAssertEqual(queue.value as? String, "2 reservations")
+        expectation(for: queueValuePredicate, evaluatedWith: queue)
+        waitForExpectations(timeout: waitSeconds)
         // The same song may legitimately be reserved twice in two separate flows.
         for count in 3...4 {
             app.buttons["stage.search"].tap()
+            let keypad0 = app.buttons["stage.keypad.0"]
+            XCTAssertTrue(keypad0.waitForExistence(timeout: 10), "Keypad did not appear in time")
+            XCTAssertTrue(keypad0.isHittable, "Keypad is not hittable")
             app.buttons["stage.keypad.Clear"].tap()
             for key in ["0", "0", "3"] { app.buttons["stage.keypad." + key].tap() }
             let result = app.buttons["Select Tadhana"]
