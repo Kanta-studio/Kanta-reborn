@@ -315,3 +315,10 @@ The current repair candidate gives embedded Stage Search/Queue a stable UIKit pr
 ## Embedded Stage presenter lifecycle contract (2026-10-24)
 
 Embedded Search/Queue are owned by `KantaStageSheetModalPresenter`, not a competing SwiftUI `.sheet`. Its UIKit representable must occupy the Host bounds while remaining non-interactive, retry presentation when layout/attachment changes, and recover a stale owned controller instead of silently leaving the shared presentation gate held. Blocked presentation states are logged with the `KANTA_STAGE_PRESENTATION` prefix. The exact-head iPhone and iPad walkthroughs are required before acceptance; source checks alone do not prove runtime behavior.
+
+
+## iPad embedded Search touch-routing candidate — October 24, 2026
+
+Walkthrough [#40104730910](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40104730910) passed iPhone but failed four iPad cases after Search taps. The compact diagnostic artifact [#12564263921](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40104730910/artifacts/12564263921) contains no `request sheet=`, `activate sheet=`, or `present-start` events for the failing interactions; presenter state remained `sheet=none`. This places the first observable gap before UIKit presentation, although the logs alone cannot distinguish a dropped button action from a logging gap.
+
+The candidate removes the embedded title/action row's `ViewThatFits` HStack/VStack branch and gives each stage action an explicit 62-point minimum hit area with a rectangular content shape. Presenter logging now deduplicates steady-state configure/idle events so request and transition events remain inspectable. This is a targeted touch-routing candidate, not a verified fix; exact-head iPhone and iPad walkthroughs must pass before merge or release.

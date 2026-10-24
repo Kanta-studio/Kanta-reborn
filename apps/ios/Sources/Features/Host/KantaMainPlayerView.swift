@@ -126,9 +126,12 @@ struct KantaMainPlayerView: View {
                 .accessibilityIdentifier("stage.controls")
             }
             VStack(alignment: .leading, spacing: 14) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top) { nowSinging; Spacer(); stageActions }
-                    VStack(alignment: .leading, spacing: 12) { nowSinging; stageActions }
+                // Keep the interactive Search/Camera/Expand row in one stable
+                // hierarchy on iPhone and iPad. The adaptive branch coincided with
+                // iPad taps that produced no request-stage diagnostics.
+                VStack(alignment: .leading, spacing: 12) {
+                    nowSinging
+                    stageActions
                 }
                 ZStack {
                     stageBackground.accessibilityHidden(true)
@@ -342,7 +345,8 @@ struct KantaMainPlayerView: View {
                     .overlay(Circle().stroke(GeloVisualStyle.accent.opacity(0.65)))
                 Text(title).font(.caption)
             }
-            .frame(minWidth: 44)
+            .frame(minWidth: 44, minHeight: 62)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain).accessibilityLabel(title)
     }

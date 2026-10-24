@@ -169,3 +169,8 @@ When Stage Search does not expose `stage.keypad.0`, inspect the `KANTA_STAGE_PRE
 ### Keypad assertion regression after main synchronization — October 24, 2026
 
 The source guard in [focused smoke run #40100439415](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40100439415) caught a merge-resolution regression before XCTest: the demo keypad test used immediate `.exists` checks for digits 0–9 instead of waiting for asynchronous presentation. Commit [b36108e](https://github.com/usermalik20-del/Kanta-reborn/commit/b36108e2dffc30957161b2ce0e9f24eb3c134021) restores `waitForExistence(timeout: 10)` for each digit without removing any assertion. This repairs the test contract; it does not establish that the iPad runtime presentation issue is resolved. Re-run the focused smoke and full exact-SHA iPhone/iPad walkthrough.
+
+
+## iPad embedded Search touch-routing regression
+
+The embedded Stage title and Search/Camera/Expand controls now use one stable vertical layout rather than switching interactive controls between `ViewThatFits` branches. Stage action labels declare a minimum 44×62-point hit area and rectangular content shape. This change is based on [walkthrough #40104730910](https://github.com/usermalik20-del/Kanta-reborn/actions/runs/40104730910), where XCTest tapped Search but the captured presenter log contained no request/activation/presentation events and the keypad never appeared. It remains a hypothesis-driven candidate until the exact commit passes the full iPhone/iPad walkthrough. Keep one-tap assertions and do not add retries or sleeps.

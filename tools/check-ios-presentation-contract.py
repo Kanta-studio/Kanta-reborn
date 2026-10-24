@@ -55,6 +55,17 @@ def verify():
         'demo keypad assertions wait for asynchronous presentation': (
             'waitForExistence(timeout: 10), "Keypad digit' in test
         ),
+        'embedded Stage actions use stable hit targets across size classes': (
+            'ViewThatFits(in: .horizontal)' not in stage
+            and 'VStack(alignment: .leading, spacing: 12) {\\n                    nowSinging\\n                    stageActions\\n                }' in stage
+            and '.frame(minWidth: 44, minHeight: 62)' in stage
+            and '.contentShape(Rectangle())' in stage
+        ),
+        'presentation diagnostics avoid repetitive steady-state log flooding': (
+            'lastPresentationState' in stage_presentation
+            and 'stateOnlyEvents' in stage_presentation
+            and 'NSLog("[KANTA_STAGE_PRESENTATION] %@,%@", event, state)' in stage_presentation
+        ),
         'embedded Stage presenter failures emit and retain diagnostics': (
             '[KANTA_STAGE_PRESENTATION]' in stage_presentation
             and 'request sheet=' in stage
