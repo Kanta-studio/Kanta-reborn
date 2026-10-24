@@ -79,7 +79,7 @@ final class KantaStageSheetModalPresenter: UIViewController,
     private var isTransitioning = false
     private var dismissalCallbackPending = false
     private var lastBlockedPresentationState: String?
-    private var lastPresentationEvent: String?
+    private var lastPresentationState: String?
 
     override func loadView() {
         view = UIView(frame: .zero)
@@ -191,10 +191,14 @@ final class KantaStageSheetModalPresenter: UIViewController,
     }
 
     private func recordPresentationEvent(_ event: String) {
-        let state = "\(event),sheet=\(requestedSheet?.rawValue ?? "none"),window=\(viewIfLoaded?.window != nil),owned=\(ownedSheet != nil),ownedPresenting=\(ownedSheet?.presentingViewController != nil),presented=\(presentedViewController != nil),transitioning=\(isTransitioning),gate=\(String(describing: presentationGate?.owner)),dismissing=\(presentationGate?.dismissing ?? false)"
-        guard state != lastPresentationEvent else { return }
-        lastPresentationEvent = state
-        NSLog("[KANTA_STAGE_PRESENTATION] %@", state)
+        let state = "sheet=\(requestedSheet?.rawValue ?? "none"),window=\(viewIfLoaded?.window != nil),owned=\(ownedSheet != nil),ownedPresenting=\(ownedSheet?.presentingViewController != nil),presented=\(presentedViewController != nil),transitioning=\(isTransitioning),gate=\(String(describing: presentationGate?.owner)),dismissing=\(presentationGate?.dismissing ?? false)"
+        // SwiftUI can call updateUIViewController repeatedly. Keep steady-state
+        // events bounded so meaningful request/presentation transitions remain
+        // visible in the simulator log instead of being buried by configure/idle noise.
+        let stateOnlyEvents: Set<String> = ["configure", "idle-no-request", "deferred-transition"]
+        if stateOnlyEvents.contains(event), state == lastPresentationState { return }
+        lastPresentationState = state
+        NSLog("[KANTA_STAGE_PRESENTATION] %@,%@", event, state)
     }
 
     func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
