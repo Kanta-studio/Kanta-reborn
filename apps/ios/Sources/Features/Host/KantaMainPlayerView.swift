@@ -136,7 +136,7 @@ struct KantaMainPlayerView: View {
                     nowSinging
                         .layoutPriority(1)
                     Spacer(minLength: 8)
-                    stageActions.fixedSize()
+                    stageActions
                 }
                 ZStack {
                     stageBackground.accessibilityHidden(true)
@@ -201,6 +201,13 @@ struct KantaMainPlayerView: View {
             stageButton("Expand", icon: "arrow.up.left.and.arrow.down.right", action: onExpand)
                 .accessibilityIdentifier("stage.expand")
         }
+        // Diagnostic only: fires alongside any button that consumes the tap, so
+        // it can distinguish "the touch never reaches this row" from "the touch
+        // arrives but the Button does not act". Remove once the iPad walkthrough
+        // reports a stage request.
+        .simultaneousGesture(TapGesture().onEnded {
+            NSLog("[KANTA_PROBE] actions-row tap received")
+        })
     }
 
     @ViewBuilder private var stageBackground: some View {
