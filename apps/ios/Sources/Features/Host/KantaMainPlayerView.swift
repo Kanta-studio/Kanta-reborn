@@ -382,9 +382,13 @@ final class KantaWindowTapProbeCoordinator: NSObject, UIGestureRecognizerDelegat
         guard let view = recogniser.view else { return }
         let point = recogniser.location(in: view)
         let hit = view.hitTest(point, with: nil)
+        let hitDescription = hit.map { hitView in
+            let frameInWindow = hitView.convert(hitView.bounds, to: view)
+            return "\(type(of: hitView)) \(NSCoder.string(for: frameInWindow))"
+        } ?? "nil"
         NSLog("[KANTA_TAP] window-point=%@ hit=%@",
-              NSStringFromCGPoint(point),
-              hit.map { String(describing: type(of: $0)) + " " + NSStringFromCGRect($0.frame) } ?? "nil")
+              NSCoder.string(for: point),
+              hitDescription)
     }
 
     func gestureRecognizer(
